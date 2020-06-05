@@ -1,0 +1,181 @@
+﻿添加车辆
+localhost:8080/company/vehicle/vehicleAdd
+{
+    "plateNumber": "川A2222",
+    "seats": 40,
+    "vehicleType": "BUS",
+    "businessType": "SELF",
+    "status": 1,
+    "purchaseDate": "2020-04-19 00:14:48",
+    "brandId": 1,
+    "carUsage": "LEASE",
+    "companyId": 1,
+    "powerSource": "DIESEL",
+    "mileage": 100,
+    "fuel": 10,
+    "dockedAddress": "aaaa",
+    "simpleDockedAddress": "bbb",
+    "dockedLatitude": 123.123,
+    "dockedLongitude": 123.123,
+    "travelLicensePhotoURL": "asdasdasd",
+    "drivingType": "A1",
+    "unitNum": "asd",
+    "belongComapnySimName": "公司简称",
+    "belongCompanyName": "公司名称",
+    "baseUserId": {
+        "id": 1,
+        "uname": "U1587434412929",
+        "phone": "16341312312",
+        "realName": "奥术大师",
+        "regWay": "PC_COMPANY",
+        "ustate": "NORMAL",
+        "nickName": null,
+        "headImg": null,
+        "atime": "2020-04-21 02:00:13"
+    },
+    "statusTimeslot":"2020-04-26 12:00-2020-04-26 14:00"
+	"runningArea":1
+}
+baseUserId 为驾驶员，若不添加驾驶员则为null
+
+修改车辆
+localhost:8080/company/vehicle/vehicleUpdate
+字段不全，可参考查询车辆接口的返回字段
+{
+    "id": 5,
+    "plateNumber": "川A2222",
+    "seats": 40,
+    "vehicleType": "BUS",
+    "businessType": "SELF",
+    "status": 2,
+    "statusTimeslot": "2020-04-26 12:00-2020-04-26 14:00",
+    "purchaseDate": "2020-04-19 00:14:48",
+    "brandId": 1,
+    "carUsage": "LEASE",
+    "companyId": 1,
+    "powerSource": "DIESEL",
+    "mileage": 100,
+    "fuel": 10,
+    "dockedAddress": "aaaa",
+    "simpleDockedAddress": "bbb",
+    "dockedLatitude": 123.123,
+    "dockedLongitude": 123.123,
+    "travelLicensePhotoURL": "asdasdasd",
+    "drivingType": "A1",
+    "baseUserId": {
+        "id": 1,
+        "uname": "U1587434412929",
+        "phone": "16341312312",
+        "realName": "奥术大师",
+        "regWay": "PC_COMPANY",
+        "ustate": "NORMAL",
+        "nickName": null,
+        "headImg": null,
+        "atime": "2020-04-21 02:00:13"
+    },
+    "belongCompanyName": "公司名称",
+    "belongComapnySimName": "公司简称",
+    "unitNum": "asd",
+	"runningArea":1
+}
+baseUserId 内的内容不可修改
+
+删除车辆
+localhost:8080/company/vehicle/vehicleDelete
+{
+    "id": 3
+}
+
+获取车辆列表
+localhost:8080/company/vehicle/vehicleListFind
+{
+	"page":1,
+	"rows":10,
+	"phone":"",
+	"plateNumber":"",
+	"seats":"",
+	"unitNum":"asd",
+	"belongCompany":"",
+	"carUsage":""，
+	"groupName":"",
+	"startTime":"2020-04-20 00:14:48",
+	"endTime":""
+}
+
+根据id查询车辆信息
+localhost:8080/company/vehicle/vehicleFindById
+{
+	"id":1
+}
+
+获取驾驶员列表
+localhost:8080/company/cus/getDriverList
+{
+	"unitNum":"asd"
+}
+
+获取公司信息（用于添加车辆所属公司下拉框）
+localhost:8080/company/cus/getCompanyCusIsDepend
+{
+	"unitNum":"asd"
+}
+返回结果
+{
+    "msg": "查询-单位客户-挂靠公司的客户-成功",
+    "code": 0,
+    "data": [
+        {
+            "unitName": "公司名称，对应所属公司名称",
+            "unitSimple": "所属公司简称",
+            "id": 关联公司id
+        }
+    ]
+}
+
+
+车辆-设置主驾驶员
+/company/vehicle/setDriver
+{
+    "id": 2,
+    "uname": "U1588836285726"
+}
+
+
+车辆-校验车牌号是否重复
+/company/vehicle/checkPlateNum
+{
+	"plateNum":"川Aasdasdasd"
+}
+
+车辆-获取单位下的所有车辆
+/company/vehicle/getAllVehicle
+
+
+
+
+字段中英对照
+plateNumber  车牌号
+seats 座位数
+vehicleType 车辆类型 eg：大巴车 目前只支持传"BUS"
+businessType 车辆类型 eg：自营   目前只支持传"SELF"
+status  车辆状态 是否正常 1是'
+purchaseDate 购买日期
+brandId 车辆品牌
+carUsage 车辆性质 eg：旅游客运 目前只支持传"SELF"
+companyId  关联公司id
+powerSource  动力来源  目前只支持传"DIESEL"
+mileage  续航里程
+fuel    正常油耗
+dockedAddress   停靠地址全称
+simpleDockedAddress  停靠地址简称
+dockedLatitude   停靠地址纬度
+dockedLongitude  停靠地址经度
+travelLicensePhotoURL   eg：Uxxxx
+drivingType   驾照需求 eg：A1
+travelLicensePhotoURL 行驶证照
+baseUserId 主驾驶人信息
+belongCompanyName 
+belongComapnySimName
+unitNum  公司编号
+runningArea 可行区域
+statusTimeslot 车辆处于维修或报停的时间段

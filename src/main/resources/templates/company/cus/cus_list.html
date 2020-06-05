@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<title>用户数据-列表</title>
+	<link rel="shortcut icon" href="/commons/images/favicon.ico" />
+	<link rel="stylesheet" href="/commons/layuimini-2/lib/layui/css/layui.css" media="all">
+	<link rel="stylesheet" href="/commons/css/ext/soulTable.css">
+	<link rel="stylesheet" type="text/css" href="/commons/css/common.css" />
+	<!-- 引入页面-独立样式 -->
+	<link rel="stylesheet" type="text/css" href="/company/cus_list/cus_list.css" />
+</head>
+<body>
+	<!-- 头工具栏 -->
+	<div class="layui-form" id="tb_cus_list" style="margin: 10px;">
+		<div>
+			<div class="layui-input-inline">
+				<select name="cityName" lay-search="" lay-filter="cityName">
+		        	<option value="">城市名称</option>
+	      		</select>
+			</div>
+			<div class="layui-input-inline" style="width: 130px;">
+				<select name="countyName" lay-filter="countyName">
+		        	<option value="">城市区/县名称</option>
+	      		</select>
+			</div>
+
+			<div class="layui-input-inline">
+				<input class="layui-input" type="text" name="find" placeholder="请输入搜索关键字" autocomplete="off" />
+			</div>
+			<button class="layui-btn" title="查询" data-lay-event="searchData"><i class="layui-icon">&#xe615;</i> 查询</button>
+  		</div>
+	</div>
+	
+	<!-- 数据列表 -->
+	<table class="layui-hide" id="dg_cus_list" lay-filter="dg_cus_list"></table>
+	
+	<!-- 头工具栏 -->
+	<script type="text/html" id="tbar_cus_list">
+  		<div class="layui-btn-group">
+		  	<button class="layui-btn layui-btn-sm" title="刷新" lay-event="refData"><i class="layui-icon">&#xe666;</i> 刷新</button>
+		  	<button class="layui-btn layui-btn-sm" title="添加" lay-event="goAddRow"><i class="layui-icon">&#xe654;</i> 添加</button>
+		  	<button class="layui-btn layui-btn-sm" title="修改" lay-event="goUpdRow"><i class="layui-icon">&#xe642;</i> 修改</button>
+		  	<button class="layui-btn layui-btn-sm" title="删除" lay-event="delRow"><i class="layui-icon">&#xe640;</i> 删除</button>
+			<!-- <button class="layui-btn layui-btn-sm" title="详情" data-lay-event="goDetail"><i class="layui-icon">&#xe60a;</i> 详情</button> -->
+		</div>
+	</script>
+	
+	<!-- 行工具栏 -->
+	<script type="text/html" id="bar_cus_list">
+  		<a class="layui-btn layui-btn-normal layui-btn-xs" lay-event="jdExplain">景点说明</a>
+	</script>
+	
+	<script type="text/javascript" src="/commons/layuimini-2/lib/layui/layui.js" charset="utf-8"></script>
+	<script type="text/javascript" src="/commons/js/layui.config.js"></script>
+	<!-- 引入页面独立js文件 -->
+	<script type="text/javascript" src="/company/cus_list/cus_list.js"></script>
+</body>
+</html>

@@ -1,0 +1,130 @@
+1.订单列表
+/company/order/orderList
+{
+
+	"page":1,
+	"row":10,
+	"find":"",
+	"orderPayStatus":"",
+	"orderSource":"",
+	"orderStatus":"",
+	"startTime":"",
+	"endTime":"",
+	"compositor":"DESC",
+	"timeType":"",
+	"driver":"",
+	"seats":null,
+	"dutyMan":"",
+	"suppMan":"",
+	"plateNum":"",
+	"routeType":"",
+	"serviceType":"CITY_SER"
+
+}
+find 关键词(业务员，订单号),orderPayStatus 订单状态，orderSource 订单来源
+orderPayStatus 订单支付状态，compositor 顺序（DESC，ASC），timeType（1：用车时间，2：下单时间）
+driver 驾驶员（手机号或姓名），seats 座位，dutyMan 用车方负责人， suppMan 供车方负责人
+plateNum 车牌号,routeType订单行程类型,ServiceType订单业务类型
+
+
+2.订单外调
+/company/order/setExternal
+{
+	"idList":[],
+	"mainOrderNum":""
+}
+idList 字订单id数组
+
+
+3.取消订单外调
+/company/order/cancelExternal
+{
+	"idList":[],
+	"mainOrderNum":""
+}
+
+
+4.锁定外调
+/company/order/lockExternal
+{
+	"idList":[],
+	"mainOrderNum":""
+}
+
+
+5.解锁外调
+/company/order/unlockExternal
+{
+	"idList":[],
+	"mainOrderNum":""
+}
+
+
+6.根据ID查找子订单
+/company/order/getCarOrderById
+{
+	"id":2
+}
+
+
+7.撤销派车 （子订单）
+/company/order/cancelDisCar
+{
+	"orderId":1
+}
+orderId 订单id
+
+
+8.派车
+
+
+9.编辑订单
+/company/order/updateOrder
+按照获得的订单信息格式传
+
+
+
+10.取消主订单
+/company/order/cancelMainCarOrder
+{
+	"mainOrderId":1
+}
+mainOrderId 主订单id
+
+
+11.查询主订单下的子订单
+/company/order/getAllOrderByMainOrderNum
+{
+	"mainOrderNum":"test_22_1"
+}
+mainOrderNum 主订单编号
+
+
+
+12.确认收款价格 （主订单）
+（post）/company/order/confirmCollection
+{
+	"mainOrderid":"主订单id",
+	"confirmCollectionName":"确认收款价格人的姓名"
+}
+
+
+13.确认付款价格 （子订单）
+（post）/company/order/confirmPayment
+{
+	"id":"订单id",
+	"confirmPayMentName":"确认付款价格人的姓名"
+}
+
+
+14.确认用车
+{
+	"mainOrderId":"主订单id"
+
+}
+
+15.根据id获取主订单
+（post）/company/order/getMainCarOrderById
+{
+	"id":"主订单id"
+}

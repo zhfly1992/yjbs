@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="author" content="qfc">
+	<title>单位-用户主页</title>
+	<link rel="shortcut icon" href="/commons/images/favicon.ico" />
+	<link rel="stylesheet" href="/commons/layuimini-2/lib/layui/css/layui.css" media="all">
+	<link rel="stylesheet" type="text/css" href="/commons/css/common.css" />
+	<link rel="stylesheet" type="text/css" href="/commons/css/company_layout.css" />
+	<!-- 引入页面-独立样式 -->
+	<link rel="stylesheet" type="text/css" href="/company/main/main.css" />
+</head>
+<body>
+	<div class="company-main">
+		<h1 ht:text="${title}"></h1>
+	</div>
+	<div th:replace="~{commons/common :: myFooter}"></div>
+	
+	<script type="text/javascript" src="/commons/layuimini-2/lib/layui/layui.js" charset="utf-8"></script>
+	<script type="text/javascript" src="/commons/js/layui.config.js"></script>
+	<!-- 引入页面独立js文件 -->
+	<script type="text/javascript" src="/company/main/main.js"></script>
+</body>
+</html>

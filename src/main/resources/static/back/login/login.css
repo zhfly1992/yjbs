@@ -1,0 +1,37 @@
+@CHARSET "UTF-8";
+/* 样式设置 */
+.back-login{
+	width: 60%;
+    margin: 0 auto;	
+    margin-top: 50px;
+    min-width: 250px;
+    max-width: 500px;
+}
+
+.back-login .bl-logo{
+	text-align: center;
+    padding: 15px;
+    padding-left: 110px;
+}
+.bl-logo .logo-img{
+	width: 100px;
+}
+
+.back-login .bl-main{
+	
+}
+
+.back-login .bl-btns-con{
+	text-align: center;
+    padding-left: 110px;
+}
+
+.back-login .bl-img-code{
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	border: 1px solid #efefef;
+	height: 36px;
+	width: 100px;
+	cursor: pointer;
+}

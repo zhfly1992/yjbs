@@ -1,0 +1,116 @@
+{
+  "homeInfo": {
+    "title": "首页",
+    "href": "/page/back/main"
+  },
+  "logoInfo": {
+    "title": "后台管理系统",
+    "image": "/commons/images/logo.png",
+    "href": ""
+  },
+  "menuInfo": [
+  	{
+      "title": "日志记录",
+      "icon": "fa fa-address-book",
+      "href": "",
+      "target": "_self",
+      "child": [
+        {
+          "title": "系统日志",
+      	  "isopen": true,
+          "href": "/page/log/sysLog",
+          "icon": "fa fa-home",
+          "target": "_self"
+        },
+        {
+          "title": "登录日志",
+          "href": "/page/log/loginLog",
+          "icon": "fa fa-window-maximize",
+          "target": "_self"
+        }
+        
+      ]
+    },
+    {
+      "title": "常规管理",
+      "icon": "fa fa-address-book",
+      "href": "",
+      "target": "_self",
+      "child": [
+        {
+          "title": "主页模板",
+      	  "isopen": true,
+          "href": "",
+          "icon": "fa fa-home",
+          "target": "_self",
+          "child": [
+            {
+              "title": "主页一",
+              "href": "/page/welcome-1.html",
+              "icon": "fa fa-tachometer",
+              "target": "_self"
+            }
+          ]
+        },
+        {
+          "title": "菜单管理",
+          "href": "/page/menu.html",
+          "icon": "fa fa-window-maximize",
+          "target": "_self"
+        }
+        
+      ]
+    },
+    {
+      "title": "系统管理",
+      "icon": "fa fa-slideshare",
+      "href": "",
+      "target": "_self",
+      "child": [
+        {
+          "title": "多级菜单",
+          "href": "",
+          "icon": "fa fa-meetup",
+          "target": "",
+          "child": [
+            {
+              "title": "按钮1",
+              "href": "/page/button.html?v=1",
+              "icon": "fa fa-calendar",
+              "target": "_self",
+              "child": [
+                {
+                  "title": "按钮2",
+                  "href": "/page/button.html?v=2",
+                  "icon": "fa fa-snowflake-o",
+                  "target": "_self",
+                  "child": [
+                    {
+                      "title": "按钮3",
+                      "href": "/page/button.html?v=3",
+                      "icon": "fa fa-snowflake-o",
+                      "target": "_self"
+                    },
+                    {
+                      "title": "表单4",
+                      "href": "/page/form.html?v=1",
+                      "icon": "fa fa-calendar",
+                      "target": "_self"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "title": "失效菜单",
+          "href": "/page/notfound",
+          "icon": "fa fa-superpowers",
+          "target": "_self"
+        }
+      ]
+    }
+    
+  ]
+}

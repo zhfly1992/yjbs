@@ -1,0 +1,9 @@
+@CHARSET "UTF-8";
+/* 样式设置 */
+.company-main{
+	width: 60%;
+    margin: 0 auto;	
+    margin-top: 50px;
+    min-width: 250px;
+    max-width: 500px;
+}

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+	<meta charset="UTF-8">
+	<meta name="author" content="qfc">
+	<title>遇见巴士-公共代码模块</title>
+</head>
+<body>
+	<!-- 头部logo图标 -->
+	<div class="my-header-img" th:fragment="myHeaderImg">
+		<img class="logo-img" src="/commons/images/logo.png" />
+	</div>
+
+	<!-- 头部导航栏 -->
+	<div class="my-header" th:fragment="myHeader(title)">
+		<p th:text="${title}"></p>
+	</div>
+	
+	<!-- 尾部备案号 -->
+	<div class="my-footer" th:fragment="myFooter">
+		<p><a href="http://www.beian.miit.gov.cn/" target="_blank">Copyright© 蜀ICP备16026496号</a></p>
+	</div>
+	
+</body>
+</html>

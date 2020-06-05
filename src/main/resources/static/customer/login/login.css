@@ -1,0 +1,34 @@
+@CHARSET "UTF-8";
+/* 样式设置 */
+.company-login{
+	width: 60%;
+    margin: 0 auto;	
+    margin-top: 50px;
+    min-width: 250px;
+    max-width: 500px;
+}
+
+.company-login .tl-logo{
+	text-align: center;
+    padding: 15px;
+    padding-left: 110px;
+}
+
+.company-login .tl-main{
+	
+}
+
+.company-login .tl-btns-con{
+	text-align: center;
+    padding-left: 110px;
+}
+
+.company-login .tl-img-code{
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	border: 1px solid #efefef;
+	height: 36px;
+	width: 100px;
+	cursor: pointer;
+}

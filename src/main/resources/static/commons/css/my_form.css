@@ -1,0 +1,204 @@
+@charset "utf-8";
+
+/* 自定义表单样式-使用：ul-li组合 */
+.f-main{
+	font: 13px/18px SimHei, "Microsoft YaHei", SimSun, Tahoma, Verdana, Arial,sans-serif !important;
+	margin-top: 10px;
+}
+
+.f-main > ul,
+ul.f-main{
+	padding:0;
+	margin:0;
+}
+
+.f-main li{
+	list-style:none;
+	margin-bottom:10px;
+}
+
+.f-main .f-item-line,
+.f-main .f-item-block{
+	/* font: 13px/18px "Microsoft YaHei", SimSun, Tahoma, Verdana, Arial,sans-serif; */
+	height:30px;
+	margin-right:10px;
+}
+
+.f-item-line{
+	display: inline-block;
+}
+
+.f-item-block{
+	display: block;
+}
+
+.f-item-line .f-label,
+.f-item-block .f-label{
+	border: 1px solid #008000;
+    border-radius: 3px;
+    padding: 3px 5px;
+    margin-bottom: 5px;
+    background: #fff;
+    color: #008000;
+    cursor: pointer;
+}
+
+.f-item-line .f-label-click,
+.f-item-block .f-label-click{
+	border: 1px solid #008000;
+	background: #008000;
+	color: #fff;
+}
+
+.f-item-line .f-til,
+.f-item-block .f-til{
+	display: inline-block;
+	width:5em;
+	height:100%;
+	line-height:30px;
+	text-align: right;
+}
+
+.f-item-line .f-con,
+.f-item-block .f-con{
+	display: inline-block;
+	padding:0 0 0 5px;
+	height:100%;
+	text-align: left;
+}
+
+.f-item-line .f-con .f-inp,
+.f-item-block .f-con .f-inp{
+	/* font: 13px/18px "Microsoft YaHei", SimSun, Tahoma, Verdana, Arial,sans-serif; */
+	height:18px !important;
+	width: 170px;
+	padding: 5px 5px 6px 5px;
+	background-color: #fff;
+    border: 1px solid #e2e2e2;
+    border-radius: 2px;
+    outline: 0;
+    color: #000;
+    cursor: text;
+    vertical-align: 0px;
+}
+.f-item-line .f-con .f-inp:focus,
+.f-item-block .f-con .f-inp:focus{
+	border: 1px solid #61a1df;
+    outline: 0;
+}
+/* 单选按钮 */
+.f-item-line .f-con .f-radio,
+.f-item-block .f-con .f-radio{
+	display: inline-block;
+	height:100%;
+	line-height: 30px;
+	margin-right:10px;
+	cursor: pointer;
+}
+/* 下拉列表框 */
+.f-item-line .f-con .f-sel,
+.f-item-block .f-con .f-sel{
+	/* font: 13px/18px "Microsoft YaHei", SimSun, Tahoma, Verdana, Arial,sans-serif !important; */
+    width: 100px;
+    height: 30px;
+    vertical-align:-1px !important;
+}
+/* 区域分割线 */
+.f-sep{
+	height:20px;
+	margin-bottom:0px !important;
+}
+.f-sep .sep-line{
+	height: 0px;
+	margin:15px 0;
+	border-bottom:1px dashed #87CEFF;
+    position: relative;
+    text-align: center;
+}
+.f-sep .sep-line .sep-line-label{
+	padding: 0px 3px;
+    background: #fff;
+    border: 1px solid #87CEFF;
+    border-radius: 3px;
+    position: absolute;
+    top:-9px;
+    left:30%;
+}
+/* 功能说明 */
+.f-explain{
+	padding: 5px 0px 10px 0px;
+    color: #999;
+    border-top: 1px dashed #cfcfcf;
+    margin-top: 30px;
+}
+.f-explain p{
+	text-indent : 2em;
+	line-height: 20px;
+	letter-spacing: 2px;
+}
+/* 按钮区域样式 */
+.f-btns-item{
+	margin:20px 0;
+	text-align: center;
+}
+/* 默认按钮 */
+.f-btn{
+	/* font: 13px/18px "Microsoft YaHei", SimSun, Tahoma, Verdana, Arial,sans-serif; */
+    background-color: #fff;
+    border:1px solid #3e9bff;
+    border-radius: 5px;
+    color: #3e9bff;
+    font-size: 16px;
+    text-align: center;
+    cursor: pointer;
+    padding:4px 10px;
+    outline: 0;
+    vertical-align:-2px !important;
+}
+/* 鼠标在按钮上悬浮 */
+.f-btn:hover{
+	opacity: 0.8;
+}
+/* 提交按钮 */
+.f-sub-btn{
+	background-color: #008000;
+	color:#fff;
+	border:0px;
+}
+/* 保存按钮 */
+.f-save-btn{
+	background-color: #fabe00;
+	color:#fff;
+	border:0px;
+}
+/* 取消按钮 */
+.f-cancel-btn{
+	background-color: #06c;
+	color:#fff;
+	border:0px;
+}
+/* 关闭按钮 */
+.f-close-btn{
+	background-color: #ccc;
+	color:#fff;
+	border:0px;
+}
+/* 重置按钮 */
+.f-reset-btn{
+	background-color: #3e9bff;
+	color:#fff;
+	border:0px;
+}
+/* 大按钮 */
+.lg-btn{
+    line-height: 40px;
+    font-size:18px;
+}
+/* 小按钮 */
+.sm-btn{
+    font-size:12px !important;
+    padding: 3px !important;
+    border-radius:3px !important;
+}
+    
+

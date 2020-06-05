@@ -1,0 +1,56 @@
+@charset "UTF-8";
+/* 数据显示-列表 */
+
+.my-list{
+	
+}
+
+.my-list .ml-item{
+	background: #fff;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    padding: 1px 5px;
+    margin: 5px;
+    position: relative;
+    border-radius: 3px;
+    font-size: 13px;
+}
+/* 一行 */
+.ml-item .i-row{
+	zoom: 1;
+    line-height: 25px;
+}
+/* 行标题 */
+.i-row .r-label-txt {
+  	float: left;
+  	line-height: 25px;
+  	color: #666;
+}
+/* 行内容 */
+.r-row .r-con {
+  	float: left;
+ 	margin-left: 10px;
+  	line-height: 25px;
+}
+/* 行内容-文本 */
+.r-con .r-txt {
+  	color: #3d4145;
+  	font-size: 13px;
+  	overflow: hidden;
+  	white-space: nowrap;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

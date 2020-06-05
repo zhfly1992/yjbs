@@ -1,0 +1,60 @@
+{
+	"code": "10000", 
+	"charge": true, 
+	"remain": 1547, 
+	"msg": "查询成功,扣费", 
+	"result": {
+	    "output": {
+	        "result": [
+	        	{
+                    "flightNo": "EU6668", 
+                    "rate": "92.00", 
+                    "depCity": "上海浦东", 
+                    "depCode": "PVG", 
+                    "arrCity": "成都", 
+                    "arrCode": "CTU", 
+                    "depPort": "上海浦东国际机场", 
+                    "arrPort": "成都双流国际机场", 
+                    "depTerminal": "T2", 
+                    "arrTerminal": "T2", 
+                    "depScheduled": "2020-03-24T20:40:00Z", 
+                    "arrScheduled": "2020-03-25T00:10:00Z", 
+                    "depEstimated": "2020-03-24T20:40:00Z", 
+                    "arrEstimated": "2020-03-25T00:10:00Z", 
+                    "depActual": "0001-01-01T00:00:00Z", 
+                    "arrActual": "0001-01-01T00:00:00Z", 
+                    "flightState": "计划", 
+                    "depUtcOffset": 8, 
+                    "arrUtcOffset": 8, 
+                    "codeShares": [
+                        "HO3499"
+                    ]
+                },
+	            {
+	                "flightNo": "EU6667", 
+	                "rate": "57.00", 
+	                "depCity": "成都", 
+	                "depCode": "CTU", 
+	                "arrCity": "上海浦东", 
+	                "arrCode": "PVG", 
+	                "depPort": "成都双流国际机场", 
+	                "arrPort": "上海浦东国际机场", 
+	                "depTerminal": "T1", 
+	                "arrTerminal": "T2", 
+	                "depScheduled": "2020-03-26T16:45:00Z", 
+	                "arrScheduled": "2020-03-26T19:35:00Z", 
+	                "depEstimated": "2020-03-26T16:45:00Z", 
+	                "arrEstimated": "2020-03-26T19:35:00Z", 
+	                "depActual": "0001-01-01T00:00:00Z", 
+	                "arrActual": "0001-01-01T00:00:00Z", 
+	                "flightState": "计划", 
+	                "depUtcOffset": 8, 
+	                "arrUtcOffset": 8, 
+	                "codeShares": [
+	                    "HO3498"
+	                ]
+	            }
+	        ]
+	    }
+	}
+}

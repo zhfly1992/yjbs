@@ -1,0 +1,664 @@
+@CHARSET "UTF-8";
+
+/* 通用样式 */
+html * {
+	margin: 0px;
+	padding: 0px;
+}
+a {
+	text-decoration: none;
+	outline: none;
+}
+ul,li {
+	list-style: none;
+}
+img {
+	border: 0px;
+}
+
+/* 字体样式 */
+.k-font{
+	font: 13px/18px SimHei, "Microsoft YaHei", SimSun, Tahoma, Verdana, Arial,sans-serif !important;
+}
+.fs-12{
+	font-size:12px !important;
+}
+.f-w{/* 字体加粗 */
+	font-weight:bold;
+}
+
+/* 浮动 */
+.fl {
+	float: left;
+}
+.fr {
+	float: right;
+}
+
+/* 清除浮动 */
+/* .clearfix:before,
+.clearfix:after {
+	content: " ";
+	display: block;
+	height: 0;
+	overflow: hidden;
+	visibility: hidden;
+	width: 0;
+} */
+
+/* 清除浮动-方法1--推荐使用 */
+.clearfix:after{
+	content:"";
+	display:block;
+	height:0;
+	visibility:hidden;
+	clear:both;
+}
+.clearfix{
+	zoom:1;
+}
+
+/* 清除浮动-方法2--需在浮动父级之后加一个<div class="clear"></div> */
+.clear {
+    clear: both;
+}
+
+/* 隐藏 、显示*/
+.dis-none {
+	display: none !important;
+}
+.dis-block {
+	display: block !important;
+}
+
+/* 外边距设置 */
+.mt-5 {
+	margin-top: 5px !important;
+}
+.mt-10 {
+	margin-top: 10px !important;
+}
+.mt-15 {
+	margin-top: 15px !important;
+}
+.mt-20 {
+	margin-top: 20px !important;
+}
+.ml-15 {
+	margin-left: 15px !important;
+}
+.mr-0 {
+	margin-right:0px !important;
+}
+
+/* 内边距设置 */
+.pd-10 {
+	padding:10px;
+}
+.pd-15 {
+	padding:15px;
+}
+.pt-10 {
+	padding-top: 10px !important;
+}
+.ptb-10 {
+	padding: 10px 0 !important;
+}
+.plr-10{
+	padding: 0 10px !important;
+}
+
+/* 文本颜色样式 */
+.c-red{/* 红色 */
+	color:#f00 !important;
+}
+.c-ared{/* 暗红色 */
+	color:#B61D1D !important;
+}
+.c-green{/* 绿色 */
+	color:#008000 !important;
+}
+.c-qgreen{/* 青绿 */
+	color: #4ec99b !important;
+}
+.c-yellow{/* 黄色 */
+	color:#ff7300 !important;
+}
+.c-gray{/* 灰色 */
+	color:#ccc !important;
+}
+.c-blue{/* 蓝色 */
+	color:#108ee9 !important;
+}
+.c-dblue{/* 淡蓝色 */
+	color:#3e9bff !important;
+}
+.c-sblue{/* 深蓝色 */
+	color:#06c !important;
+}
+.c-black{/* 黑色 */
+	color:#000 !important;
+}
+.c-white{/* 白色 */
+	color:#fff !important;
+}
+
+/* 背景颜色样式 */
+.bg-green{/* 绿色 */
+	background-color: #008000 !important;
+	color:#fff !important;
+}
+.bg-qgreen{/* 青绿色 */
+	background-color: #4ec99b !important;
+	color:#fff !important;
+}
+.bg-yellw{/* 黄色 */
+	background-color: #fabe00 !important;
+	color:#fff !important;
+}
+.bg-dblue{/* 淡蓝色 */
+	background-color: #3e9bff !important;
+	color:#fff !important;
+}
+.bg-qblue{/* 青蓝色 */
+	background: #e6f7ff !important;
+}
+.bg-ared{/* 暗红色 */
+	background-color: #B61D1D !important;
+	color:#fff !important;
+}
+.bg-white{/* 白色 */
+	background-color: #fff !important;
+	color:#000 !important;
+}
+.bg-black{/* 黑色 */
+	background-color: #000 !important;
+	color:#fff !important;
+}
+.bg-gray{/* 灰色 */
+	background-color: #ccc !important;
+	color:rgb(255, 255, 255) !important;
+}
+
+/* 宽度样式 */
+.w-40 {
+	width: 40px !important;
+}
+
+.w-120 {
+	width: 120px !important;
+}
+
+.w-150 {
+	width: 150px !important;
+}
+
+.w-140 {
+	width: 145px !important;
+}
+
+.w-200 {
+	width: 200px !important;
+}
+.w-250 {
+	width: 250px !important;
+}
+.w-300 {
+	width: 300px !important;
+}
+.w-400 {
+	width: 400px !important;
+}
+/* 宽度百分比 */
+.wp-30{
+	width:30% !important;
+}
+.wp-33{
+	width:33% !important;
+}
+.wp-50{
+	width:50% !important;
+}
+.wp-100{
+	width:100% !important;
+}
+
+/********订单二维码支付-begin*************/
+.my-qr-pay{
+	width: 100%;
+	height: 100%;
+	background-color: #fff;
+	border-radius: 10px;
+	cursor: default;
+}
+/* 金额、商品名称 */
+.my-qr-pay .mqp-body{
+	margin: 0px;
+	padding: 20px;
+	border-bottom: 1px dashed #efefef;
+	text-align: center;
+}
+.mqp-body .mb-money{
+	font-size: 18px;
+	color: #333;
+	padding-bottom: 5px;
+}
+.mb-money .mm-txt{
+	color: #ec3d46;
+	font-size: 16px;
+}
+.mm-txt .mt-money{
+	font-size: 20px;
+	padding-bottom: 10px;
+}
+.mqp-body .mb-note{
+	font-size: 13px;
+	color: #333;
+}
+
+/* 二维码图片 */
+.my-qr-pay .mqp-qrcode{
+	text-align: center;
+}
+.mqp-qrcode img{
+	width: 250px;
+	height: 250px;
+}
+
+/* 提示 */
+.my-qr-pay .mqp-tip{
+	color: #666;
+	font-size: 12px;
+	text-align: center;
+}
+
+/********订单二维码支付-end*************/
+
+
+/********公众号二维码-begin*************/
+.my-hover-tools{
+	z-index: 9999;
+	position: fixed;
+    top: 50%;
+    right: 2px;
+    margin-top: -220px;
+}
+.my-hover-tools ul{
+	width: 36px;
+}
+
+.my-hover-tools li{
+	position: relative;
+	cursor: pointer;
+}
+.my-hover-tools li .mht-title{
+	display: block;
+    width: 16px;
+    padding: 5px 10px;
+    text-align: center;
+    font-size: 12px;
+    color: #fff;
+    background-color: #4ec99b;
+    border-radius: 3px 0 0 3px;
+    margin-bottom: 3px;
+    line-height: 16px;
+}
+.my-hover-tools li .mht-title:hover{
+	opacity: 0.8;
+}
+/* 悬浮内容-外围容器 */
+.my-hover-tools li:hover .mht-container{
+	display: block;
+}
+.my-hover-tools li .mht-container{
+	position: absolute;
+    background-color: #fff;
+    top: 0;
+    right: 45px;
+    border-radius: 4px;
+    border: 1px solid #dadadf;
+    box-shadow: 0 0 20px rgba(0,0,0,.15);
+    display: none;
+}
+.mht-container .mht-main{
+	position: relative;
+}
+/* 向右箭头 */
+.mht-container .mht-arrow-right{
+	position: absolute;
+    font-size: 38px;
+    color: #dadadf;
+    top: 0;
+    right: -11px;
+    line-height: 46px;
+}
+.mht-arrow-right .arrow-right{
+	position: absolute;
+    height: 25px;
+    color: #fff;
+    top: 0;
+    right: 1px;
+    font-size: 38px;
+    line-height: 46px;
+}
+
+
+
+
+
+
+
+/* 自定义内容-容器 */
+.mht-container .mht-con{
+	padding: 10px;
+    position: relative;
+}
+.mht-con .gzh-qrcode{
+	width: 100px;
+	height: 100px;
+}
+.mht-con .mht-tip{
+	font-size: 12px;
+	text-align: center;
+}
+
+/********公众号二维码-end*************/
+
+/*********tab样式--begin */
+/* <ul class="my-tabs">
+	<li value="1" class="cur-tab">单程接送</li>
+	<li value="2">团体包车</li>
+	<li value="3">大巴车顺风</li>
+</ul> */
+
+ul.my-tabs{
+	display: flex;
+	overflow: hidden;
+	background: #fcfcfc;
+}
+.my-tabs li{
+	flex: 1;
+	border-bottom: 1px solid #e4e6e9;
+    border-left: 1px solid #e4e6e9;
+    margin-left: -1px;
+    background-color: #f0f1f3;
+	height: 48px;
+    line-height: 48px;
+    font-size: 18px;
+    color: #60606c;
+    text-align: center;
+    cursor: pointer;
+}
+li.cur-tab{
+	color: #2f2f39;
+    background: 0;
+    border-bottom: 0;
+    cursor: text;
+}
+/*********tab样式--end */
+
+/********layui-表单-自定义-选择项--begin***********/
+.my-hide{
+	display: none;
+}
+.my-show{
+	display: block;
+}
+.layui-form-item.my-form-item{
+	margin-bottom: 10px;
+}
+
+/* 自定义-label下的图标 */
+.layui-form-item .layui-form-label.my-form-label{
+	float: left;
+    display: block;
+    padding: 0;
+    width: 45px;
+    font-weight: 400;
+    line-height: 38px;
+    text-align: right;
+}
+.layui-form-label.my-form-label .label-icon{
+	width: 25px;
+    height: 25px;
+    display: inline-block;
+}
+
+.layui-form-item .my-input-block{
+	margin-left: 50px;
+}
+/* 包含layui组件 */
+.layui-form-item .my-sel-d{
+	position: relative;
+}
+.layui-form-item .my-sel-div{
+    border: 1px solid #e6e6e6;
+    border-radius: 2px;
+    height: 36px;
+    line-height: 36px;
+    background-color: #fff;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+}
+.layui-form-item .my-sel-div:hover{
+	border-color: #D2D2D2!important;
+}
+
+.my-sel-div .msd-placeholder{
+    margin-left: 10px;
+	color: #777;
+}
+.my-sel-div .msd-text{
+    color: #4ec99b;
+    position: absolute;
+    top: -7px;
+    left: 10px;
+    font-weight: 600;
+}
+.my-input-block .msd-tip{
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #999;
+    font-size: 12px;
+}
+.my-input-block .msd-left-txt{
+    font-size: 14px;
+    color: #000;
+    margin-left: 10px;
+}
+.my-input-block .msd-right-txt{
+	position: absolute;
+	bottom: 2px;
+    left: 10px;
+    font-size: 12px;
+    color: #ff5300;
+}
+.my-input-block .msd-icon{
+	position: absolute;
+	top: 11px;
+	right: 5px;
+	width: 16px;
+    height: 16px;
+}
+/********layui-表单-自定义-选择项--end***********/
+
+
+/********layui-自定义-日期时间--begin***********/
+.my-date-time{
+	position: relative;
+	border: 1px solid #ccc;
+	min-width: 150px;
+	width: 150px;
+}
+.my-date-time .my-date-time-line{
+	display: inline-block;
+	border-left: 1px solid #ccc;
+	position: absolute;
+	top: 6px;
+	left: 90px;
+	width: 1px;
+	height: 26px;
+	z-index: 1;
+}
+.my-date-time .my-date,
+.my-date-time .my-time{
+	border: 0px;
+	cursor: pointer;
+}
+.my-date-time .my-date{
+	min-width: 90px;
+	width: 90px;
+}
+.my-date-time .my-time{
+	min-width: 60px;
+	width: 60px;
+	position: absolute;
+	top: 0px;
+	left: 90px;
+}
+/********layui-自定义-日期时间--end***********/
+
+
+/********layui-样式覆盖--begin***********/
+
+.layui-form-select dl dd.layui-this{
+	background: #4ec99b;
+}
+.layui-form-select .layui-edge{
+	border-top-color: #4ec99b;
+}
+/*列表工具栏-搜索框-高度*/
+.dg-tb-inp{
+	vertical-align: -1px;
+	height: 30px !important;
+	width: 200px;
+	display: inline-block;
+}
+
+
+/*隐藏日期控件-秒  */
+.layui-laydate-list>li{
+	width: 50% !important;
+}
+.laydate-time-list>li:nth-child(3) {
+    display: none !important;
+}
+
+/** 滚动条 **/
+::-webkit-scrollbar{width: 5px; height: 5px;}
+::-webkit-scrollbar-button:vertical{display: none;}
+::-webkit-scrollbar-track, ::-webkit-scrollbar-corner{background-color: #e2e2e2;}
+::-webkit-scrollbar-thumb{border-radius: 0; background-color: rgba(0,0,0,.3);}
+::-webkit-scrollbar-thumb:vertical:hover{background-color: rgba(0,0,0,.35);}
+::-webkit-scrollbar-thumb:vertical:active{background-color: rgba(0,0,0,.38);}
+
+/********layui-样式覆盖--end***********/
+
+
+/*******页面头部样式--begin**********/
+/*logo图片*/
+.my-header-img{
+	
+}
+.my-header-img .logo-img{
+	width: 100px;
+	height: 100px;
+}
+
+/*头部导航*/
+.my-header{
+	text-align: center;
+	padding: 5px 0px;
+	font-size: 15px;
+}
+/*******页面头部样式--end************/
+
+/*******页面底部样式--begin**********/
+.my-footer{
+	text-align: center;
+    padding: 5px 0px;
+    position: absolute;
+    bottom: 5px;
+    left: 0px;
+    width: 100%;
+    font-size: 12px;
+}
+.my-footer .mf-copy a{
+	font-size: 13px;
+	color: #666;
+}
+/*******页面底部样式--end************/
+
+/*-------layui-列表-单元格-排列样式--begin-------*/
+.my-lay-list-cell{
+	height: 100%;
+	line-height: 20px;
+}
+.my-lay-list-cell p{
+	font-size: 12px;
+}
+.my-lay-list-cell p label{
+	font-weight: 600;
+}
+/*-------layui-列表-单元格-排列样式--end-------*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
