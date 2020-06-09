@@ -1,5 +1,7 @@
 package com.fx.service.impl.finance;
 
+
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -12,6 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.query.NativeQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +25,12 @@ import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
+import com.fx.dao.finance.BankTradeListDao;
 import com.fx.dao.finance.FeeCourseDao;
+import com.fx.dao.finance.ReimburseListDao;
+import com.fx.entity.finance.BankTradeList;
 import com.fx.entity.finance.FeeCourse;
+import com.fx.entity.finance.ReimburseList;
 import com.fx.service.finance.FeeCourseService;
 import com.fx.web.util.RedisUtil;
 
@@ -36,7 +43,10 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 	private RedisUtil		redis;
 	@Autowired
 	private FeeCourseDao	fcDao;
-
+	@Autowired
+	private BankTradeListDao bankTradeListDao;
+	@Autowired
+	private ReimburseListDao reimburseListDao;
 
 
 	@Override
@@ -244,14 +254,47 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 					U.logFalse(log, "科目-删除-失败，查找科目失败");
 					fg = U.setPutFalse(map, 0, "查找科目失败，确认id是否有误");
 				}
+
 				if (fg) {
 					ArrayList<Long> arrayList = new ArrayList<Long>();
 					arrayList.add(Long.parseLong(id));
 					getDeleteIds(arrayList, deleteIds);
-					String hql = "delete from FeeCourse where id in ?0";
-					fcDao.batchExecute(hql, deleteIds);
-					U.log(log, "科目-删除-成功");
-					U.setPut(map, 1, "删除成功");
+					
+					//是否删除判断标志
+					boolean delete = true;
+					
+					if (delete) {
+						//判断被删除的科目是否被银行日记账使用
+						String sqlBTL = "select * from bank_trade_list where fee_course_id in ?0 ";
+						NativeQuery createSQLQuery = bankTradeListDao.getCurrentSession().createSQLQuery(sqlBTL).addEntity(BankTradeList.class);
+						createSQLQuery.setParameter(0, deleteIds);
+						List<BankTradeList> resBTL = createSQLQuery.list();
+						if (!resBTL.isEmpty()) {
+							delete = false;
+							U.logFalse(log, "科目-删除-失败，科目被bankTradeList引用");
+							U.setPutFalse(map, 0, "查找科目失败，科目在使用中");
+						}
+					}
+					
+					if (delete) {
+						//判断被删除的科目是否被银行日记账使用
+						String sqlRBL = "select * from reimburse_list where fee_course_id in ?0 ";
+						NativeQuery createSQLQuery = reimburseListDao.getCurrentSession().createSQLQuery(sqlRBL).addEntity(ReimburseList.class);
+						createSQLQuery.setParameter(0, deleteIds);
+						List<ReimburseList> resRBL = createSQLQuery.list();
+						if (!resRBL.isEmpty()) {
+							delete = false;
+							U.logFalse(log, "科目-删除-失败，科目被ReimburseList引用");
+							U.setPutFalse(map, 0, "查找科目失败，科目在使用中");
+						}
+					}
+
+					if (delete) {
+						String hql = "delete from FeeCourse where id in ?0";
+						fcDao.batchExecute(hql, deleteIds);
+						U.log(log, "科目-删除-成功");
+						U.setPut(map, 1, "删除成功");
+					}
 				}
 
 			}
@@ -335,4 +378,32 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 		return map;
 	}
 
+
+
+	@Override
+	public Map<String, Object> checkCourseName(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String courseName) {
+		String logtxt = U.log(log, "科目-判断科目名称是否可用", reqsrc);
+		Map<String, Object> map = new HashMap<String, Object>();
+		try {
+			if (StringUtils.isBlank(courseName)) {
+				U.logFalse(log, "科目-判断科目名称是否可用，courseName为空");
+				U.setPutFalse(map, 0, "科目名称为空");
+			} else {
+				FeeCourse findByField = fcDao.findByField("courseName", courseName);
+				if (null == findByField) {
+					U.log(log, "科目-判断科目名称是否可用-可用");
+					U.setPut(map, 1, "名称可用");
+				}
+				else{
+					U.logFalse(log, "科目-判断科目名称是否-不可用");
+					U.setPutFalse(map, 0, "科目名称重复，不可用");
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			U.setPutEx(map, log, e, logtxt);
+		}
+		return map;
+	}
 }

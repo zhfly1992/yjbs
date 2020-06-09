@@ -25,9 +25,9 @@ import com.fx.commons.hiberantedao.pagingcom.Filtration.MatchType;
 import com.fx.commons.hiberantedao.pagingcom.Compositor;
 import com.fx.commons.hiberantedao.pagingcom.Filtration;
 import com.fx.commons.hiberantedao.pagingcom.Page;
+import com.fx.commons.utils.enums.MainOrderStatus;
 import com.fx.commons.utils.enums.OrderPayStatus;
 import com.fx.commons.utils.enums.OrderSource;
-import com.fx.commons.utils.enums.OrderStatus;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.enums.RouteType;
 import com.fx.commons.utils.enums.ServiceType;
@@ -94,7 +94,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 	 */
 	@SuppressWarnings("deprecation")
 	public Map<String, Object> findMainCarOrderList(ReqSrc reqsrc, String page, String rows, String find,
-			OrderPayStatus orderPayStatus, OrderSource orderSource, OrderStatus orderStatus, String startTime,
+			OrderPayStatus orderPayStatus, OrderSource orderSource, MainOrderStatus orderStatus, String startTime,
 			String endTime, CompositorType compositorType, String timeType, String driver, Integer seat, String dutyMan,
 			String suppMan, String plateNum, RouteType routeType, ServiceType serviceType, String companyNum) {
 
@@ -116,6 +116,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			} else {
 				criteria.add(Restrictions.eq("mainOrderBase.unitNum", companyNum));
 				criteria.add(Restrictions.eq("isDel", 0));
+
 
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
@@ -153,6 +154,10 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 					criteria.add(Restrictions.eq("mainOrderBase.status", orderStatus));
 					// filts.add(new Filtration(MatchType.EQ, orderStatus,
 					// "status"));
+				}
+				else{
+					//默认不查出已取消的
+					criteria.add(Restrictions.ne("mainOrderBase.status", MainOrderStatus.CANCELED));
 				}
 				if (orderPayStatus != null) {
 					// 添加付款状态
@@ -476,5 +481,125 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			e.printStackTrace();
 		}
 		return pd;
+	}
+	
+	
+	public Map<String, Object> countMainCarOrderForCollection(ReqSrc reqsrc, String page, String rows,
+			OrderPayStatus orderPayStatus, String startTime, String endTime, CompositorType compositorType,
+			String timeType, String driver, String dutyService, String plateNum, String orderNum, String routeDetail,
+			String serviceMan, String unitNum, String customer,String businessType) {
+
+		String logtxt = U.log(log, "获取-业务收款-统计", reqsrc);
+		Map<String, Object> statics = new HashMap<String, Object>();
+		Page<MainCarOrder> pd = new Page<MainCarOrder>();
+		List<Compositor> comps = new ArrayList<Compositor>();
+		List<Filtration> filts = new ArrayList<Filtration>();
+		try {
+			if (ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
+				filts.add(new Filtration(MatchType.EQ, null, "id"));
+			} else {
+
+				// 未删除
+				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
+
+				// 已经确认付款价格
+				filts.add(new Filtration(MatchType.ISNOTNULL, "", "mainOrderBase.confirmCollectionName"));
+				// 单位编号
+				filts.add(new Filtration(MatchType.EQ, unitNum, "mainOrderBase.unitNum"));
+				// 搜索时间为用车时间
+				if (timeType.equals("1")) {
+					comps.add(new Compositor("stime", compositorType));
+					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+				}
+				// 搜索时间为下单时间
+				else if (timeType.equals("2")) {
+					comps.add(new Compositor("atime", compositorType));
+					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+				}
+
+				if (orderPayStatus != null) {
+					// 添加付款状态
+					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
+				}
+
+				// 通过驾驶员uname搜索
+				if (!StringUtils.isBlank(driver)) {
+					List<Long> mainCarOrderIdList = disCarInfoDao.getMainCarOrderIdByDriverUname(reqsrc, driver);
+					// 通过驾驶员手机号和姓名查询到的订单id集合为空
+					if (mainCarOrderIdList.size() == 0) {
+						filts.add(new Filtration(MatchType.EQ, null, "id"));
+					} else {
+						filts.add(new Filtration(MatchType.IN, mainCarOrderIdList.toArray(), "id"));
+					}
+				}
+
+				// 用车方负责人搜索
+				if (!StringUtils.isBlank(dutyService)) {
+					filts.add(new Filtration(MatchType.EQ, dutyService, "mainOrderBase.dutyService"));
+				}
+
+				// 车牌号搜索
+				if (!StringUtils.isBlank(plateNum)) {
+					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc, plateNum);
+					filts.add(new Filtration(MatchType.IN,mainCarOrderIdByPlateNum.toArray(),"id"));
+					
+				}
+				// 业务员搜索
+				if (!StringUtils.isBlank(serviceMan)) {
+					filts.add(new Filtration(MatchType.EQ, serviceMan, "mainOrderBase.serviceMan"));
+				}
+				// 订单号搜索
+				if (!StringUtils.isBlank(orderNum)) {
+					filts.add(new Filtration(MatchType.EQ, orderNum, "orderNum"));
+				}
+				// 行程详情搜索
+				if (!StringUtils.isBlank(routeDetail)) {
+					filts.add(new Filtration(MatchType.LIKE, routeDetail, "routeDetail"));
+				}
+				// 客户（用车方）搜索
+				if (!StringUtils.isBlank(customer)) {
+					filts.add(new Filtration(MatchType.EQ, customer, "mainOrderBase.baseUserId.uname"));
+				}
+				// 车辆是否自营搜索
+				if (!StringUtils.isBlank(businessType)) {
+					List<String> plateNums = cvdao.getPlateNumsByBusinessType(reqsrc, businessType, unitNum);
+					if (plateNums.size() == 0) {
+						//无该类型车辆
+						filts.add(new Filtration(MatchType.EQ, null, "id"));
+					}
+					else{
+						List<Long> mainCarOrderIdByPlateNums = disCarInfoDao.getMainCarOrderIdByPlateNums(reqsrc, plateNums);
+						filts.add(new Filtration(MatchType.IN,mainCarOrderIdByPlateNums.toArray(),"id"));
+					}
+				}
+
+				/////////////////// --分页设置--////////////////////////////
+				pd.setPageNo(Integer.parseInt(page)); // 页码
+				pd.getPagination().setPageSize(Integer.parseInt(rows)); // 页大小
+				pd.setCompositors(comps); // 排序条件
+				pd.setFiltrations(filts); // 查询条件
+
+				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), MainCarOrder.class);
+				// 设置别名，否则无法匹配属性名
+				criteria.createAlias("mainOrderBase", "mainOrderBase", JoinType.INNER_JOIN);
+				HibernateUtils.setParameters(criteria, pd);
+
+				pd.setResult(criteria.list());
+				double totalPrice = 0;
+				double totalAlGathPrice = 0;
+				for(MainCarOrder mainCarOrder:pd.getResult()){
+					totalPrice += mainCarOrder.getPrice();
+					totalAlGathPrice += mainCarOrder.getAlGathPrice();
+				}
+				statics.put("totalAlGathPrice", totalAlGathPrice);
+				statics.put("totalPrice", totalPrice);
+			}
+		} catch (Exception e) {
+			U.log(log, logtxt, e);
+			e.printStackTrace();
+		}
+		return statics;
 	}
 }

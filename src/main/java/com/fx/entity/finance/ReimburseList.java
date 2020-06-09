@@ -42,7 +42,7 @@ public class ReimburseList implements Serializable{
 	
 	/** 业务部门 */
 	@OneToOne(targetEntity = Dept.class)
-	@JoinColumn(name="dept_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '业务部门名称'")
+	@JoinColumn(name="dept_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '业务部门id'")
 	private Dept deptId;
 	
 	/** 凭证号码 */
@@ -51,7 +51,7 @@ public class ReimburseList implements Serializable{
 	
 	/** 科目名称 */
 	@OneToOne(targetEntity = FeeCourse.class)
-	@JoinColumn(name="fee_course_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目名称'")
+	@JoinColumn(name="fee_course_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目id'")
 	private FeeCourse feeCourseId;
 	
 	/** 0收入 1支出 */

@@ -21,6 +21,7 @@ import com.fx.service.company.CompanyCustomService;
 import com.fx.service.company.CompanyGroupService;
 import com.fx.service.company.StaffService;
 import com.fx.service.cus.CustomerService;
+import com.fx.service.cus.permi.RoleService;
 import com.fx.web.controller.BaseController;
 import com.fx.web.util.RedisUtil;
 
@@ -52,6 +53,9 @@ public class CompanyCustomerController extends BaseController {
 	/** 用户信息-服务 */
 	@Autowired
 	private CustomerService			customerSer;
+	/** 角色-服务 */
+	@Autowired
+	private RoleService  ros;
 
 	/** 缓存-服务 */
 	@Autowired
@@ -474,7 +478,7 @@ public class CompanyCustomerController extends BaseController {
 		String page = jsonObject.getString("page");
 		String rows = jsonObject.getString("rows");
 		String find = jsonObject.getString("find");
-		map = staSer.findStaffList(ReqSrc.PC_COMPANY, page, rows, LU.getLUnitNum(request, redis), find);
+		map = staSer.findStaffList(ReqSrc.PC_COMPANY, page, rows, "8112010001", find);
 		Message.print(response, map);
 	}
 
@@ -595,6 +599,25 @@ public class CompanyCustomerController extends BaseController {
 		Map<String, Object> map = new HashMap<String, Object>();
 		String cusType = jsonObject.getString("cusType");
 		map = ccSer.getCustomInfoByType(ReqSrc.PC_COMPANY, response, request, LU.getLUnitNum(request, redis), cusType);
+		Message.print(response, map);
+	}
+	
+	
+	
+	/**
+	 * 
+	 * @Description:根据部门id获取角色 (post) /company/cus/getRoleByDeptId
+	 * @param response
+	 * @param request
+	 * @param jsonObject
+	 * @author :zh
+	 * @version 2020年5月24日
+	 */
+	@RequestMapping(value = "getRoleByDeptId", method = RequestMethod.POST)
+	public void getRoleByDeptId(HttpServletResponse response, HttpServletRequest request,@RequestBody JSONObject jsonObject){
+		Map<String, Object> map = new HashMap<String, Object>();
+		String deptId = jsonObject.getString("deptId");
+		map = ros.getRoleByDeptId(ReqSrc.PC_COMPANY, response, request, deptId);
 		Message.print(response, map);
 	}
 

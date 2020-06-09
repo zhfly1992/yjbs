@@ -36,6 +36,24 @@ public class StaffDao extends ZBaseDaoImpl<Staff, Long> {
 	private BaseUserDao	buDao;
 
 
+	/**
+	 * 获取-车队驾驶员
+	 * @param teamNo 	车队编号
+	 * @param uname 	车队编号
+	 * @return 驾驶员对象
+	 */
+	public Staff getTeamDriver(String teamNo, String uname) {
+		Staff driver = new Staff();
+		
+		try {
+			String hql = "from Staff where unitNum = ?0 and baseUserId.uname = ?1 and isDriver = ?2";
+			driver = findObj(hql, teamNo, uname, 1, "LIMIT 1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return driver;
+	}
 
 	/**
 	 * 获取-员工-分页列表

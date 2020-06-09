@@ -15,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.fx.commons.annotation.Log;
 import com.fx.commons.utils.clazz.MapRes;
 import com.fx.commons.utils.clazz.Message;
 import com.fx.commons.utils.enums.CusRole;
@@ -29,6 +30,10 @@ import com.fx.service.cus.CustomerService;
 import com.fx.service.wxdat.WxGlobalService;
 import com.fx.service.wxdat.WxPublicDataService;
 import com.fx.web.util.RedisUtil;
+
+import io.swagger.annotations.ApiOperation;
+import io.swagger.annotations.ApiResponse;
+import io.swagger.annotations.ApiResponses;
 
 /**
  * 微信授权-控制器
@@ -142,7 +147,7 @@ public class WxAuthController {
 			}
 			
 			// 绑定参数,为了传入多个参数，则将所有参数封装到map对象中，并转成json字符串
-			if(ps.size() > 0) redirectUrl += "?ps="+U.toJsonStr(ps);
+			if(ps.size() > 0) redirectUrl += "?ps="+EncodeUtils.str2urlencode(U.toJsonStr(ps));
 			U.log(log, "跳转地址："+redirectUrl);
 			
 			// 这里要将你的授权回调地址处理一下，否则微信识别不了
@@ -183,7 +188,7 @@ public class WxAuthController {
 				redirectUrl = map.get("redirectUrl").toString();
 			}else {
 				// 跳转到移动端错误页面
-				redirectUrl = QC.PRO_URL + "error";
+				redirectUrl = QC.PRO_URL + QC.ERROR_PAGE;
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -191,5 +196,24 @@ public class WxAuthController {
     	
     	return "redirect:"+redirectUrl;
    	}
+    
+    @ApiOperation(
+		value="获取-用户登录信息",
+		notes="返回map{code: 结果状态码, msg: 结果状态码说明, data: 数据（uuid、登录用户手机号、登录用户角色、登录用户所在单位编号）}"
+	)
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@Log("获取-用户登录信息")
+	@RequestMapping(value="getLUser", method=RequestMethod.POST)
+	public void getLUser(HttpServletResponse response, HttpServletRequest request) {
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		map = customerSer.findLUser(ReqSrc.WX, response, request);
+		
+		Message.print(response, map);
+	}
 	
 }

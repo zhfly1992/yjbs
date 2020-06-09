@@ -19,10 +19,12 @@ import org.apache.logging.log4j.Logger;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.utils.enums.CusRole;
+import com.fx.commons.utils.enums.PointType;
 import com.fx.commons.utils.enums.ServiceType;
 import com.fx.commons.utils.tools.FV;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
+import com.fx.entity.order.RouteMapPoint;
 
 /** 
  * 工具-类
@@ -37,6 +39,80 @@ public class Util {
 		list.add("四川省-武汉市-金牛区");
 		list.add("四川省-成都市-金牛区");
 		System.out.println(getRouteServiceType(list));
+	}
+	
+	/**
+	 * 获取-行程地点-起点
+	 * @param rmps 行程地点列表
+	 * @return 行程起点
+	 */
+	public static RouteMapPoint getRSP(List<RouteMapPoint> rmps) {
+		U.log(log, "获取行程起点");
+		RouteMapPoint rmp = null;
+		
+		for (RouteMapPoint r : rmps) {
+			if(r.getPtype() == PointType.UP_POINT) {
+				rmp = r;
+				break;
+			}
+		}
+		
+		return rmp;
+	}
+	
+	/**
+	 * 获取-行程地点-终点
+	 * @param rmps 行程地点列表
+	 * @return 行程终点
+	 */
+	public static RouteMapPoint getREP(List<RouteMapPoint> rmps) {
+		U.log(log, "获取行程终点");
+		RouteMapPoint rmp = null;
+		
+		for (RouteMapPoint r : rmps) {
+			if(r.getPtype() == PointType.DOWN_POINT) {
+				rmp = r;
+				break;
+			}
+		}
+		
+		return rmp;
+	}
+	
+	/**
+	 * 获取-行程地点-途径点
+	 * @param rmps 行程地点列表
+	 * @return 行程途径点列表
+	 */
+	public static List<RouteMapPoint> getRWP(List<RouteMapPoint> rmps) {
+		U.log(log, "获取行程途径点");
+		List<RouteMapPoint> rmp = new ArrayList<RouteMapPoint>();
+		
+		for (RouteMapPoint r : rmps) {
+			if(r.getPtype() == PointType.WAY_POINT) {
+				rmp.add(r);
+			}
+		}
+		
+		return rmp;
+	}
+	
+	/**
+	 * 获取-行程地点-途径点-坐标字符串
+	 * @param rmps 行程地点列表
+	 * @return 行程途径点坐标字符串 eg：103.123456,30.123456;103.123456,30.123456;
+	 */
+	public static String getRWPLnglats(List<RouteMapPoint> rmps) {
+		U.log(log, "获取-行程地点-途径点-坐标字符串");
+		List<String> rmp = new ArrayList<String>();
+		
+		for (RouteMapPoint r : rmps) {
+			if(r.getPtype() == PointType.WAY_POINT) {
+				rmp.add(r.getMapPoint().getLngLat());
+			}
+		}
+		
+		return rmp.size() > 0 ? StringUtils.join(rmp, ";") : "";
 	}
 	
 	/**

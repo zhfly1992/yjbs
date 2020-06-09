@@ -926,10 +926,12 @@ public class UT {
 	 * @param rli		行程线路信息
 	 */
 	public static void setLybcOrderRouteDat(BcOrderParam bop, List<RouteMapPoint> routeMps, RouteLineInfo rli) {
+		String [] sarea=bop.getSpoint().split("=")[2].split("-");
 		MapPoint sp = new MapPoint();
-		sp.setAddress(bop.getEpoint().split("=")[0]);
-		sp.setLngLat(bop.getEpoint().split("=")[1]);
-		sp.setCounty(bop.getEpoint().split("=")[2]);
+		sp.setAddress(bop.getSpoint().split("=")[0]);
+		sp.setLngLat(bop.getSpoint().split("=")[1]);
+		sp.setCounty(sarea[2]);
+		sp.setCity(sarea[0]+"-"+sarea[1]);
 		sp.setLng(Double.parseDouble(sp.getLngLat().split(",")[0]));
 		sp.setLat(Double.parseDouble(sp.getLngLat().split(",")[1]));
 		U.log(log, "保存-[地图起点]数据-完成，并未保存至数据库");
@@ -941,11 +943,12 @@ public class UT {
 		routeMps.add(rmp_sp);
 		U.log(log, "保存-[行程起点]数据-完成，并未保存至数据库");
 		
-		
+		String [] earea=bop.getEpoint().split("=")[2].split("-");
 		MapPoint ep = new MapPoint();
 		ep.setAddress(bop.getEpoint().split("=")[0]);
 		ep.setLngLat(bop.getEpoint().split("=")[1]);
-		ep.setCounty(bop.getEpoint().split("=")[2]);
+		ep.setCounty(earea[2]);
+		ep.setCity(earea[0]+"-"+earea[1]);
 		ep.setLng(Double.parseDouble(ep.getLngLat().split(",")[0]));
 		ep.setLat(Double.parseDouble(ep.getLngLat().split(",")[1]));
 		U.log(log, "保存-[地图终点]数据-完成，并未保存至数据库");
@@ -968,16 +971,18 @@ public class UT {
 	}
 	
 	/**
-	 * 设置-旅游包车-行程数据
+	 * 单位设置-旅游包车-行程数据
 	 * @param bop 		旅游包车-临时订单参数对象
 	 * @param routeMps 	行程地图地点列表
 	 * @param rli		行程线路信息
 	 */
 	public static void setLybcOrderRouteCompany(CompanyOrderTemp cot, List<RouteMapPoint> routeMps, RouteLineInfo rli) {
+		String [] sarea=cot.getSpoint().split("=")[2].split("-");
 		MapPoint sp = new MapPoint();
 		sp.setAddress(cot.getSpoint().split("=")[0]);
 		sp.setLngLat(cot.getSpoint().split("=")[1]);
-		sp.setCounty(cot.getSpoint().split("-")[2]);
+		sp.setCounty(sarea[2]);
+		sp.setCity(sarea[0]+"-"+sarea[1]);
 		sp.setLng(Double.parseDouble(sp.getLngLat().split(",")[0]));
 		sp.setLat(Double.parseDouble(sp.getLngLat().split(",")[1]));
 		U.log(log, "保存-[地图起点]数据-完成，并未保存至数据库");
@@ -989,11 +994,12 @@ public class UT {
 		routeMps.add(rmp_sp);
 		U.log(log, "保存-[行程起点]数据-完成，并未保存至数据库");
 		
-		
+		String [] earea=cot.getEpoint().split("=")[2].split("-");
 		MapPoint ep = new MapPoint();
 		ep.setAddress(cot.getEpoint().split("=")[0]);
 		ep.setLngLat(cot.getEpoint().split("=")[1]);
-		ep.setCounty(cot.getEpoint().split("-")[2]);
+		ep.setCounty(earea[2]);
+		ep.setCity(earea[0]+"-"+earea[1]);
 		ep.setLng(Double.parseDouble(ep.getLngLat().split(",")[0]));
 		ep.setLat(Double.parseDouble(ep.getLngLat().split(",")[1]));
 		U.log(log, "保存-[地图终点]数据-完成，并未保存至数据库");
@@ -1007,11 +1013,14 @@ public class UT {
 		
 		if (StringUtils.isNotEmpty(cot.getWpoints())) {
 			String[] wps = cot.getWpoints().split(";");
+			String [] warea=null;
 			for (int i = 0; i < wps.length; i++) {
+				warea=wps[i].split("=")[2].split("-");
 				MapPoint wp = new MapPoint();
 				wp.setAddress(wps[i].split("=")[0]);
 				wp.setLngLat(wps[i].split("=")[1]);
-				wp.setCounty(wps[i].split("-")[2]);
+				wp.setCounty(warea[2]);
+				wp.setCity(warea[0]+"-"+warea[1]);
 				wp.setLng(Double.parseDouble(wp.getLngLat().split(",")[0]));
 				wp.setLat(Double.parseDouble(wp.getLngLat().split(",")[1]));
 				U.log(log, "保存-[途径地]数据-完成，并未保存至数据库");

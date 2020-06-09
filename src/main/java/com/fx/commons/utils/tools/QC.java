@@ -11,6 +11,7 @@ public class QC {
 	 * 正式-项目域名 http://51ekc.com
 	 */
 	public static String PRO_URL = "http://51ekc.com";
+//	public static String PRO_URL = "http://192.168.1.4";
 	/**
 	 * 正式-项目数据库连接ip 121.37.161.108
 	 */
@@ -71,6 +72,12 @@ public class QC {
     public static final String ALGORITHNAME = "MD5";
     /** 加密次数 10 */
     public static final int HASHNUM = 10;
+    
+    /**
+	 * 驾驶员-获得完团金额的比例：1 - 0.15
+	 */
+	public static double DRIVER_GET_MONEY_PROP = 1 - 0.15;
+    
 	
 	/**
 	 * 过滤字段数组：fit_fields
@@ -115,6 +122,11 @@ public class QC {
 	 * 发生异常出错提示消息：抱歉，出错了，请刷新再试
 	 */
 	public static String ERRORS_MSG = "抱歉，出错了，请刷新再试";
+	
+	/**
+	 * 错误页面地址 /page/error
+	 */
+	public static String ERROR_PAGE = "/page/error";
 	
 	
 }

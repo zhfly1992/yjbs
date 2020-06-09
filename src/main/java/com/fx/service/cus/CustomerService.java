@@ -105,5 +105,14 @@ public interface CustomerService extends BaseService<Customer, Long> {
 	 * @return map{ code: 结果状态码, msg: 结果状态码说明, lbuser: 登录用户基类，lwxuser: 登录微信用户基类 }
 	 */
 	public Map<String, Object> findLDriverUser(String teamNo, String luname);
+
+	/**
+	 * 获取-登录用户信息
+	 * @param reqsrc 	请求来源
+	 * @param response 	response
+	 * @param request 	request
+	 * @return map{ code: 结果状态码, msg: 结果状态码说明, data: 数据 }
+	 */
+	public Map<String, Object> findLUser(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request);
 	
 }

@@ -114,6 +114,20 @@ public interface FeeCourseService extends BaseService<FeeCourse, Long> {
 	 * @version 2020年5月23日
 	 */
 	public Map<String, Object> getCourseByParentId(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,String id);
+	
+	
+	/**
+	 * 
+	 * @Description:检验科目名字是否重复
+	 * @param reqsrc
+	 * @param response
+	 * @param request
+	 * @param courseName
+	 * @return
+	 * @author :zh
+	 * @version 2020年6月8日
+	 */
+	public Map<String, Object> checkCourseName(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,String courseName);
 }
 
 

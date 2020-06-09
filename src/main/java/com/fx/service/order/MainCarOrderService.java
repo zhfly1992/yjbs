@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.service.BaseService;
 import com.fx.commons.utils.enums.ReqSrc;
+import com.fx.entity.cus.Customer;
 import com.fx.entity.order.MainCarOrder;
 
 public interface MainCarOrderService extends BaseService<MainCarOrder, Long> {
@@ -121,5 +122,5 @@ public interface MainCarOrderService extends BaseService<MainCarOrder, Long> {
 	 * @version 2020年5月13日
 	 */
 	public Map<String, Object> confirmCollection(ReqSrc reqsrc, HttpServletResponse response,
-			HttpServletRequest request, JSONObject jsonObject);
+			HttpServletRequest request, JSONObject jsonObject,Customer customer);
 }

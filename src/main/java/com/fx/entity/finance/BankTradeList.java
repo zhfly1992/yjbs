@@ -123,7 +123,7 @@ public class BankTradeList implements Serializable{
 	
 	/** 科目名称 */
 	@OneToOne(targetEntity = FeeCourse.class)
-	@JoinColumn(name="fee_course_id", unique=true, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目名称'")
+	@JoinColumn(name="fee_course_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目id'")
 	private FeeCourse feeCourseId;
 	
 	/** 通报人手机号 */

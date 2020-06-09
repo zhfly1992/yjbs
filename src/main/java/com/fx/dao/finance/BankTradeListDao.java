@@ -39,54 +39,54 @@ public class BankTradeListDao extends ZBaseDaoImpl<BankTradeList, Long> {
 				comps.add(new Compositor("id", CompositorType.DESC));
 				////////////////////////查询条件-s//////////////////////////
 				filts.add(new Filtration(MatchType.EQ, unitNum,"unitNum"));//当前单位
-				if(StringUtils.isNotEmpty(bankNo)){
+				if(StringUtils.isNotBlank(bankNo)){
 					filts.add(new Filtration(MatchType.IN, bankNo.split(","), "myBankNum"));//我的银行账号
 				}
-				if(StringUtils.isNotEmpty(transName)){
+				if(StringUtils.isNotBlank(transName)){
 					filts.add(new Filtration(MatchType.LIKE_, "%"+transName+"%", "transName"));//对方户名
 				}
-				if(StringUtils.isNotEmpty(cusName)){
+				if(StringUtils.isNotBlank(cusName)){
 					filts.add(new Filtration(MatchType.LIKE_, "%"+cusName+"%", "cusName"));//客户名称
 				}
-				if(StringUtils.isNotEmpty(serviceName)){
+				if(StringUtils.isNotBlank(serviceName)){
 					filts.add(new Filtration(MatchType.LIKE_, "%"+serviceName+"%", "remark"));//业务员
 				}
-				if(StringUtils.isNotEmpty(remark)){
+				if(StringUtils.isNotBlank(remark)){
 					filts.add(new Filtration(MatchType.LIKE_, "%"+remark+"%", "remark"));//摘要
 				}
-				if(StringUtils.isNotEmpty(openRole)){
+				if(StringUtils.isNotBlank(openRole)){
 					filts.add(new Filtration(MatchType.LIKE_, "%"+openRole+"%", "openRole"));//开放角色
 				}
-				if(StringUtils.isNotEmpty(voucherNum)){
+				if(StringUtils.isNotBlank(voucherNum)){
 					filts.add(new Filtration(MatchType.EQ, voucherNum, "voucherNumber"));//凭证号
 				}
-				if(StringUtils.isNotEmpty(operMark)){
+				if(StringUtils.isNotBlank(operMark)){
 					filts.add(new Filtration(MatchType.LIKE, operMark, "operMark"));//操作编号
 				}
-				if(StringUtils.isNotEmpty(moneyType)){
+				if(StringUtils.isNotBlank(moneyType)){
 					filts.add(new Filtration(MatchType.LIKE, moneyType, "moneyType"));//金额类型
 				}
-				if(StringUtils.isNotEmpty(status)){
+				if(StringUtils.isNotBlank(status)){
 					if("0".equals(status)){
 						filts.add(new Filtration(MatchType.GT, 0.0, "tradeInMoney"));//收入
 					}else{
 						filts.add(new Filtration(MatchType.GT, 0.0, "tradeOutMoney"));//支出
 					}
 				}
-				if(StringUtils.isNotEmpty(openSel)){
+				if(StringUtils.isNotBlank(openSel)){
 					if("0".equals(openSel)){//未开放查询
 						filts.add(new Filtration(MatchType.ISNULL, "", "openRole"));
 					}else{//已开放查询
 						filts.add(new Filtration(MatchType.ISNOTNULL, "", "openRole"));
 					}
 				}
-				if(StringUtils.isNotEmpty(isCheck)){
+				if(StringUtils.isNotBlank(isCheck)){
 					filts.add(new Filtration(MatchType.EQ, Integer.parseInt(isCheck), "isCheck"));//收入
 				}
-				if(StringUtils.isNotEmpty(findMoney)){
+				if(StringUtils.isNotBlank(findMoney)){
 					filts.add(new Filtration(MatchType.EQ, Double.valueOf(findMoney), "tradeInMoney","tradeOutMoney"));//金额
 				}
-				if(StringUtils.isNotEmpty(sTime) && StringUtils.isNotEmpty(eTime)){ //时间
+				if(StringUtils.isNotBlank(sTime) && StringUtils.isNotBlank(eTime)){ //时间
 					if("0".equals(timeType)){
 						filts.add(new Filtration(MatchType.GE,DateUtils.strToDate("yyyy-MM-dd",sTime),"addTime"));
 						filts.add(new Filtration(MatchType.LE,DateUtils.strToDate("yyyy-MM-dd HH:mm:ss",eTime+" 23:59:59"),"addTime"));

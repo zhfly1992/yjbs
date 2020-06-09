@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.service.BaseService;
+import com.fx.commons.utils.enums.CusRole;
 import com.fx.commons.utils.enums.OrderSource;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.entity.company.CompanyVehicle;
@@ -302,12 +303,13 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 * @param response
 	 * @param request
 	 * @param jsonObject
+	 * @param customer
 	 * @return
 	 * @author :zh
 	 * @version 2020年5月13日
 	 */
 	public Map<String, Object> confirmPayment(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			JSONObject jsonObject);
+			JSONObject jsonObject,Customer customer);
 	
 	/**
 	 * 业务付款
@@ -493,5 +495,35 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 */
 	public Map<String, Object> JLComfirm(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 			String carOrderId);
+
+
+
+	/**
+	 * 驾驶员-确认订单
+	 * @param reqsrc 		请求来源
+	 * @param role 			用户角色 
+	 * @param request 		request
+	 * @param response 		response
+	 * @param orderNum 		订单编号
+	 * @param isAgree 		1-同意; 2-拒绝;
+	 * @param reason 		拒绝理由，100中文字符
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 */
+	public Map<String, Object> updCofmOrder(ReqSrc reqsrc, CusRole role, HttpServletRequest request, 
+		HttpServletResponse response, String orderNum, String isAgree, String reason);
+
+	/**
+	 * 驾驶员-确认-完团（乘客下车）
+	 * @param reqsrc 			请求来源
+	 * @param request 			request
+	 * @param response 			response
+	 * @param orderNum 			派车-订单编号
+	 * @param dayId				天数行程id
+	 * @param lnglat 			驾驶员确认出行-坐标：103.123456|30.123456
+	 * @param isArr				是否到达出行地点
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 */
+	public Map<String, Object> updCofmDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String orderNum,String dayId, String lnglat, String isArr);
 	
 }

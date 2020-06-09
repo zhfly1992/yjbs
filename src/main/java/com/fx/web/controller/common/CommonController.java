@@ -19,6 +19,8 @@ import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.service.CommonService;
 import com.fx.service.back.CarBrandService;
 import com.fx.service.back.CityListService;
+import com.fx.service.back.CountyListService;
+import com.fx.service.back.scenic_spots_dat.ScenicSpotsPointService;
 import com.fx.web.controller.BaseController;
 
 import io.swagger.annotations.Api;
@@ -42,6 +44,13 @@ public class CommonController extends BaseController {
 	/** 车辆品牌服务 */
 	@Autowired
 	private CarBrandService cbSer;
+	
+	/** 景点地点-服务 */
+	@Autowired
+	private ScenicSpotsPointService scenicSpotsPointSer;
+	/** 城市区/县-服务 */
+	@Autowired
+	private CountyListService countySer;
 	
 	
 	/**
@@ -337,4 +346,124 @@ public class CommonController extends BaseController {
 		map = cbSer.findAllCarBrands();
 		Message.print(response, map);
 	}
+	
+	@ApiOperation(
+		value="获取-城市-列表", 
+		notes="返回一个名为data的数组"
+	)
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			name="province",  
+			paramType="query", 
+			dataType="String",
+			value="省份名称或编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@RequestMapping(value="getCityList", method=RequestMethod.POST)
+  	public void getCityList(HttpServletRequest request, HttpServletResponse response, 
+  		@RequestBody JSONObject jsonObject){
+  		Map<String, Object> map = new HashMap<String, Object>();
+  		
+  		String province = jsonObject.getString("province");
+  		map = citySer.findCityList(province);
+  		
+  		Message.print(response, map);
+  	}
+	
+	@ApiOperation(
+		value="获取-城市区/县-列表", 
+		notes="返回一个名为data的数组"
+	)
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			name="city",  
+			paramType="query", 
+			dataType="String",
+			value="城市名称或编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@RequestMapping(value="getCountyList", method=RequestMethod.POST)
+  	public void getCountyList(HttpServletRequest request, HttpServletResponse response, 
+  		@RequestBody JSONObject jsonObject){
+  		Map<String, Object> map = new HashMap<String, Object>();
+  		
+  		String city = jsonObject.getString("city");
+  		map = countySer.findCountyList(city);
+  		
+  		Message.print(response, map);
+  	}
+	
+	@ApiOperation(
+		value="获取-景点城市区/县-列表", 
+		notes="返回一个名为data的数组"
+	)
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			name="cityName",  
+			paramType="query", 
+			dataType="String",
+			value="城市名称"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@RequestMapping(value="getJdCityOfCountyList", method=RequestMethod.POST)
+  	public void getJdCityOfCountyList(HttpServletRequest request, HttpServletResponse response, 
+  		@RequestBody JSONObject jsonObject){
+  		Map<String, Object> map = new HashMap<String, Object>();
+  		
+  		String cityName = jsonObject.getString("cityName");
+  		map = scenicSpotsPointSer.findJdCityOfCountyList(cityName);
+  		
+  		Message.print(response, map);
+  	}
+	
+	@ApiOperation(
+		value="获取-区/县景点-列表", 
+		notes="返回一个名为data的数组"
+	)
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			name="cityName",  
+			paramType="query", 
+			dataType="String",
+			value="城市名称"
+		),
+		@ApiImplicitParam(
+			name="countyName",  
+			paramType="query", 
+			dataType="String",
+			value="区/县名称"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@RequestMapping(value="getCountyJdList", method=RequestMethod.POST)
+  	public void getCountyJdList(HttpServletRequest request, HttpServletResponse response, 
+  		@RequestBody JSONObject jsonObject){
+  		Map<String, Object> map = new HashMap<String, Object>();
+  		
+  		String cityName = jsonObject.getString("cityName");
+  		String countyName = jsonObject.getString("countyName");
+  		map = scenicSpotsPointSer.findCountyJdList(cityName, countyName);
+  		
+  		Message.print(response, map);
+  	}
+	
 }

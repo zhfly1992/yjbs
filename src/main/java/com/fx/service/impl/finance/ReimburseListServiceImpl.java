@@ -36,9 +36,11 @@ import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
+import com.fx.dao.company.CompanyCustomDao;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.finance.FeeCourseDao;
 import com.fx.dao.finance.ReimburseListDao;
+import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.Customer;
@@ -61,6 +63,10 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 	/** 科目-服务 */
 	@Autowired
 	private FeeCourseDao fcDao;
+	
+	/** 单位客户-服务 */
+	@Autowired
+	private CompanyCustomDao ccusDao;
 	
 	/** 单位员工-服务 */
 	@Autowired
@@ -167,15 +173,18 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 					}
 				}
 				
+				CompanyCustom ccus=null;
 				Staff staff=null;
 				if(fg){
 					if(StringUtils.isEmpty(uname)){
 						fg = U.setPutFalse(map, "[报销人]不能为空");
 					}else{
 						uname = uname.trim();
-						staff=staffDao.findByField("baseUserId.uname", uname);
-						if(staff==null) {
+						ccus=ccusDao.findByField("baseUserId.uname", uname);
+						if(ccus==null) {
 							fg = U.setPutFalse(map, "[报销人]不存在");
+						}else {
+							staff=staffDao.findByField("baseUserId.uname", uname);
 						}
 					}
 				}
@@ -262,11 +271,11 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 				if(fg){
 					String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
 					Object sortNum=reimDao.findObj(hql, LU.getLUnitNum(request, redis),DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
-					obj.setReimUserId(staff.getBaseUserId());
-					obj.setDeptId(staff.getDeptId());
+					obj.setReimUserId(ccus.getBaseUserId());
+					if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
 					obj.setGainTime(_gainTime);
 					obj.setFeeCourseId(fc);
-					obj.setVoucherNum(UT.creatReimVoucher(staff.getBaseUserId().getUname(),Integer.parseInt(sortNum.toString())));
+					obj.setVoucherNum(UT.creatReimVoucher(ccus.getBaseUserId().getUname(),Integer.parseInt(sortNum.toString())));
 					obj.setFeeStatus(fcStatus);
 					obj.setTotalMoney(_totalMoney);
 					obj.setRemark(remark);
@@ -277,11 +286,11 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 					
 					
 					if(StringUtils.isEmpty(updId)){
-						obj.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
+						obj.setOperNote(ccus.getBaseUserId().getRealName()+"[添加]");
 						reimDao.save(obj);
 						U.setPut(map, 1, "添加成功");
 					}else{
-						obj.setOperNote(obj.getOperNote()+Util.getOperInfo(staff.getBaseUserId().getRealName(), "修改"));
+						obj.setOperNote(obj.getOperNote()+Util.getOperInfo(ccus.getBaseUserId().getRealName(), "修改"));
 						reimDao.update(obj);
 						U.setPut(map, 1, "修改成功");
 					}

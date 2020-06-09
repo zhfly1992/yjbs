@@ -57,7 +57,7 @@ public class WxBaseUserDao extends ZBaseDaoImpl<WxBaseUser, Long> {
 		try {
 			BaseUser buser = baseUserDao.findByField("phone", phone);
 			if(buser != null) {
-				hql = "from WxBaseUser where uname = ? and companyNum = ?";
+				hql = "from WxBaseUser where uname = ?0 and companyNum = ?1";
 				wxUser = findObj(hql, buser.getUname(), teamNo, "LIMIT 1");
 			}
 		} catch (Exception e) {
@@ -80,7 +80,7 @@ public class WxBaseUserDao extends ZBaseDaoImpl<WxBaseUser, Long> {
 		WxBaseUser wxUser = null;
 		
 		try {
-			hql = "from WxBaseUser where wxid = ? and companyNum = ?";
+			hql = "from WxBaseUser where wxid = ?0 and companyNum = ?1";
 			wxUser = findObj(hql, wxid, teamNo, "LIMIT 1");
 		} catch (Exception e) {
 			U.logEx(log, logtxt);

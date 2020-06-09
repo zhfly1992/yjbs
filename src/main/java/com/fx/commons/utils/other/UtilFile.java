@@ -21,7 +21,7 @@ import com.fx.commons.hiberantedao.pagingcom.Filtration;
 
 
 /**
- * 导出Excel工具类
+ * 文件工具类
  * 
  */
 public class UtilFile {

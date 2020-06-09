@@ -38,6 +38,7 @@ import com.fx.commons.utils.other.PasswordHelper;
 import com.fx.commons.utils.other.Util;
 import com.fx.commons.utils.other.WeiXinUtil;
 import com.fx.commons.utils.tools.FV;
+import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
@@ -109,7 +110,7 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     		String code = request.getParameter("code");		// 获取微信id所需code字符串
     		String state = request.getParameter("state");	// 跳转地址状态码
     		String ps = request.getParameter("ps");			// 参数map字符串
-			
+    		
     		U.log(log, "参数code:"+code);
     		U.log(log, "参数state="+state+", ps="+ps);
     		
@@ -182,25 +183,27 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     			}
     		}
     		
-			String openId = "o33IJwX2Osr-2XLiA_g8sz9qB0pA";
-//    		String openId = "";
+//			String openId = "o33IJwQa0RBFDlU31xPGqduBewCc";
+//			plist.add("oid="+openId);
+			
+    		String openId = "";
     		JsonNode auth = null;
     		if(fg){
-//    			WxPublicData wpd = wxPublicDataDao.findByField("companyNum", teamNo);
-//    			if(wpd != null) {
-//    				auth = WeiXinUtil.getOpenId(code, wpd.getWxAppId(), wpd.getWxAppSecret());
-//    			}else {
-//    				auth = WeiXinUtil.getOpenId(code, QC.DEF_APPID, QC.DEF_SECRET);
-//    			}
-//    			
-//    			if(auth == null){
-//    				fg = U.setPutFalse(map, "微信网页授权失败：openId为空");
-//    			}else{
-//    				openId = U.Cq(auth, "openid");
-//    				plist.add("oid="+openId);
-//    				
-//    				U.log(log, "微信网页授权返回参数：openId="+openId);
-//    			}
+    			WxPublicData wpd = wxPublicDataDao.findByField("companyNum", teamNo);
+    			if(wpd != null) {
+    				auth = WeiXinUtil.getOpenId(code, wpd.getWxAppId(), wpd.getWxAppSecret());
+    			}else {
+    				auth = WeiXinUtil.getOpenId(code, QC.DEF_APPID, QC.DEF_SECRET);
+    			}
+    			
+    			if(auth == null){
+    				fg = U.setPutFalse(map, "微信网页授权失败：openId为空");
+    			}else{
+    				openId = U.Cq(auth, "openid");
+    				plist.add("oid="+openId);
+    				
+    				U.log(log, "微信网页授权返回参数：openId="+openId);
+    			}
     		}
     		
     		if(fg) {
@@ -229,21 +232,21 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
         				if(lwxuser.getLgTime() != null) day = DateUtils.getDaysOfTowDiffDate(new Date(), lwxuser.getLgTime());
         				
         				// 如果一周未登录/登录信息不存在，则需要更新微信用户信息
-//        				if(day >= 7) {
-//        					WxUserInfo wxu = UT.getWxUserInfo(U.Cq(auth, "access_token"), openId);
-//        					if(wxu != null) {
-//        						U.log(log, "用户已有"+day+"天没有登录，则更新用户基类信息");
-//        						
-//        						BaseUser bu = baseUserDao.findByUname(lwxuser.getUname());
-//        						if(bu != null) {
-//        							bu.setNickName(wxu.getNickname());
-//        							bu.setSex(Sex.valueOf(wxu.getSex()));
-//        							bu.setHeadImg(wxu.getHeadimgurl());
-//        							baseUserDao.update(bu);
-//        							U.log(log, "修改-用户（头像、昵称）信息-完成");
-//        						}
-//        					}
-//        				}
+        				if(day >= 7) {
+        					WxUserInfo wxu = UT.getWxUserInfo(U.Cq(auth, "access_token"), openId);
+        					if(wxu != null) {
+        						U.log(log, "用户已有"+day+"天没有登录，则更新用户基类信息");
+        						
+        						BaseUser bu = baseUserDao.findByUname(lwxuser.getUname());
+        						if(bu != null) {
+        							bu.setNickName(wxu.getNickname());
+        							bu.setSex(Sex.valueOf(wxu.getSex()));
+        							bu.setHeadImg(wxu.getHeadimgurl());
+        							baseUserDao.update(bu);
+        							U.log(log, "修改-用户（头像、昵称）信息-完成");
+        						}
+        					}
+        				}
         				
         				// 根据微信id和车队编号-自动登录
         				map = customerDao.wxAutoLogin(request, response, null, _wrole.name(), teamNo, lwxuser);
@@ -252,7 +255,7 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
             				plist.add("uuid="+map.get("uuid").toString());
             				
             				// 自动登录成功后，跳转到指定的主页
-                			redirectUrl = Util.getRouteUrlByCusRole(_wrole, 1)+"?"+StringUtils.join(plist, "&");
+                			redirectUrl = Util.getRouteUrlByCusRole(_wrole, 1)+"?uuid="+map.get("uuid").toString(); //StringUtils.join(plist, "&");
             			}else {
             				fg = U.setPutFalse(map, "[自动登录]错误");
             			}
@@ -705,7 +708,6 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 		String logtxt = U.log(log, "驾驶员用户-手机号密码登录", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
-		String hql = "";
 		boolean fg = true;
 		
 		try {
@@ -713,7 +715,7 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     			if(role == null) {
     				fg = U.setPutFalse(map, "[登录用户角色]不能为空");
     			}else {
-    				U.log(log, "[登录用户角色] role="+role.getValue());
+    				U.log(log, "[登录用户角色] role="+role.getKey());
     			}
     		}
 			
@@ -812,76 +814,8 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 			}
 			
 			if(fg) {
-				map = customerDao.saveWxLoginDat(map, request, false, lcus, luser, cu, wxid, role);
+				map = customerDao.saveWxLoginDat(map, request, _remberMe, lcus, luser, cu, wxid, role);
 			}
-			
-//			if(fg) {
-//				UsernamePasswordToken token = new UsernamePasswordToken(luser.getUname(), lpass);
-//				if(_remberMe == true) {
-//					token.setRememberMe(_remberMe);
-//				}
-//				
-//	            Subject subject = SecurityUtils.getSubject();
-//	            if(subject != null) subject.logout(); // 已登录，则先退出
-//	            
-//	            subject.login(token);
-//	            U.log(log, "token: "+token);
-//	            U.log(log, "是否登录==>"+subject.isAuthenticated());
-//	            
-//	            
-//	            // 获取-用户微信基类对象
-//	            WxBaseUser wxUser = wxBaseUserDao.findWxUser(teamNo, luser.getUname());
-//	            if(wxUser == null) {
-//	            	U.log(log, "不存在-微信基类对象，即未绑定当前访问公众号");
-//	            	
-//	            	wxUser = new WxBaseUser();
-//	            	wxUser.setUname(luser.getUname());
-//	            	wxUser.setCompanyNum(cu.getUnitNum());
-//	            	wxUser.setWxid(wxid);
-//	            	wxUser.setAtime(new Date());
-//	            	wxUser.setLgWxid(wxid);
-//	            	wxUser.setLgRole(role);
-//	            	wxUser.setLgLngLat(null);
-//	            	wxUser.setLgIp(IPUtil.getIpAddr(request));
-//	            	wxUser.setLgTime(new Date());
-//	            	wxBaseUserDao.save(wxUser);
-//	            	U.log(log, "绑定当前公众号-完成");
-//	            }else {
-//	            	U.log(log, "存在-微信基类对象，即已绑定当前访问公众号");
-//	            	
-//	            	wxUser.setLgWxid(wxid);
-//	            	wxUser.setLgRole(role);
-//	            	wxUser.setLgLngLat(null);
-//	            	wxUser.setLgIp(IPUtil.getIpAddr(request));
-//	            	wxUser.setLgTime(new Date());
-//	            	wxBaseUserDao.update(wxUser);
-//	            	U.log(log, "更新-绑定当前公众号信息-完成");
-//	            }
-//	            
-//	            // 记录登录日志
-//	            LoginLog llog = new LoginLog();
-//	            llog.setOperIp(IPUtil.getIpAddr(request));// 获取HTTP请求
-//	            llog.setUname(luser.getUname());
-//	            llog.setOperLocation(AddressUtil.getAddress(llog.getOperIp()));
-//	            llog.setAtime(new Date());
-//	            llog.setOperDevice(UT.getReqUA(request));
-//	            loginLogDao.save(llog);
-//	            U.log(log, "保存-登录日志-完成");
-//	            
-//	            // 缓存登录用户信息
-//	            Map<String, Object> mapUser = new HashMap<String, Object>();// 缓存登录用户信息map
-//	            String uuid = subject.getSession().getId().toString();
-//				mapUser.put(QC.L_USER, lcus);
-//				mapUser.put(QC.L_WX, wxUser);
-//				mapUser.put(QC.L_COMPANY, cu);
-//				mapUser.put(QC.L_TIME, DateUtils.DateToStr(new Date()));
-//				redis.set(uuid, mapUser);
-//				
-//				// 传入前端
-//	            map.put(QC.UUID, uuid);
-//				
-//				U.setPut(map, 1, "驾驶员-登录成功");
-//			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();
@@ -944,12 +878,39 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 				luser.put("uname", lbuser.getUname());
 				luser.put("phone", lbuser.getPhone());
 				luser.put("realName", lbuser.getRealName());
-				luser.put("headImg", lbuser.getHeadImg());
+				luser.put("headImg", lbuser.getHeadImg() == null ? "" : lbuser.getHeadImg());
 				luser.put("teamNo", lcomUser.getUnitNum());
 				luser.put("teamName", lcomUser.getCompanyName());
 				map.put("data", luser);
 				
 				U.setPut(map, 1, "获取-驾驶员登录信息-成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> findLUser(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request) {
+		String logtxt = U.log(log, "获取-登录用户信息", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(fg) {
+				WxBaseUser lwxuser = LU.getLWx(request, redis);
+				CompanyUser lcomUser = LU.getLCompany(request, redis);
+				
+				Map<String, Object> luser = new HashMap<String, Object>();
+				luser.put("wxid", lwxuser.getWxid());
+				luser.put("role", lwxuser.getLgRole().name());
+				luser.put("teamNo", lcomUser.getUnitNum());
+				
+				U.setPut(map, 1, "获取-登录信息-成功");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);

@@ -1,6 +1,8 @@
 package com.fx.service.impl.order;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -8,6 +10,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,6 +27,7 @@ import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
 import com.fx.commons.utils.clazz.CarRouteRes;
 import com.fx.commons.utils.clazz.OrderTemp;
+import com.fx.commons.utils.enums.CusRole;
 import com.fx.commons.utils.enums.MainOrderStatus;
 import com.fx.commons.utils.enums.OrderPayStatus;
 import com.fx.commons.utils.enums.OrderSource;
@@ -36,6 +40,7 @@ import com.fx.commons.utils.other.DateUtils;
 import com.fx.commons.utils.other.MathUtils;
 import com.fx.commons.utils.other.Util;
 import com.fx.commons.utils.tools.FV;
+import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
@@ -44,6 +49,8 @@ import com.fx.dao.company.CompanyCustomDao;
 import com.fx.dao.company.CompanyDiscountDao;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.CompanyUserDao;
+import com.fx.dao.cus.CusWalletDao;
+import com.fx.dao.cus.WalletListDao;
 import com.fx.dao.finance.FeeCourseDao;
 import com.fx.dao.finance.ReimburseListDao;
 import com.fx.dao.order.BcCarPriceDao;
@@ -64,7 +71,9 @@ import com.fx.entity.company.CompanyVehicle;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
+import com.fx.entity.cus.CusWallet;
 import com.fx.entity.cus.Customer;
+import com.fx.entity.cus.WalletList;
 import com.fx.entity.finance.FeeCourse;
 import com.fx.entity.finance.ReimburseList;
 import com.fx.entity.order.BcCarPrice;
@@ -83,6 +92,7 @@ import com.fx.entity.order.RouteMapPoint;
 import com.fx.entity.order.RouteStationInfo;
 import com.fx.service.company.CompanyVehicleService;
 import com.fx.service.order.CarOrderService;
+import com.fx.web.util.RedisUtil;
 
 @Service
 @Transactional
@@ -90,17 +100,17 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 	/** 日志记录 */
 	private Logger		log	= LogManager.getLogger(this.getClass());
 
-	/** 旅游包车-临时车辆价格-数据源 */
-	@Autowired
-	private CarOrderDao	carOrderDao;
-
-
-
 	@Override
 	public ZBaseDaoImpl<CarOrder, Long> getDao() {
 		return carOrderDao;
 	}
 
+	/** 缓存-服务 */
+	@Autowired
+	private RedisUtil redis;
+	/** 车辆订单-数据源 */
+	@Autowired
+	private CarOrderDao	carOrderDao;
 	/** 派车信息-服务 */
 	@Autowired
 	private DisCarInfoDao			disCarInfoDao;
@@ -131,6 +141,12 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 	/** 公共-服务 */
 	@Autowired
 	private CommonDao				commonDao;
+	/** 用户钱包-服务 */
+	@Autowired
+	private CusWalletDao cusWalletDao;
+	/** 交易记录-服务 */
+	@Autowired
+	private WalletListDao walletListDao;
 
 	// /** 操作员-服务 */
 	// @Autowired
@@ -164,21 +180,22 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 	/** 订单基本信息-服务 **/
 	@Autowired
 	private CarOrderBaseDao			cobDao;
-	
+
 	/** 单位客户-服务 **/
 	@Autowired
 	private CompanyCustomDao		companyCustomDao;
-	
+
 	/** 单位员工-服务 */
 	@Autowired
-	private StaffDao staffDao;
-	
+	private StaffDao				staffDao;
+
 	/** 单位凭证-服务 */
 	@Autowired
-	private ReimburseListDao reimDao;
+	private ReimburseListDao		reimDao;
 	/** 科目-服务 */
 	@Autowired
-	private FeeCourseDao fcDao;
+	private FeeCourseDao			fcDao;
+
 
 
 	@Override
@@ -216,7 +233,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			String routeDetail = jsonObject.getString("routeDetail");
 			// 用车方负责人
 			String dutyService = jsonObject.getString("dutyService");
-			
+
 			// 供车方（收款方）搜索
 			String suppCar = jsonObject.getString("suppCar");
 			// 车牌号
@@ -231,14 +248,18 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			if (fg) {
 				Page<CarOrder> pd = carOrderDao.getCarOrderForPayment(reqsrc, page, rows, payStatus, startTime, endTime,
 						compositorType, timeType, driver, dutyService, suppCar, plateNum, orderNum, routeDetail,
-						serviceMan, unitNum,customer);
+						serviceMan, unitNum, customer);
+
 				// 解决懒加载问题
 				for (CarOrder carOrder : pd.getResult()) {
 					Hibernate.initialize(carOrder.getRouteMps());
 					Hibernate.initialize(carOrder.getTrades());
 				}
 				U.setPageData(map, pd);
-
+				Map<String, Object> countCarOrderForPayment = carOrderDao.countCarOrderForPayment(reqsrc, page,
+						"100000", payStatus, startTime, endTime, compositorType, timeType, driver, dutyService, suppCar,
+						plateNum, orderNum, routeDetail, serviceMan, unitNum, customer);
+				map.put("statics", countCarOrderForPayment);
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
 				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[] {});
@@ -603,17 +624,40 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 						carOrder.setNeedSeats(needSeats);
 						carOrderDao.update(carOrder);
 						U.log(log, "单位-编辑订单-单个订单-未派车-修改相应信息");
-						if (needSeats != 1) {
+						if (needCars != 1) {
 							// 增加车辆数
 							U.log(log, "单位-编辑订单-单个订单-未派车-复制订单");
+							CarOrder temp =  carOrder;
 							for (int i = 1; i < needCars; i++) {
 								// 简化复制订单的操作
-								carOrder.setAddTime(new Date());
-								carOrder.setId(new Date().getTime());
-								carOrder.setOrderNum(UT.creatOrderNum(
-										carOrder.getCarOrderBase().getRouteType().getValue(), carOrder.getAddTime()));
-								carOrder.setNeedCars(1);
-								carOrderDao.save(carOrder);
+								CarOrder add = (CarOrder)temp.clone();
+								add.setAddTime(new Date());
+								add.setOrderNum(UT.creatOrderNum(
+										temp.getCarOrderBase().getRouteType().getValue(), add.getAddTime()));
+								add.setNeedCars(1);
+								add.setTrades(null);
+								add.setRouteMps(null);
+								List<RouteMapPoint> oldRouteMps = temp.getRouteMps();
+								if (null != oldRouteMps && !oldRouteMps.isEmpty()) {
+									List<RouteMapPoint> newRouteMps = new ArrayList<RouteMapPoint>(oldRouteMps.size());
+									for (RouteMapPoint rmp : oldRouteMps) {
+										RouteMapPoint routeMapPoint = new RouteMapPoint();
+										routeMapPoint.setMapPoint(rmp.getMapPoint());
+										routeMapPoint.setPtype(rmp.getPtype());
+										routeMapPoint.setSortNo(rmp.getSortNo());
+										newRouteMps.add(routeMapPoint);
+									}
+									add.setRouteMps(newRouteMps);
+								}
+
+								
+//								carOrder.setAddTime(new Date());
+//								carOrder.setId(new Date().getTime());
+//								carOrder.setOrderNum(UT.creatOrderNum(
+//										carOrder.getCarOrderBase().getRouteType().getValue(), carOrder.getAddTime()));
+//								carOrder.setNeedCars(1);
+								carOrderDao.save(add);
+								temp = add;
 							}
 						}
 						fg = false;
@@ -673,7 +717,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				}
 				U.log(log, "单位-编辑订单-多个订单-修改子订单信息成功");
 			}
-
+			carOrderDao.getCurrentSession().clear();
 			// 子订单的信息修改完成，更新主订单
 			String hql = "from CarOrder where mainOrderNum = ?0 and isDel = 0";
 			List<CarOrder> list = carOrderDao.findhqlList(hql, mainOrderNum);
@@ -716,6 +760,18 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				// jsonObject.getString("mainOrderNum"));
 				U.log(log, "单位-订单-获取主订单下所有子订单-查找成功");
 				// 解决懒加载问题
+				 Collections.sort(carOrders, new Comparator<CarOrder>()
+				    {
+				        public int compare(CarOrder a1, CarOrder a2)
+				        {
+				                int io1 = a1.getRouteNo();
+				                int io2 = a2.getRouteNo();
+				                return io1 - io2;
+				        }
+				    });
+
+				
+				
 				for (CarOrder order : carOrders) {
 					// Hibernate.initialize(order.getDisCars());
 					Hibernate.initialize(order.getRouteMps());
@@ -799,10 +855,12 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 			List<RouteMapPoint> routeMps = new ArrayList<RouteMapPoint>();
 			if (fg) {
+				String [] sarea=op.getSpoint().split("=")[2].split("-");
 				MapPoint sp = new MapPoint();
-				sp.setAddress(op.getEpoint().split("=")[0]);
-				sp.setLngLat(op.getEpoint().split("=")[1]);
-				sp.setCounty(op.getEpoint().split("=")[2]);
+				sp.setAddress(op.getSpoint().split("=")[0]);
+				sp.setLngLat(op.getSpoint().split("=")[1]);
+				sp.setCounty(sarea[2]);
+				sp.setCity(sarea[0]+"-"+sarea[1]);
 				sp.setLng(Double.parseDouble(sp.getLngLat().split(",")[0]));
 				sp.setLat(Double.parseDouble(sp.getLngLat().split(",")[1]));
 				U.log(log, "保存-[地图起点]数据-完成，并未保存至数据库");
@@ -813,11 +871,13 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				rmp_sp.setPtype(PointType.UP_POINT);
 				routeMps.add(rmp_sp);
 				U.log(log, "保存-[行程起点]数据-完成，并未保存至数据库");
-
+				
+				String [] earea=op.getEpoint().split("=")[2].split("-");
 				MapPoint ep = new MapPoint();
 				ep.setAddress(op.getEpoint().split("=")[0]);
 				ep.setLngLat(op.getEpoint().split("=")[1]);
-				ep.setCounty(op.getEpoint().split("=")[2]);
+				ep.setCounty(earea[2]);
+				ep.setCity(earea[0]+"-"+earea[1]);
 				ep.setLng(Double.parseDouble(ep.getLngLat().split(",")[0]));
 				ep.setLat(Double.parseDouble(ep.getLngLat().split(",")[1]));
 				U.log(log, "保存-[地图终点]数据-完成，并未保存至数据库");
@@ -1663,7 +1723,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 					fg = U.setPutFalse(map, "获取行程距离失败，请重新获取");
 				} else {
 					// 结束时间=开始时间+行程耗时+其他原因增加时间
-					_etime = DateUtils.getPlusSecondsDate(DateUtils.yyyy_MM_dd_HH_mm_ss, _stime,mp.getTimeCons());
+					_etime = DateUtils.getPlusSecondsDate(DateUtils.yyyy_MM_dd_HH_mm_ss, _stime, mp.getTimeCons());
 				}
 			}
 			if (fg) {
@@ -1735,10 +1795,12 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 				/********* 行程地点数据*****start ****/
 				List<RouteMapPoint> routeMps = new ArrayList<RouteMapPoint>();
+				String [] sarea=spoint.split("=")[2].split("-");
 				MapPoint sp = new MapPoint();
 				sp.setAddress(spoint.split("=")[0]);
 				sp.setLngLat(spoint.split("=")[1]);
-				sp.setCounty(spoint.split("-")[2]);
+				sp.setCounty(sarea[2]);
+				sp.setCity(sarea[0]+"-"+sarea[1]);
 				sp.setLng(Double.parseDouble(sp.getLngLat().split(",")[0]));
 				sp.setLat(Double.parseDouble(sp.getLngLat().split(",")[1]));
 				U.log(log, "保存-[地图起点]数据-完成，并未保存至数据库");
@@ -1749,11 +1811,13 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				rmp_sp.setPtype(PointType.UP_POINT);
 				routeMps.add(rmp_sp);
 				U.log(log, "保存-[行程起点]数据-完成，并未保存至数据库");
-
+				
+				String [] earea=epoint.split("=")[2].split("-");
 				MapPoint ep = new MapPoint();
 				ep.setAddress(epoint.split("=")[0]);
 				ep.setLngLat(epoint.split("=")[1]);
-				ep.setCounty(epoint.split("-")[2]);
+				ep.setCounty(earea[2]);
+				ep.setCity(earea[0]+"-"+earea[1]);
 				ep.setLng(Double.parseDouble(ep.getLngLat().split(",")[0]));
 				ep.setLat(Double.parseDouble(ep.getLngLat().split(",")[1]));
 				U.log(log, "保存-[地图终点]数据-完成，并未保存至数据库");
@@ -1767,11 +1831,14 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 				if (StringUtils.isNotEmpty(wpoints)) {
 					String[] wps = wpoints.split(";");
+					String [] warea=null;
 					for (int i = 0; i < wps.length; i++) {
+						warea=wps[i].split("=")[2].split("-");
 						MapPoint wp = new MapPoint();
 						wp.setAddress(wps[i].split("=")[0]);
 						wp.setLngLat(wps[i].split("=")[1]);
-						wp.setCounty(wps[i].split("-")[2]);
+						wp.setCounty(warea[2]);
+						wp.setCity(warea[0]+"-"+warea[1]);
 						wp.setLng(Double.parseDouble(wp.getLngLat().split(",")[0]));
 						wp.setLat(Double.parseDouble(wp.getLngLat().split(",")[1]));
 						U.log(log, "保存-[途径地]数据-完成，并未保存至数据库");
@@ -1853,19 +1920,15 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 
 
-	
-
-
-
 	@Override
 	public Map<String, Object> confirmPayment(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			JSONObject jsonObject) {
+			JSONObject jsonObject, Customer customer) {
 		String logtxt = U.log(log, "单位订单-确认付款价格", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
 		try {
 			String id = jsonObject.getString("id");
-			String confirmName = jsonObject.getString("confirmPayMentName");
+
 			if (fg) {
 				if (StringUtils.isBlank(id)) {
 					U.logFalse(log, "单位订单-确认付款价格-订单id为空");
@@ -1873,14 +1936,14 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				}
 			}
 			if (fg) {
-				if (StringUtils.isBlank(confirmName)) {
-					U.logFalse(log, "单位订单-确认付款价格-确认付款价格人姓名为空");
-					fg = U.setPutFalse(map, 0, "确认人姓名为空");
+				if (null == customer) {
+					U.logFalse(log, "单位订单-确认付款价格-获取账号信息失败");
+					fg = U.setPutFalse(map, 0, "获取账号信息失败");
 				}
 			}
 			if (fg) {
 				int res = carOrderDao.batchExecute("update CarOrder set confirmPaymentName = ?0 where id = ?1",
-						confirmName, Long.parseLong(id));
+						customer.getBaseUserId().getRealName(), Long.parseLong(id));
 				if (res > 0) {
 					U.log(log, "单位订单-确认付款价格-success");
 					U.setPut(map, 1, "确认付款价格成功");
@@ -1921,8 +1984,8 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 			if (fg) {
 				if (mainCarOrder.getMainOrderBase().getStatus() != MainOrderStatus.NOT_CONFIRM) {
-					U.logFalse(log, "单位订单-确认用车-主订单未处于'未确认用车'状态'");
-					fg = U.setPutFalse(map, 0, "主订单未处于'未确认用车'状态'");
+					U.logFalse(log, "单位订单-确认用车-主订单未处于[未确认用车]状态");
+					fg = U.setPutFalse(map, 0, "主订单未处于[未确认用车状态]");
 				}
 			}
 			if (fg) {
@@ -1986,17 +2049,21 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 								carOrderForAdd.setServiceType(carOrder.getServiceType());
 								carOrderForAdd.setStatus(carOrder.getStatus());
 								carOrderForAdd.setTrades(null);
-//								List<RouteTradeList> oldRouteTrade = carOrder.getTrades();
-//								if (null != oldRouteTrade && !oldRouteTrade.isEmpty()) {
-//									List<RouteTradeList> newRouteTrade = new ArrayList<RouteTradeList>(
-//											oldRouteTrade.size());
-//									for (RouteTradeList rt : newRouteTrade) {
-//										RouteTradeList routeTradeList = new RouteTradeList();
-//										routeTradeList.setAddTime(addTime);
-//										newRouteTrade.add(rt);
-//									}
-//									carOrderForAdd.setTrades(newRouteTrade);
-//								}
+								// List<RouteTradeList> oldRouteTrade =
+								// carOrder.getTrades();
+								// if (null != oldRouteTrade &&
+								// !oldRouteTrade.isEmpty()) {
+								// List<RouteTradeList> newRouteTrade = new
+								// ArrayList<RouteTradeList>(
+								// oldRouteTrade.size());
+								// for (RouteTradeList rt : newRouteTrade) {
+								// RouteTradeList routeTradeList = new
+								// RouteTradeList();
+								// routeTradeList.setAddTime(addTime);
+								// newRouteTrade.add(rt);
+								// }
+								// carOrderForAdd.setTrades(newRouteTrade);
+								// }
 
 								carOrderForAdd.setStime(carOrder.getStime());
 								carOrderForAdd.setTravelPrepayPrice(carOrder.getTravelPrepayPrice());
@@ -2030,39 +2097,39 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 		try {
 			if (StringUtils.isBlank(sendOrderNum)) {
 				fg = U.setPutFalse(map, 0, "派单订单号不能为空");
-				}
-			if(fg) {
+			}
+			if (fg) {
 				if (StringUtils.isBlank(seats)) {
 					fg = U.setPutFalse(map, 0, "派单座位数不能为空");
+				}
 			}
-			}
-			if(fg) {
+			if (fg) {
 				if (StringUtils.isBlank(avgSpeed)) {
 					fg = U.setPutFalse(map, 0, "平均速度不能为空");
 				}
 			}
-			if(fg) {
-				String hql="from CarOrder where orderNum in (:v0) order by routeNo asc";
-				List<CarOrder> coist=carOrderDao.findListIns(hql, (Object[])sendOrderNum.split(","));
-				map=commonDao.sendTempParam(coist,0);
-				if("1".equals(map.get("code").toString())) {
-					OrderTemp ot=(OrderTemp)map.get("ot");
-					List<Map<String, Object>> choice= carSer.lastSmartCar(reqsrc,ot, "0", seats, force, runArea, plateNum, selfOwned, 
-			 				Double.valueOf(avgSpeed), notContainPn, 0);
-					map.remove("ot");//删除临时参数，前端不需要
-			 		if(choice!=null && choice.size()==1){
-			  			if("0".equals(choice.get(0).get("cancelNum").toString())){//无冲突订单
-			  				map.put("data", choice.get(0).get("choiceCar"));
-			  				// 字段过滤
+			if (fg) {
+				String hql = "from CarOrder where orderNum in (:v0) order by routeNo asc";
+				List<CarOrder> coist = carOrderDao.findListIns(hql, (Object[]) sendOrderNum.split(","));
+				map = commonDao.sendTempParam(coist, 0);
+				if ("1".equals(map.get("code").toString())) {
+					OrderTemp ot = (OrderTemp) map.get("ot");
+					List<Map<String, Object>> choice = carSer.lastSmartCar(reqsrc, ot, "0", seats, force, runArea,
+							plateNum, selfOwned, Double.valueOf(avgSpeed), notContainPn, 0);
+					map.remove("ot");// 删除临时参数，前端不需要
+					if (choice != null && choice.size() == 1) {
+						if ("0".equals(choice.get(0).get("cancelNum").toString())) {// 无冲突订单
+							map.put("data", choice.get(0).get("choiceCar"));
+							// 字段过滤
 							Map<String, Object> fmap = new HashMap<String, Object>();
-							fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
+							fmap.put(U.getAtJsonFilter(BaseUser.class), new String[] {});
 							map.put(QC.FIT_FIELDS, fmap);
-			  				U.setPut(map, 1, "查询车辆成功");
-			  			}else {
-			  				U.setPutFalse(map, "未找到符合条件的车辆");
-			  			}
-			  		}else {
-			  			U.setPutFalse(map, "未找到符合条件的车辆");
+							U.setPut(map, 1, "查询车辆成功");
+						} else {
+							U.setPutFalse(map, "未找到符合条件的车辆");
+						}
+					} else {
+						U.setPutFalse(map, "未找到符合条件的车辆");
 					}
 				}
 			}
@@ -2080,120 +2147,124 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			String sendOrderNum, String firstCar, String seats, String notContainPn, String sendPlate) {
 		String logtxt = U.log(log, "单位-智能派单-获取车辆", reqsrc);
 		Map<String, Object> sendMap = new HashMap<String, Object>();
-		boolean  fg=true;
+		boolean fg = true;
 		try {
 			if (StringUtils.isBlank(sendOrderNum)) {
 				fg = U.setPutFalse(sendMap, 0, "派单订单号不能为空");
 			}
-			if(fg) {
-				//CarOrder co = carOrderDao.findByField("orderNum", sendOrderNum);
-				String hql="from CarOrder where orderNum in (:v0) order by routeNo asc";
-				List<CarOrder> coist=carOrderDao.findListIns(hql, (Object[])sendOrderNum.split(","));
-				sendMap=commonDao.sendTempParam(coist,1);
-				if("1".equals(sendMap.get("code").toString())) {
-					OrderTemp ot=(OrderTemp)sendMap.get("ot");
-				if (StringUtils.isBlank(seats)) {
-					seats = ot.getNeedSeats() + "";
-				}
-					List<Map<String, Object>> findCar = carSer.lastSmartCar(reqsrc,ot, firstCar, seats, "0", "", sendPlate, "",
-							0, notContainPn, 1);// 最终选择车辆和需要取消的订单
-					sendMap.remove("ot");//删除临时参数，前端不需要
-				if (findCar != null && findCar.size() > 0) {
-					if (findCar.size() == 1) {// 找到1辆车
-						Map<String, Object> fmap = findCar.get(0);
-						CompanyVehicle car = (CompanyVehicle) fmap.get("choiceCar");
-						if ("0".equals(fmap.get("cancelNum").toString())) {// 当前订单派单后与后续订单不冲突并且没有其他日程冲突订单直接派单
-							sendMap = confirmSendSmart(reqsrc, sendMap, null, null, null, coist, car);
-						} else {// 当前订单派单后与后续订单冲突
-								// 3月1号10点成都市 天府广场-{途经点}-成都市
-								// 天府三街1日县/市/省际包车/单程接送(订单号)
-							CarOrder jcNext = carOrderDao.findByField("orderNum", fmap.get("cancelNum").toString());
-							String msg = DateUtils.get_MDM_str(jcNext.getStime());
-							msg += jcNext.getRouteMps().get(0).getMapPoint().getAddress() + "─";// 起点地址
-							if (jcNext.getRouteMps().size() > 2) {
-								msg += "途径地：（";
-								for (int i = 2; i < jcNext.getRouteMps().size(); i++) {
-									if (i != jcNext.getRouteMps().size() - 1) {
-										msg += jcNext.getRouteMps().get(i).getMapPoint().getAddress() + ",";
-									} else {
-										msg += jcNext.getRouteMps().get(i).getMapPoint().getAddress() + "）";
+			if (fg) {
+				// CarOrder co = carOrderDao.findByField("orderNum",
+				// sendOrderNum);
+				String hql = "from CarOrder where orderNum in (:v0) order by routeNo asc";
+				List<CarOrder> coist = carOrderDao.findListIns(hql, (Object[]) sendOrderNum.split(","));
+				sendMap = commonDao.sendTempParam(coist, 1);
+				if ("1".equals(sendMap.get("code").toString())) {
+					OrderTemp ot = (OrderTemp) sendMap.get("ot");
+					if (StringUtils.isBlank(seats)) {
+						seats = ot.getNeedSeats() + "";
+					}
+					List<Map<String, Object>> findCar = carSer.lastSmartCar(reqsrc, ot, firstCar, seats, "0", "",
+							sendPlate, "", 0, notContainPn, 1);// 最终选择车辆和需要取消的订单
+					sendMap.remove("ot");// 删除临时参数，前端不需要
+					if (findCar != null && findCar.size() > 0) {
+						if (findCar.size() == 1) {// 找到1辆车
+							Map<String, Object> fmap = findCar.get(0);
+							CompanyVehicle car = (CompanyVehicle) fmap.get("choiceCar");
+							if ("0".equals(fmap.get("cancelNum").toString())) {// 当前订单派单后与后续订单不冲突并且没有其他日程冲突订单直接派单
+								sendMap = confirmSendSmart(reqsrc, sendMap, null, null, null, coist, car);
+							} else {// 当前订单派单后与后续订单冲突
+									// 3月1号10点成都市 天府广场-{途经点}-成都市
+									// 天府三街1日县/市/省际包车/单程接送(订单号)
+								CarOrder jcNext = carOrderDao.findByField("orderNum", fmap.get("cancelNum").toString());
+								String msg = DateUtils.get_MDM_str(jcNext.getStime());
+								msg += jcNext.getRouteMps().get(0).getMapPoint().getAddress() + "─";// 起点地址
+								if (jcNext.getRouteMps().size() > 2) {
+									msg += "途径地：（";
+									for (int i = 2; i < jcNext.getRouteMps().size(); i++) {
+										if (i != jcNext.getRouteMps().size() - 1) {
+											msg += jcNext.getRouteMps().get(i).getMapPoint().getAddress() + ",";
+										} else {
+											msg += jcNext.getRouteMps().get(i).getMapPoint().getAddress() + "）";
+										}
 									}
 								}
+								msg += "─" + jcNext.getRouteMps().get(1).getMapPoint().getAddress();// 终点地址
+								msg += (DateUtils.getDaysOfTowDiffDate(jcNext.getStime(), jcNext.getEtime()) + 1) + "日"
+										+ jcNext.getServiceType().getKey();
+								msg += "订单号：" + jcNext.getOrderNum();
+								sendMap.put("currPlateNum", car.getPlateNumber());// 当前车牌号
+								sendMap.put("cancelNum", jcNext.getOrderNum());
+								if (ot.getRouteType().equals(RouteType.ONE_WAY)) {// 单车接送
+									sendMap.put("nextSeats", ot.getNeedSeats());// 下一个座位数
+								} else {
+									sendMap.put("nextSeats", seats);// 下一个座位数
+								}
+								U.setPut(sendMap, -1, "找到【" + car.getPlateNumber() + "," + car.getSeats()
+										+ "座】的车最适合当前订单！但与该车【" + msg + "】冲突，是否继续？继续派车将取消已有行程重新派单");
+								/*
+								 * if(fmap.get("cancelNum").toString().contains(
+								 * ",") ){// 多个订单冲突
+								 * sendMap.put("currPlateNum",car.getPlateNumber
+								 * ());
+								 * if(co.getRouteType().equals(RouteType.ONE_WAY
+								 * )){/ / 单程接送 sendMap.put("nextSeats",
+								 * co.getNeedSeats()); U.setPut(sendMap,
+								 * -3,"当前订单所匹配车辆【"+car.getPlateNumber()+
+								 * "】与多个已派订单冲突【"+
+								 * fmap.get("cancelNum").toString()+
+								 * "】请手动派单或选择其他车辆") ; }else{
+								 * sendMap.put("nextSeats", seats);
+								 * U.setPut(sendMap,
+								 * -3,"当前订单所匹配车辆【"+car.getPlateNumber()+
+								 * "】与多个已派订单冲突【"+
+								 * fmap.get("cancelNum").toString()+
+								 * "】请手动派单或选择其他车辆") ; } }else{//提示前台是继续派单还是下一辆车
+								 * 
+								 * }
+								 */
 							}
-							msg += "─" + jcNext.getRouteMps().get(1).getMapPoint().getAddress();// 终点地址
-							msg += (DateUtils.getDaysOfTowDiffDate(jcNext.getStime(), jcNext.getEtime()) + 1) + "日"
-									+ jcNext.getServiceType().getKey();
-							msg += "订单号：" + jcNext.getOrderNum();
-							sendMap.put("currPlateNum", car.getPlateNumber());// 当前车牌号
-							sendMap.put("cancelNum", jcNext.getOrderNum());
-							if (ot.getRouteType().equals(RouteType.ONE_WAY)) {// 单车接送
-								sendMap.put("nextSeats", ot.getNeedSeats());// 下一个座位数
-							} else {
-								sendMap.put("nextSeats", seats);// 下一个座位数
+						} else {// 找到2辆车，这种情况只会出现在同时有空车和非空车的时候
+							String msg = "找到两辆最优车辆：";
+							CompanyVehicle fcar = null;
+							String carStr = "";
+							for (Map<String, Object> fmap : findCar) {
+								fcar = (CompanyVehicle) fmap.get("choiceCar");
+								if ("0".equals(fmap.get("haveRoute").toString())) {
+									msg += "【" + fcar.getPlateNumber() + "," + fcar.getSeats() + "座,空车】";
+								} else if ("1".equals(fmap.get("haveRoute").toString())) {
+									msg += "【" + fcar.getPlateNumber() + "," + fcar.getSeats() + "座,有业务能套单！】请选择一辆派车！";
+								} else {
+									CarOrder jcNext = carOrderDao.findByField("orderNum",
+											fmap.get("cancelNum").toString());
+									msg += "【" + fcar.getPlateNumber() + "," + fcar.getSeats() + "座,有"
+											+ DateUtils.get_MDM_str(jcNext.getStime()) + "至"
+											+ DateUtils.get_MDM_str(jcNext.getEtime()) + "的"
+											+ jcNext.getServiceType().getKey() + "冲突！】请选择其中一辆派车（如选有冲突车辆将取消现有行程重派）！";
+								}
+								carStr += fcar.getPlateNumber() + "," + fmap.get("cancelNum").toString() + "/@";
 							}
-							U.setPut(sendMap, -1, "找到【" + car.getPlateNumber() + "," + car.getSeats()
-									+ "座】的车最适合当前订单！但与该车【" + msg + "】冲突，是否继续？继续派车将取消已有行程重新派单");
-							/*
-							 * if(fmap.get("cancelNum").toString().contains(",")
-							 * ){// 多个订单冲突
-							 * sendMap.put("currPlateNum",car.getPlateNumber());
-							 * if(co.getRouteType().equals(RouteType.ONE_WAY)){/
-							 * / 单程接送 sendMap.put("nextSeats",
-							 * co.getNeedSeats()); U.setPut(sendMap,
-							 * -3,"当前订单所匹配车辆【"+car.getPlateNumber()+
-							 * "】与多个已派订单冲突【"+
-							 * fmap.get("cancelNum").toString()+"】请手动派单或选择其他车辆")
-							 * ; }else{ sendMap.put("nextSeats", seats);
-							 * U.setPut(sendMap,
-							 * -3,"当前订单所匹配车辆【"+car.getPlateNumber()+
-							 * "】与多个已派订单冲突【"+
-							 * fmap.get("cancelNum").toString()+"】请手动派单或选择其他车辆")
-							 * ; } }else{//提示前台是继续派单还是下一辆车
-							 * 
-							 * }
-							 */
+							sendMap.put("carOne", carStr.split("/@")[0]);
+							sendMap.put("carTwo", carStr.split("/@")[1]);
+							msg += "否则请关闭此页！";
+							U.setPut(sendMap, -2, msg);
 						}
-					} else {// 找到2辆车，这种情况只会出现在同时有空车和非空车的时候
-						String msg = "找到两辆最优车辆：";
-						CompanyVehicle fcar = null;
-						String carStr = "";
-						for (Map<String, Object> fmap : findCar) {
-							fcar = (CompanyVehicle) fmap.get("choiceCar");
-							if ("0".equals(fmap.get("haveRoute").toString())) {
-								msg += "【" + fcar.getPlateNumber() + "," + fcar.getSeats() + "座,空车】";
-							} else if ("1".equals(fmap.get("haveRoute").toString())) {
-								msg += "【" + fcar.getPlateNumber() + "," + fcar.getSeats() + "座,有业务能套单！】请选择一辆派车！";
+					} else {
+						if (ot.getRouteType().equals(RouteType.ONE_WAY)) {// 单车接送
+							U.setPut(sendMap, 0, "操作成功，当前智能派单未找到车辆，请手动派单");
+						} else {// 包车订单
+							hql = "select new CompanyVehicle(seats) from CompanyVehicle where unitNum=?0 and seats>?1 group by seats order by seats asc";
+							List<CompanyVehicle> seatlist = carSer.findhqlList(hql, ot.getUnitNum(),
+									Integer.parseInt(seats));
+							if (seatlist.size() > 0) {
+								sendMap.put("nextSeats", seatlist.get(0).getSeats());// 下一个座位数
+								U.setPut(sendMap, -3, "操作成功（智能派单" + seats + "座运力已饱和）是否启用" + seatlist.get(0).getSeats()
+										+ "座智能派单？不启用则手动派单");
 							} else {
-								CarOrder jcNext = carOrderDao.findByField("orderNum", fmap.get("cancelNum").toString());
-								msg += "【" + fcar.getPlateNumber() + "," + fcar.getSeats() + "座,有"
-										+ DateUtils.get_MDM_str(jcNext.getStime()) + "至"
-										+ DateUtils.get_MDM_str(jcNext.getEtime()) + "的"
-										+ jcNext.getServiceType().getKey() + "冲突！】请选择其中一辆派车（如选有冲突车辆将取消现有行程重派）！";
+								U.setPut(sendMap, 0, "操作成功（智能派单" + seats + "座运力已饱和并且没有更大车型可选，请手动派单）");
 							}
-							carStr += fcar.getPlateNumber() + "," + fmap.get("cancelNum").toString() + "/@";
-						}
-						sendMap.put("carOne", carStr.split("/@")[0]);
-						sendMap.put("carTwo", carStr.split("/@")[1]);
-						msg += "否则请关闭此页！";
-						U.setPut(sendMap, -2, msg);
-					}
-				} else {
-					if (ot.getRouteType().equals(RouteType.ONE_WAY)) {// 单车接送
-						U.setPut(sendMap, 0, "操作成功，当前智能派单未找到车辆，请手动派单");
-					} else {// 包车订单
-						hql = "select new CompanyVehicle(seats) from CompanyVehicle where unitNum=?0 and seats>?1 group by seats order by seats asc";
-						List<CompanyVehicle> seatlist = carSer.findhqlList(hql, ot.getUnitNum(),
-								Integer.parseInt(seats));
-						if (seatlist.size() > 0) {
-							sendMap.put("nextSeats", seatlist.get(0).getSeats());// 下一个座位数
-							U.setPut(sendMap, -3, "操作成功（智能派单" + seats + "座运力已饱和）是否启用" + seatlist.get(0).getSeats()
-									+ "座智能派单？不启用则手动派单");
-						} else {
-							U.setPut(sendMap, 0, "操作成功（智能派单" + seats + "座运力已饱和并且没有更大车型可选，请手动派单）");
 						}
 					}
 				}
-			}
 			}
 		} catch (Exception e) {
 			U.setPutEx(sendMap, log, e, logtxt);
@@ -2364,6 +2435,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 		JSONArray jsonArray = jsonObject.getJSONArray("idList");
 		String mainOrderNum = jsonObject.getString("mainOrderNum");
 		List<Long> idList = JSONArray.parseArray(jsonArray.toJSONString(), Long.class);
+		List<CarOrder> carOrders = new ArrayList<>();
 		try {
 			if (fg) {
 				if (idList.size() == 0) {
@@ -2380,14 +2452,20 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			if (fg) {
 				for (long orderId : idList) {
 					CarOrder carOrder = carOrderDao.findByField("id", orderId);
-					if (carOrder.getIsExternal() == 0) {
-						// 订单处于非外调状态，可以外调
-						carOrder.setIsExternal(1);
-						carOrderDao.update(carOrder);
-						U.log(log, "单位管理-订单操作-订单外调-订单id:" + orderId + "外调成功");
+					if (carOrder.getIsExternal() != 0) {
+						U.logFalse(log, "单位管理-订单操作-订单外调-订单id:" + orderId + "不处于非外调，不能外调");
+						fg = U.setPutFalse(map, 0, "订单[" + carOrder.getOrderNum() + "]已经外调，不能外调");
+						break;
 					} else {
-						U.log(log, "单位管理-订单操作-订单外调-订单id:" + orderId + "不能外调");
+						carOrders.add(carOrder);
 					}
+				}
+			}
+			if (fg) {
+				for (CarOrder carOrder : carOrders) {
+					carOrder.setIsExternal(1);
+					carOrderDao.update(carOrder);
+					U.log(log, "单位管理-订单操作-订单外调-订单id:" + carOrder.getId() + "外调成功");
 				}
 
 				MainCarOrder mainCarOrder = mcarOrderDao.findByField("orderNum", mainOrderNum);
@@ -2423,6 +2501,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 		JSONArray jsonArray = jsonObject.getJSONArray("idList");
 		String mainOrderNum = jsonObject.getString("mainOrderNum");
 		List<Long> idList = JSONArray.parseArray(jsonArray.toJSONString(), Long.class);
+		List<CarOrder> carOrders = new ArrayList<>();
 		try {
 			if (fg) {
 				if (idList.size() == 0) {
@@ -2440,13 +2519,19 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				for (long orderId : idList) {
 					CarOrder carOrder = carOrderDao.findByField("id", orderId);
 					if (carOrder.getIsExternal() != 1) {
-						// 订单处于不外调或者外调锁定状态，无法取消外调
-						U.log(log, "单位管理-订单操作-取消外调-订单id:" + orderId + "无法取消外调");
+						U.logFalse(log, "单位管理-订单操作-取消外调-订单id:" + orderId + "无法取消外调");
+						fg = U.setPutFalse(map, 0, "订单[" + carOrder.getOrderNum() + "]无法取消外调,请检查订单外调状态");
+						break;
 					} else {
-						carOrder.setIsExternal(0);
-						carOrderDao.update(carOrder);
-						U.log(log, "单位管理-订单操作-取消外调-订单id:" + orderId + "取消成功");
+						carOrders.add(carOrder);
 					}
+				}
+			}
+			if (fg) {
+				for (CarOrder carOrder : carOrders) {
+					carOrder.setIsExternal(0);
+					carOrderDao.update(carOrder);
+					U.log(log, "单位管理-订单操作-取消外调-订单id:" + carOrder.getId() + "取消成功");
 				}
 
 				MainCarOrder mainCarOrder = mcarOrderDao.findByField("orderNum", mainOrderNum);
@@ -2497,7 +2582,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 		JSONArray jsonArray = jsonObject.getJSONArray("idList");
 		String mainOrderNum = jsonObject.getString("mainOrderNum");
 		List<Long> idList = JSONArray.parseArray(jsonArray.toJSONString(), Long.class);
-
+		List<CarOrder> carOrders = new ArrayList<>();
 		try {
 			if (fg) {
 				if (idList.size() == 0) {
@@ -2521,14 +2606,22 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				for (long orderId : idList) {
 					CarOrder carOrder = carOrderDao.findByField("id", orderId);
 					if (carOrder.getIsExternal() == 1) {
-						// 订单处于外调状态，可以锁定
-						carOrder.setIsExternal(2);
-						carOrder.setExternalLockMan(externalLockMan);
-						carOrderDao.update(carOrder);
-						U.log(log, "单位管理-订单操作-锁定外调-订单id:" + orderId + "锁定外调成功");
+						carOrders.add(carOrder);
 					} else {
-						U.log(log, "单位管理-订单操作-锁定外调-订单id:" + orderId + "锁定失败，订单不处于外调状态");
+						U.logFalse(log, "单位管理-订单操作-锁定外调-订单id:" + orderId + "锁定失败，订单不处于外调状态");
+						fg = U.setPutFalse(map, 0, "订单[" + carOrder.getOrderNum() + "]不能锁定");
+						break;
 					}
+				}
+			}
+			if (fg) {
+				for (CarOrder carOrder : carOrders) {
+					// 订单处于外调状态，可以锁定
+					carOrder.setIsExternal(2);
+					carOrder.setExternalLockMan(externalLockMan);
+					carOrderDao.update(carOrder);
+					U.log(log, "单位管理-订单操作-锁定外调-订单id:" + carOrder.getId() + "锁定外调成功");
+
 				}
 
 				MainCarOrder mainCarOrder = mcarOrderDao.findByField("orderNum", mainOrderNum);
@@ -2565,6 +2658,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 		JSONArray jsonArray = jsonObject.getJSONArray("idList");
 		String mainOrderNum = jsonObject.getString("mainOrderNum");
 		List<Long> idList = JSONArray.parseArray(jsonArray.toJSONString(), Long.class);
+		List<CarOrder> carOrders = new ArrayList<>();
 		try {
 			if (fg) {
 				if (idList.size() == 0) {
@@ -2588,14 +2682,23 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				for (long orderId : idList) {
 					CarOrder carOrder = carOrderDao.findByField("id", orderId);
 					if (carOrder.getIsExternal() == 2 && carOrder.getStatus().toString().equals("NOT_DIS_CAR")) {
+						carOrders.add(carOrder);
+					} else {
+						U.logFalse(log, "单位管理-订单操作-解锁外调-订单id:" + orderId + "无法解锁");
+						fg = U.setPutFalse(map, 0, "订单[" + carOrder.getOrderNum() + "]无法解锁");
+						break;
+					}
+
+				}
+			}
+			if (fg) {
+				for (CarOrder carOrder : carOrders) {
 						// 订单处于外调锁定状态，且未派单，可以取消锁定
 						carOrder.setIsExternal(1);
 						carOrder.setExternalLockMan(externalUnLockMan);
 						carOrderDao.update(carOrder);
-						U.log(log, "单位管理-订单操作-解锁外调-订单id:" + orderId + "解锁外调成功");
-					} else {
-						U.log(log, "单位管理-订单操作-解锁外调-订单id:" + orderId + "解锁失败");
-					}
+						U.log(log, "单位管理-订单操作-解锁外调-订单id:" + carOrder.getId() + "解锁外调成功");
+					
 				}
 
 				MainCarOrder mainCarOrder = mcarOrderDao.findByField("orderNum", mainOrderNum);
@@ -2622,7 +2725,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 						U.log(log, "单位管理-订单操作-解锁外调-主订单" + mainOrderNum + "解锁失败,有子订单处于锁定外调状态");
 					}
 				}
-				U.setPut(map, 1, "锁定外调成功");
+				U.setPut(map, 1, "解锁外调成功");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
@@ -2650,7 +2753,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			if (carOrder == null) {
 				U.logFalse(log, "业务付款-取消确认付款价格-查询不到订单");
 				U.setPutFalse(map, 0, "查询不到订单，请确认id正确");
-				return map;		
+				return map;
 			}
 			carOrder.setConfirmPaymentName(null);
 			carOrderDao.update(carOrder);
@@ -2663,123 +2766,153 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			return map;
 		}
 	}
-	
+
+
+
 	@Override
-	public Map<String, Object> findDriverOrderList(ReqSrc reqsrc, BaseUser buser, CompanyUser comUser, 
-		String page, String rows, String stime, String etime, String isTrip) {
+	public Map<String, Object> findDriverOrderList(ReqSrc reqsrc, BaseUser buser, CompanyUser comUser, String page,
+			String rows, String stime, String etime, String isTrip) {
 		String logtxt = U.log(log, "获取-车队驾驶员-订单列表", reqsrc);
-		
+
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
-		
+
 		try {
-			if(fg) fg = U.valPageNo(map, page, rows, null);		// 验证-页码&页大小
-			if(fg) fg = U.valSEtime(map, stime, etime, "出行");	// 验证-开始时间&结束时间
-			
-			if(fg){
-				if(StringUtils.isEmpty(isTrip)){
+			if (fg)
+				fg = U.valPageNo(map, page, rows, null); // 验证-页码&页大小
+			if (fg)
+				fg = U.valSEtime(map, stime, etime, "出行"); // 验证-开始时间&结束时间
+
+			if (fg) {
+				if (StringUtils.isEmpty(isTrip)) {
 					fg = U.setPutFalse(map, "[出行类型]不能为空");
-				}else{
+				} else {
 					isTrip = isTrip.trim();
-					if(!FV.isInteger(isTrip)){
+					if (!FV.isInteger(isTrip)) {
 						fg = U.setPutFalse(map, "[出行类型]格式错误");
 					}
-					
-					U.log(log, "[是否出行] isTrip="+isTrip);
+
+					U.log(log, "[是否出行] isTrip=" + isTrip);
 				}
 			}
-			
-			if(fg) {
-				Page<CarOrder> pd = carOrderDao.findPageDriverOrderList(buser, comUser, page, rows, 
-					stime, etime, isTrip);
+
+			if (fg) {
+				Page<CarOrder> pd = carOrderDao.findPageDriverOrderList(buser, comUser, page, rows, stime, etime,
+						isTrip);
 				U.setPageData(map, pd);
-				
+
 				U.setPut(map, 1, "获取-驾驶员订单列表-成功");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();
 		}
-		
+
 		return map;
 	}
 
+
+
 	@Override
-	public Map<String, Object> servicePay(ReqSrc reqsrc, HttpServletRequest request, String unitNum,String uname, String ids,
-			String payMoney, String payRemark) {
+	public Map<String, Object> servicePay(ReqSrc reqsrc, HttpServletRequest request, String unitNum, String uname,
+			String ids, String payMoney, String payRemark) {
 		String logtxt = U.log(log, "单位-业务付款");
-		
+
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
-		
+
 		try {
-			if(ReqSrc.PC_COMPANY == reqsrc) {
-				if(fg){
-					if(StringUtils.isEmpty(ids)){
+			if (ReqSrc.PC_COMPANY == reqsrc) {
+				if (fg) {
+					if (StringUtils.isEmpty(ids)) {
 						fg = U.setPutFalse(map, "[付款id]不能为空");
-					}else{
+					} else {
 						ids = ids.trim();
-						U.log(log, "付款id="+ids);
+						U.log(log, "付款id=" + ids);
 					}
 				}
-				double _payMoney=0.0;
-				if(fg){
-					if(StringUtils.isEmpty(payMoney)){
+				double _payMoney = 0.0;
+				if (fg) {
+					if (StringUtils.isEmpty(payMoney)) {
 						fg = U.setPutFalse(map, "[付款金额]不能为空");
-					}else{
+					} else {
 						_payMoney = Double.valueOf(payMoney.trim());
-						if(_payMoney==0) {
+						if (_payMoney == 0) {
 							fg = U.setPutFalse(map, "[付款金额]不能为0");
 						}
-						U.log(log, "付款金额="+payMoney);
+						U.log(log, "付款金额=" + payMoney);
 					}
 				}
-				if(fg){
-					if(StringUtils.isEmpty(payRemark)){
+				if (fg) {
+					if (StringUtils.isEmpty(payRemark)) {
 						fg = U.setPutFalse(map, "[付款摘要]不能为空");
-					}else{
+					} else {
 						payRemark = payRemark.trim();
-						U.log(log, "付款摘要="+payRemark);
+						U.log(log, "付款摘要=" + payRemark);
 					}
 				}
-				FeeCourse fc=null;
-				if(fg) {
-					fc=fcDao.findByField("courseName", "业务付款");
-					if(fc==null) {
+				FeeCourse fc = null;
+				if (fg) {
+					fc = fcDao.findByField("courseName", "业务付款");
+					if (fc == null) {
 						fg = U.setPutFalse(map, "[科目“业务付款”]不存在");
+					}
+				}
+				List<CarOrder> colist=new ArrayList<CarOrder>();
+				CarOrder co = null;
+				if(fg){
+					String payName="";//收款方
+					String[] id = ids.split(",");
+					for (int i = 0; i < id.length; i++) {
+						co = carOrderDao.find(Long.valueOf(id[i]));
+						if(co.getDisPrice()<=co.getAlPayPrice()) {
+							fg = U.setPutFalse(map, "订单【"+co.getOrderNum()+"】已付全款，不能继续付款");
+							break;
+						}
+						if(StringUtils.isBlank(co.getConfirmPaymentName())){
+							fg = U.setPutFalse(map, "订单【"+co.getOrderNum()+"】未确认车价，请先确认");
+							break;
+						}
+						if(StringUtils.isNotBlank(payName)) {
+							if(co.getDisCar().getSuppCar().contains(payName)) {
+								fg = U.setPutFalse(map, "请选择同一个客户的订单");
+								break;
+							}
+						}else {
+							payName=co.getDisCar().getSuppCar();
+						}
+						colist.add(co);
 					}
 				}
 				if(fg){
 					Staff staff=staffDao.findByField("baseUserId.uname", uname);//当前员工，正常情况是出纳
-					String[] id = ids.split(",");
-					CarOrder co = null;
 					String operMark="";
 					String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
 					Object sortNum=reimDao.findObj(hql, unitNum,DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
-					for (int i = 0; i < id.length; i++) {
-						co = carOrderDao.find(Long.valueOf(id[i]));
-						if (co != null) {
-							operMark=DateUtils.getOrderNum(7);
-							if (id.length > 1) {// 多个订单收款默认每个订单均付款完成
+					for (int i=0;i<colist.size();i++) {
+						co = colist.get(i);
+							operMark = DateUtils.getOrderNum(7);
+						if (colist.size() > 1) {// 多个订单收款默认每个订单均付款完成
 								_payMoney = MathUtils.sub(Double.valueOf(co.getDisPrice()),
-										Double.valueOf(co.getAlPayPrice()),2);
+										Double.valueOf(co.getAlPayPrice()), 2);
 							}
 							// 更新已付款
-							if (co.getDisPrice() <= MathUtils.add(co.getAlPayPrice(), _payMoney,2)) { // 已付款+本次付款>=行程总价
+							if (co.getDisPrice() <= MathUtils.add(co.getAlPayPrice(), _payMoney, 2)) { // 已付款+本次付款>=行程总价
 								co.setPayStatus(OrderPayStatus.FULL_PAID);// 全款已付
-							}else {
+							} else {
 								co.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已付定金
 							}
-							co.setAlPayPrice(MathUtils.add(co.getAlPayPrice(), _payMoney,2));
+							co.setAlPayPrice(MathUtils.add(co.getAlPayPrice(), _payMoney, 2));
 							carOrderDao.update(co);
-							//添加付款凭证
-							ReimburseList reim=new ReimburseList();
+							// 添加付款凭证
+							ReimburseList reim = new ReimburseList();
 							reim.setUnitNum(unitNum);
 							reim.setReimUserId(co.getCarOrderBase().getBaseUserId());
 							reim.setDeptId(staff.getDeptId());
 							reim.setGainTime(co.getStime());
 							reim.setFeeCourseId(fc);
-							reim.setVoucherNum(UT.creatReimVoucher(staff.getBaseUserId().getUname(),Integer.parseInt(sortNum.toString()+i)));
+							reim.setVoucherNum(UT.creatReimVoucher(staff.getBaseUserId().getUname(),
+									Integer.parseInt(sortNum.toString() + i)));
 							reim.setFeeStatus(fc.getCourseType());
 							reim.setTotalMoney(_payMoney);
 							reim.setRemark(payRemark);
@@ -2788,13 +2921,12 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 							reim.setReqsrc(reqsrc);
 							reim.setOperMark(operMark);
 							reim.setCarOrderReim(co);
-							reim.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
+							reim.setOperNote(staff.getBaseUserId().getRealName() + "[添加]");
 							reimDao.save(reim);
 						}
-					}
 					U.setPut(map, 1, "付款成功");
 				}
-			}else{
+			} else {
 				U.setPut(map, 0, QC.ERRORS_MSG);
 			}
 		} catch (Exception e) {
@@ -2803,6 +2935,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 		}
 		return map;
 	}
+
 
 
 	@Override
@@ -2823,7 +2956,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				U.setPutFalse(map, 0, "确认失败，查询不到订单信息 ");
 				return map;
 			}
-			if (carOrder.getStatus() != OrderStatus.JL_NOT_CONFIRM ) {
+			if (carOrder.getStatus() != OrderStatus.JL_NOT_CONFIRM) {
 				U.logFalse(log, "订单-经理确认派单-失败-订单当前状态有误");
 				U.setPutFalse(map, 0, "确认失败，确认当前订单状态 ");
 				return map;
@@ -2839,4 +2972,508 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			return map;
 		}
 	}
+	
+	@Override
+	public Map<String, Object> updCofmOrder(ReqSrc reqsrc, CusRole role, HttpServletRequest request,
+		HttpServletResponse response, String orderNum, String isAgree, String reason) {
+		String logtxt = U.log(log, "驾驶员-确认订单", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(CusRole.TEAM_DRIVER == role){// 车队驾驶员
+				if(fg){
+					if(StringUtils.isEmpty(orderNum)){
+						fg = U.setPutFalse(map, "[订单编号]不能为空");
+					}else{
+						orderNum = orderNum.trim();
+						
+						U.log(log, "订单编号：orderNum="+orderNum);
+					}
+				}
+				
+				int _isAgree = 0;
+				if(fg){
+					if(StringUtils.isEmpty(isAgree)){
+						fg = U.setPutFalse(map, "[是否同意]不能为空");
+					}else{
+						isAgree = isAgree.trim();
+						if(!FV.isInteger(isAgree)){
+							fg = U.setPutFalse(map, "[是否同意]为整数");
+						}else{
+							_isAgree = Integer.parseInt(isAgree);
+						}
+						
+						U.log(log, "是否同意：isAgree="+isAgree);
+					}
+				}
+				
+				if(fg){
+					if(StringUtils.isEmpty(reason)){
+						U.log(log, "[拒绝原因]为空");
+					}else{
+						reason = reason.trim();
+						if(reason.length() > 100){
+							fg = U.setPutFalse(map, "[拒绝原因]文本长度不能超过100");
+						}
+						
+						U.log(log, "拒绝原因：reason="+reason);
+					}
+				}
+				
+				CarOrder jco = null;
+				if(fg){
+					jco = carOrderDao.findByField("orderNum", orderNum);
+					if(jco == null){
+						fg = U.setPutFalse(map, "该订单不存在");
+					}else{
+						if(jco.getStatus() != OrderStatus.DRIVER_NOT_CONFIRM){
+							fg = U.setPutFalse(map, "该订单已为确认订单");
+						}
+					}
+				}
+				
+//				if(fg){
+//					map = isCallAllLinkman(jco);// 验证司机师傅全部拨打地点联系人电话
+//					if(!"1".equals(map.get("code").toString())){
+//						fg = false;
+//					}
+//				}
+				
+				if(fg){
+					if(_isAgree != 1){// 拒绝
+						// 按照主驾驶员更新驾驶员状态
+						jco.setStatus(OrderStatus.REFUSED);
+						jco.setNote(reason); // 拒绝原因
+						carOrderDao.update(jco);
+						U.log(log, "更新订单成功");
+						U.setPut(map, 1, "操作完成（订单已拒绝）");
+						
+						
+//						DisCarInfo disCar = jco.getDisCar();
+//						
+//						// 主驾驶员信息
+//						DriverList driverInfo = dlSer.findDriverOfCarTeam(jco.getDriver().split(",")[0], jco.getTeamNo());
+//						driverInfo.setDriverState(0);// 空闲
+//						dlSer.update(driverInfo);
+//						U.log(log, "更新主驾驶员信息成功");
+//						
+//						// 副驾驶员信息
+//						if(StringUtils.isNotEmpty(jco.getDriverPhone())){
+//							driverInfo = dlSer.findDriverOfCarTeam(jco.getDriverPhone().split(",")[0], jco.getTeamNo());
+//							driverInfo.setDriverState(0);// 空闲
+//							dlSer.update(driverInfo);
+//							U.log(log, "更新副驾驶员信息成功");	
+//						}
+//						
+//						// 删除车辆行程记录
+//						hql = "from CaRenTimeList where orderNum = ?";
+//						List<CaRenTimeList> delRenTime = crtlSer.findhqlList(hql, jco.getOrderNum());
+//						if(delRenTime.size() > 0){
+//							for (CaRenTimeList each : delRenTime) {
+//								crtlSer.delete(each);
+//							}
+//						}
+					}else{
+						jco.setStatus(OrderStatus.DRIVER_CONFIRMED);
+						carOrderDao.update(jco);
+						U.setPut(map, 1, "操作完成（订单确认成功）");
+						
+//						if(jco.getOrderState() != 5) jco.setOrderState(_isAgree);
+//						jco.setGetOrderTime(new Date());
+//						
+//						CarList car = clSer.findByField("plateNum", jco.getPlateNum());
+//						// 挂靠车辆并且设置了主驾驶员加交易记录
+//						if(car != null && car.getSelfOwned() == 1 && StringUtils.isNotEmpty(car.getMbName())){
+//							// 调用方法添加收付款记录
+//							String note = "线下订单(定金)";
+//							if("0".equals(jco.getOrderHandSelPrice())) note = "线下诚信订单";
+//							wallSer.teamPayFinal(5, jco.getOrderHandSelPrice(), jco.getMbName(), car.getMbName().split(",")[0], 
+//								note, null, jco.getOrderNum(), 1);
+//							
+//							// 有车公司代收
+//							if(jco.getCompanyPrice() > 0 && StringUtils.isNotEmpty(car.getCarCompany())){
+//								double prepayRatioMoney = 0;// 默认税点为0元
+//								UnderLineTeam ult=ultSer.findByField("teamName", car.getCompanyBelong());
+//								if(ult!=null){
+//									prepayRatioMoney = MathUtils.mul(jco.getCompanyPrice(),ult.getPrepayRatio(), 2);
+//									OnlinePrepayment opm = new OnlinePrepayment();
+//									opm.setTeamNo(jco.getTeamNo());
+//									opm.setCompany(car.getCompanyBelong());
+//									opm.setTotalPrice(MathUtils.sub(jco.getCompanyPrice(),prepayRatioMoney, 2));
+//									opm.setOrderNum(orderNum);
+//									opm.setPayTime(new Date());
+//									opm.setAddTime(new Date());
+//									opm.setRemark("车公司代收,已扣税点：" + prepayRatioMoney + "元");
+//									opm.setPrepayRatioPrice(prepayRatioMoney);
+//									opmSer.save(opm);
+//									CarOrderList col = colDao.findByField("orderNum", jco.getMainOrderNum());
+//									col.setOrderHandSelPrice(MathUtils.add(col.getOrderHandSelPrice(),jco.getCompanyPrice(), 2));//已收未确认
+//									col.setRemarkPos(col.getRemarkPos() + ",车公司代收：" + jco.getCompanyPrice() + "元");
+//									colDao.update(col);
+//								}
+//							}
+//						}
+//						
+//						// 通知用车方
+//						if(jco.getUseDayStart().after(new Date())){
+//							String useCarStart = DateUtils.get_MDM_str(jco.getUseDayStart());
+//							// 主驾驶员信息
+//							DriverList sendInfo = dlSer.findDriverOfCarTeam(jco.getDriver().split(",")[0], jco.getTeamNo());
+//							if(sendInfo != null){
+//								// 获取所有指定派单编号的地点联系人
+//								List<PointLinkman> plms = plmSer.findListByField("dispatchNum", jco.getOrderNum());
+//								if(plms.size() > 0){
+//									// 遍历循环为地点联系人发送短信
+//									for(int p = 0; p < plms.size(); p++){
+//										String txtcon = "";
+//										//模板：【商旅客车帮】您预订的5月21号10:00崇州到九寨沟的订单，已安排：川AV6577杜伟18980887490为你服务！客户经理：高17828174933
+//										if(StringUtils.isNotEmpty(jco.getServiceMan())){//有业务员
+//											txtcon = "您预订的" + useCarStart + jco.getDepartPlace() + "到" + jco.getDestination() + "的订单，已安排：" + 
+//												jco.getPlateNum() + jco.getDriver().split(",")[1] + jco.getDriver().split(",")[0] + "为您服务！";
+//											SMS.sendSMS(txtcon, plms.get(p).getLinkPhone(), "客户经理：" + jco.getServiceMan().split("-")[0]);
+//										}else{
+//											txtcon = "您预订的" + useCarStart+jco.getDepartPlace() + "到" + jco.getDestination() + "的订单，已安排：" + 
+//												jco.getPlateNum() + jco.getDriver()+"为您服务！";
+//											SMS.sendSMS(txtcon, plms.get(p).getLinkPhone(), "");
+//										}
+//									}
+//								}else{
+//									U.log(log, "订单【"+jco.getOrderNum()+"】没有地点联系人");
+//								}
+//								
+//								/*********发送微信模板消息--begin******************/
+//								// 2019-4-15驾驶员确认订单成功，通知业务员（派车订单的serverMan）和旅行社（乘客订单的mbName）
+//								if(StringUtils.isNotBlank(jco.getServiceMan())){
+//									ymsgSer.useCarOfWxmsg(null, jco, jco.getServiceMan().split("-")[0]);// 通知业务员
+//								}
+//								
+//								if(StringUtils.isNotBlank(jco.getMainOrderNum())){
+//									CarOrderList col = colDao.findByField("orderNum", jco.getMainOrderNum());
+//									ymsgSer.useCarOfWxmsg(null, jco, col.getMbName());// 通知旅行社
+//								}
+//								/*********发送微信模板消息--end******************/
+//							}
+//						}
+//						
+//						jcoSer.update(jco);
+//						U.setPut(map, 1, "处理成功");
+					}
+				}
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> updCofmDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String orderNum, String dayId, String lnglat, String isArr) {
+		String logtxt = U.log(log, "确认-完团（乘客下车）", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(ReqSrc.WX == reqsrc){
+				CarOrder jco = null;// 派车订单
+				if(fg){
+					if(StringUtils.isEmpty(orderNum)){
+						fg = U.setPutFalse(map, "[订单编号]不能为空");
+					}else{
+						orderNum = orderNum.trim();
+						jco = carOrderDao.findByField("orderNum", orderNum);
+						if(jco == null){
+							fg = U.setPutFalse(map, "该订单不存在");
+						}else if(jco.getStatus() == OrderStatus.DRIVER_NOT_CONFIRM){
+							fg = U.setPutFalse(map, "该订单驾驶员还未确认");
+						}else if(jco.getStatus() == OrderStatus.COMPLETED){
+							fg = U.setPutFalse(map, "该行程已确认完团");
+						}
+						
+						U.log(log, "订单编号：orderNum="+orderNum);
+					}
+				}
+				
+				if(fg){
+					if(StringUtils.isEmpty(lnglat)){
+						fg = U.setPutFalse(map, "[完团地点坐标]不能为空");
+					}else{
+						U.log(log, "完团地点坐标：lnglat="+lnglat);
+						
+						lnglat = lnglat.trim();
+						if(lnglat.indexOf("|") == -1){
+							fg = U.setPutFalse(map, "[完团地点坐标]格式错误");
+						}else{
+							// 坐标经纬度保留小数点后6位
+							String[] p = lnglat.split("\\|");
+							lnglat = MathUtils.saveBit(p[0], 6) + "|" + MathUtils.saveBit(p[1], 6);
+						}
+					
+						U.log(log, "完团地点坐标：lnglat="+lnglat);
+					}
+				}
+				
+				Customer cus = LU.getLUSER(request, redis);
+				if(fg){
+					if(cus == null){
+						fg = U.setPutFalse(map, 401, "登录失效，请重新登录");
+					}else if(!jco.getDisCar().getMain_driver().getUname().contains(cus.getBaseUserId().getUname())){
+						// 既不是用户名也不是手机号
+						fg = U.setPutFalse(map, "该订单驾驶员不是您");
+					}
+				}
+				
+				int _isarr = 0;
+				if(fg){
+					if(StringUtils.isEmpty(isArr)){
+						fg = U.setPutFalse(map, "[是否到达]不能为空");
+					}else{
+						isArr = isArr.trim();
+						if(!FV.isPosInteger(isArr)){
+							fg = U.setPutFalse(map, "[是否到达]格式错误");
+						}else{
+							_isarr = Integer.parseInt(isArr);
+						}
+						
+						U.log(log, "[是否到达] isArr="+isArr);
+					}
+				}
+				
+				if(StringUtils.isEmpty(dayId)){// 不是操作天数行程
+					if("单程接送".equals(jco.getServiceType())){
+						U.log(log, "是‘单程接送’");
+						
+						if(_isarr == 2){
+							U.log(log, "在完团地点范围内");
+							
+							if(new Date().getTime() < jco.getEtime().getTime()){
+								U.log(log, "当前时间在结束时间之前，修改结束时间");
+								
+								jco.setEtime(new Date());
+							}else{
+								U.log(log, "当前时间在结束时间之后，不改变结束时间");
+							}
+						}else if(_isarr == 3){
+							U.log(log, "不在完团地点范围内");
+							
+							if(new Date().getTime() < jco.getEtime().getTime()){
+								U.log(log, "当前时间在结束时间之前");
+								
+								fg = U.setPutFalse(map, "未到达完团地点或未完团，不能确认");
+							}else{
+								U.log(log, "当前时间在结束时间之后，不改变结束时间");
+							}
+						}
+					}else{// 不是‘单程接送’
+						U.log(log, "不是‘单程接送’");
+						
+						if(_isarr == 2){
+							U.log(log, "在完团地点范围内");
+							
+							if(new Date().getTime() < jco.getEtime().getTime()){
+								U.log(log, "当前时间在结束时间之前");
+								
+								boolean flag = DateUtils.isDateSame(new Date(), jco.getEtime());
+								if(flag){
+									U.log(log, "日期是行程结束最后一天");
+									
+									jco.setEtime(new Date());// 修改结束时间
+								}else{
+									U.log(log, "日期不是行程结束最后一天");
+									
+									fg = U.setPutFalse(map, "行程未完团，不能确认");
+								}
+							}else{
+								U.log(log, "当前时间在结束时间之后，确认完团，不改变结束时间");
+							}
+						}else if(_isarr == 3){
+							U.log(log, "不在完团地点范围内");
+							
+							if(new Date().getTime() < jco.getEtime().getTime()){
+								U.log(log, "当前时间在结束时间之前");
+								
+								boolean flag = DateUtils.isDateSame(new Date(), jco.getEtime());
+								if(flag){
+									U.log(log, "日期是行程结束最后一天");
+									
+									// 重新计算行程距离和完团时间
+									carOrderDao.updAgainCalcEtime(jco, 2);
+								}else{
+									U.log(log, "日期不是行程结束最后一天");
+									
+									fg = U.setPutFalse(map, "行程未完团，不能确认");
+								}
+							}else{
+								U.log(log, "当前时间在结束时间之后，不改变结束时间");
+							}
+						}else{
+							fg = U.setPutFalse(map, "[是否到达]类型不存在");
+						}
+					}
+					
+					if(fg){
+						jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+						carOrderDao.update(jco);
+						U.log(log, "驾驶员[确认完团]成功");
+						
+						U.setPut(map, 1, "操作成功");
+					}
+				}else{// 指定天数行程
+//					CarOrderDay cod = null;
+//					if(fg){
+//						if(StringUtils.isEmpty(dayId)){
+//							fg = U.setPutFalse(map, "[天数行程id]不能为空");
+//						}else{
+//							dayId = dayId.trim();
+//							if(!FV.isLong(dayId)){
+//								cod = carOrderDao.find(Long.parseLong(dayId));
+//								if(cod == null){
+//									fg = U.setPutFalse(map, "[天数行程]不存在");
+//								}
+//							}
+//							
+//							U.log(log, "[天数行程id] dayId="+dayId);
+//						}
+//					}
+					
+					if(_isarr == 2){
+						U.log(log, "在完团地点范围内");
+						
+						if(new Date().getTime() < jco.getEtime().getTime()){
+							U.log(log, "当前时间在结束时间之前");
+							
+							jco.setEtime(new Date());// 修改结束时间
+						}else{
+							U.log(log, "当前时间在结束时间之后，确认完团，不改变结束时间");
+						}
+					}else if(_isarr == 3){
+						U.log(log, "不在完团地点范围内");
+						
+						if(new Date().getTime() < jco.getEtime().getTime()){
+							U.log(log, "当前时间在结束时间之前");
+							
+							// 重新计算行程距离和完团时间
+							carOrderDao.updAgainCalcEtime(jco, 2);
+						}else{
+							U.log(log, "当前时间在结束时间之后，不改变结束时间");
+						}
+					}else{
+						fg = U.setPutFalse(map, "[是否到达]类型不存在");
+					}
+					
+					if(fg){
+						jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+						carOrderDao.update(jco);
+						U.log(log, "驾驶员[确认完团]成功");
+						
+						U.setPut(map, 1, "操作成功");
+					}
+					
+				}
+				
+				DiscountDetail disDetail = null;// 订单优惠详情
+				if(fg){
+					U.log(log, "解冻-优惠券推荐人奖励金为消费金");
+					
+					// 获取-真正订单编号
+					String realOrderNum = jco.getMainOrderNum();
+					disDetail = discountDetailDao.findByField("orderNum", realOrderNum);
+					if(disDetail == null || disDetail.getCouponId() == 0){
+						U.log(log, "["+realOrderNum+"]未使用优惠券");
+					}else{
+						// 如果当前订单使用了优惠券，优惠券存在推荐用户
+						CompanyDiscount ctd = companyDiscountDao.findByField("id", disDetail.getCouponId());
+						if(ctd == null){
+							U.logEx(log, "异常：["+realOrderNum+"]使用的优惠券不存在");
+						}else{
+							// 更改优惠券状态为：使用完成
+							ctd.setUseState(-2);
+							companyDiscountDao.update(ctd);
+							U.log(log, "更改优惠券状态为：使用完成");
+							
+							if(StringUtils.isEmpty(ctd.getRecName())){
+								U.log(log, "优惠券没有推荐用户");
+							}else{
+								// 存在推广账号，此处为推广用户产生消费金额（驾驶员确认订单才为推荐用户结算结算）
+								U.log(log, "为["+ctd.getRecName()+"]解冻消费金额");
+								
+//								String snote = "";
+//								if (ctd.getValidScene() == 1) {
+//									snote = "单程接送";
+//								} else if (ctd.getValidScene() == 2) {
+//									snote = "旅游包车";
+//								} else if (ctd.getValidScene() == 3){
+//									snote = "顺风车";
+//								}
+//								wallSer.recomMoney(0, ctd.getRecName(), snote, 1, ctd.getHighMoney());
+								
+								U.log(log, "计算分享用户["+ctd.getRecName()+"]推荐金额 转 消费金额-完成");
+							}
+						}
+					}
+				}
+				
+				if(fg && disDetail != null){
+					U.log(log, "计算客户星级");
+					
+//					mycusSer.sumCusOrder(reqsrc, request, response, col.getCarOrderBase().getUnitNum(), col.getDisCar().getMain_driver(), col.getRealName().split("【")[0], col.getStime());
+				}
+				
+				if(fg){
+					U.log(log, "计算驾驶员-完团金额&完团余额");
+					
+					CusWallet w = cusWalletDao.findByField("cName", cus.getBaseUserId().getUname());
+					
+					double driverGetMoney = MathUtils.mul(jco.getPrice(), QC.DRIVER_GET_MONEY_PROP, 2);
+					
+					// 增加-完团金额&完团余额
+					w.setFinTotal(MathUtils.add(w.getFinTotal(), driverGetMoney, 2));
+					w.setFinBalance(MathUtils.add(w.getFinBalance(), driverGetMoney, 2));
+					cusWalletDao.update(w);
+					U.log(log, "更新-完团金额&完团余额-完成");
+					
+					// 添加-完团金额-记录
+					WalletList wl_ft = new WalletList();
+					wl_ft.setcName(cus.getBaseUserId().getUname());
+					wl_ft.setAssist(jco.getOrderNum());
+					wl_ft.setType(25);
+					wl_ft.setAmoney(driverGetMoney);
+					wl_ft.setStatus(0);
+					wl_ft.setAtype(9);
+					wl_ft.setCashBalance(w.getFinTotal());
+					wl_ft.setNote("订单完团");
+					wl_ft.setAtime(new Date());
+					walletListDao.save(wl_ft);
+					U.log(log, "添加-完团总额-交易记录");
+					
+					// 添加-完团余额-记录
+					WalletList wl_fb = new WalletList();
+					wl_fb.setcName(cus.getBaseUserId().getUname());
+					wl_fb.setAssist(jco.getOrderNum());
+					wl_fb.setType(25);
+					wl_fb.setAmoney(driverGetMoney);
+					wl_fb.setStatus(0);
+					wl_fb.setAtype(8);
+					wl_fb.setCashBalance(w.getFinBalance());
+					wl_fb.setNote("订单完团");
+					wl_fb.setAtime(new Date());
+					walletListDao.save(wl_fb);
+					U.log(log, "添加-完团余额-交易记录");
+					
+					U.setPut(map, 1, "操作成功");
+				}
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.utils.clazz.Message;
+import com.fx.commons.utils.enums.CusRole;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.tools.LU;
 import com.fx.entity.cus.BaseUser;
@@ -102,5 +103,43 @@ public class DriverOrderController {
 		
 		Message.print(response, map);
   	}
+	
+	/**
+	 * 车队驾驶员-确认订单
+	 * 请求API（post）/mb/driver/order/driverCofmOrder
+	 * @param orderNum 	订单编号
+	 * @param isAgree 	1-同意; 2-拒绝;
+	 * @param reason 	拒绝理由，100中文字符
+	 */
+	@RequestMapping(value="driverCofmOrder", method=RequestMethod.POST)
+	public void driverCofmOrder(HttpServletRequest request, HttpServletResponse response,
+		String orderNum, String isAgree, String reason){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		map = carOrderSer.updCofmOrder(ReqSrc.WX, CusRole.TEAM_DRIVER, request, response, 
+			orderNum, isAgree, reason);
+		
+		Message.print(response, map);
+	}
+	
+	/**
+	 * 车队驾驶员-确认完团
+	 * 请求API（post）/mb/driver/order/driverCofmDownCar
+	 * @param orderNum 派车-订单编号
+	 * @param dayId		天数行程id
+	 * @param lnglat 	驾驶员确认出行-坐标：103.123456|30.123456
+	 * @param isArr		是否到达出行地点[1-已到达；3-未到达；]
+	 */
+	@RequestMapping(value="driverCofmDownCar", method=RequestMethod.POST)
+	public void driverCofmDownCar(HttpServletRequest request, HttpServletResponse response,
+		String orderNum, String dayId, String lnglat, String isArr){
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		map = carOrderSer.updCofmDownCar(ReqSrc.WX, request, response, orderNum, dayId, lnglat, 
+			isArr);
+		
+		Message.print(response, map);
+	}
+	
 	
 }

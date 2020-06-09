@@ -323,11 +323,15 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 		try {
 			if(fg) {
 				if(wrole == CusRole.TEAM_DRIVER) {
-					hql = "select count(id) Staff where unitNum = ?0 and baseUserId.uname = ?1 and isDriver = ?2";
-					Object obj = staffDao.findObj(hql, teamNo, uname, 1, "LIMIT 1");
-					if(obj != null && Integer.parseInt(obj.toString()) > 0) {
-						U.setPut(map, 1, "用户是："+wrole.getValue());
-					}
+					U.setPut(map, 1, "用户是："+wrole.getKey());
+					
+//					hql = "select count(id) from Staff where unitNum = ?0 and baseUserId.uname = ?1 and isDriver = ?2";
+//					Object obj = staffDao.findObj(hql, teamNo, uname, 1, "LIMIT 1");
+//					if(obj != null && Integer.parseInt(obj.toString()) > 0) {
+//						U.setPut(map, 1, "用户是："+wrole.getKey());
+//					}else {
+//						fg = U.setPutFalse(map, "您不是："+wrole.getKey());
+//					}
 				}else {
 					fg = U.setPutFalse(map, "暂时没有该角色");
 				}

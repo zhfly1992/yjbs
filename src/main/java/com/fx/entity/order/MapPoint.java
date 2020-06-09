@@ -38,6 +38,10 @@ public class MapPoint implements Serializable {
 	@Column(name="address", nullable=false, columnDefinition="varchar(50) COMMENT '详细地址'")
 	private String address;
 	
+	/** 所属城市 eg:四川省-成都市 */
+	@Column(name="city", nullable=false, columnDefinition="varchar(30) COMMENT '所属城市'")
+	private String city;
+	
 	/** 所属区县 eg: 青羊区 */
 	@Column(name="county", nullable=false, columnDefinition="varchar(30) COMMENT '所属区县'")
 	private String county;
@@ -92,7 +96,7 @@ public class MapPoint implements Serializable {
 	}
 
 	/**  
-	 * 获取 经纬度eg：103.66666630.666666  
+	 * 获取 经纬度eg：103.666666,30.666666  
 	 * @return lngLat
 	 */
 	public String getLngLat() {
@@ -100,7 +104,7 @@ public class MapPoint implements Serializable {
 	}
 
 	/**  
-	 * 设置 经纬度eg：103.66666630.666666  
+	 * 设置 经纬度eg：103.666666,30.666666  
 	 * @param lngLat
 	 */
 	public void setLngLat(String lngLat) {
@@ -121,6 +125,22 @@ public class MapPoint implements Serializable {
 	 */
 	public void setAddress(String address) {
 		this.address = address;
+	}
+	
+	/**  
+	 * 获取 所属城市eg:四川省-成都市  
+	 * @return city
+	 */
+	public String getCity() {
+		return city;
+	}
+	
+	/**  
+	 * 设置 所属城市eg:四川省-成都市  
+	 * @param city
+	 */
+	public void setCity(String city) {
+		this.city = city;
 	}
 
 	/**  

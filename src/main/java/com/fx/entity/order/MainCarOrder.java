@@ -52,7 +52,7 @@ public class MainCarOrder implements Serializable {
 	private int needCars;
 	
 	/** 所需座位数：39,49,59 */
-	@Column(name="need_seats", nullable=false, columnDefinition="varchar(30) COMMENT '所需座位数'")
+	@Column(name="need_seats", nullable=false, columnDefinition="varchar(120) COMMENT '所需座位数'")
 	private String needSeats;
 	
 	/** 提醒师傅现收（元） 业务员填写了现收金额，则会提醒师傅现收 */

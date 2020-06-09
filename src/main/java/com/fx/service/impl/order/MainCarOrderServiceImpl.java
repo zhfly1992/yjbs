@@ -17,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Compositor.CompositorType;
@@ -42,9 +43,11 @@ import com.fx.dao.order.MainCarOrderDao;
 import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
+import com.fx.entity.cus.Customer;
 import com.fx.entity.finance.FeeCourse;
 import com.fx.entity.finance.ReimburseList;
 import com.fx.entity.order.MainCarOrder;
+
 import com.fx.service.order.MainCarOrderService;
 
 @Service
@@ -70,6 +73,7 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 	/** 单位客户-服务 */
 	@Autowired
 	private CompanyCustomDao ccDao;
+
 
 
 
@@ -124,9 +128,9 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 			}
 
 			// 订单状态
-			OrderStatus orderStatus = null;
+			MainOrderStatus orderStatus = null;
 			if (!StringUtils.isBlank(jsonObject.getString("orderStatus"))) {
-				orderStatus = OrderStatus.valueOf(jsonObject.getString("orderStatus"));
+				orderStatus = MainOrderStatus.valueOf(jsonObject.getString("orderStatus"));
 			}
 			// 订单行程类型
 			RouteType routeType = null;
@@ -642,7 +646,8 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 					Hibernate.initialize(mainCarOrder.getMainCars());
 				}
 				U.setPageData(map, pd);
-
+				Map<String, Object> countMainCarOrderForCollection = mcoDao.countMainCarOrderForCollection(reqsrc, page, "100000", payStatus, startTime, endTime, compositorType, timeType, driver, dutyService, plateNum, orderNum, routeDetail, serviceMan, unitNum, customer, businessType);
+				map.put("statics", countMainCarOrderForCollection);
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
 				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[] {});
@@ -663,14 +668,14 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 	
 	@Override
 	public Map<String, Object> confirmCollection(ReqSrc reqsrc, HttpServletResponse response,
-			HttpServletRequest request, JSONObject jsonObject) {
+			HttpServletRequest request, JSONObject jsonObject,Customer customer) {
 		// TODO Auto-generated method stub
 		String logtxt = U.log(log, "单位订单-确认收款价格", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
 		try {
 			String id = jsonObject.getString("mainOrderid");
-			String confirmName = jsonObject.getString("confirmCollectionName");
+			
 			if (fg) {
 				if (StringUtils.isBlank(id)) {
 					U.logFalse(log, "单位订单-确认收款价格-订单id为空");
@@ -678,23 +683,33 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 				}
 			}
 			if (fg) {
-				if (StringUtils.isBlank(confirmName)) {
-					U.logFalse(log, "单位订单-确认收款价格-确认收款价格人姓名为空");
-					fg = U.setPutFalse(map, 0, "确认人姓名为空");
+				if (null == customer) {
+					U.logFalse(log, "单位订单-确认收款价格-获取账户信息失败");
+					fg = U.setPutFalse(map, 0, "获取账号信息失败");
 				}
 			}
 			if (fg) {
+				
 				MainCarOrder mainCarOrder = mcoDao.findByField("id", Long.parseLong(id));
+				
 				if (mainCarOrder != null) {
-					mainCarOrder.getMainOrderBase().setConfirmCollectionName(confirmName);
-					mcoDao.update(mainCarOrder);
-					U.log(log, "单位订单-确认收款价格-success");
-					U.setPut(map, 1, "确认收款价格成功");
+					if (mainCarOrder.getMainOrderBase().getServiceMan().equals(customer.getBaseUserId().getRealName())) {
+						//确认人是主订单业务员,可以确认
+						mainCarOrder.getMainOrderBase().setConfirmCollectionName(customer.getBaseUserId().getRealName());
+						mcoDao.update(mainCarOrder);
+						U.log(log, "单位订单-确认收款价格-success");
+						U.setPut(map, 1, "确认收款价格成功");
+					}
+					else{
+						U.logFalse(log, "单位订单-确认收款价格-fail,业务员与当前账号不匹配");
+						U.setPutFalse(map, 0, "确认收款价格失败,订单【" + mainCarOrder.getOrderNum() + "】业务员不是你");
+					}					
 				} else {
 					U.logFalse(log, "单位订单-确认收款价格-fail,查询不到订单信息");
 					U.setPutFalse(map, 0, "确认收款价格失败,查询不到订单信息");
 				}
 			}
+		
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();

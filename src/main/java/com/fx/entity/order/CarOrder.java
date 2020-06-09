@@ -29,7 +29,7 @@ import com.fx.commons.utils.enums.ServiceType;
  */
 @Entity
 @Table(name="car_order")
-public class CarOrder implements Serializable{
+public class CarOrder implements Serializable,Cloneable{
 	private static final long serialVersionUID = 47175572696246752L;
 
 	/** id */
@@ -54,7 +54,7 @@ public class CarOrder implements Serializable{
 	@Column(name="back_rel_num", columnDefinition="varchar(50) COMMENT '返程关联订单编号'")
 	private String backRelNum;
 	
-	/** 行程地点列表 */
+	/** 行程地点列表（列表按照下标0是起点，1是终点，大于1的是途径点） */
 	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
 	@JoinColumn(name="car_order_id")
 	private List<RouteMapPoint> routeMps;
@@ -196,6 +196,16 @@ public class CarOrder implements Serializable{
 	@Column(name="is_high_speed", nullable=false, columnDefinition="int(11) default 0 COMMENT '是否走高速'")
 	private int isHighSpeed;
 	
+	/** 确认出行地点 */
+	@OneToOne(targetEntity = MapPoint.class)
+	@JoinColumn(name="confm_start", referencedColumnName="id", columnDefinition="bigint COMMENT  '确认出行地点'")
+	private MapPoint confmStart;
+	
+	/** 确认完团地点 */
+	@OneToOne(targetEntity = MapPoint.class)
+	@JoinColumn(name="confm_end", referencedColumnName="id", columnDefinition="bigint COMMENT  '确认完团地点'")
+	private MapPoint confmEnd;
+	
 	
 	public CarOrder() {}
 	public CarOrder(CarOrderBase carOrderBase) {
@@ -284,7 +294,7 @@ public class CarOrder implements Serializable{
 	
 
 	/**  
-	 * 获取 行程地点列表  
+	 * 获取 行程地点列表（列表按照下标0是起点，1是终点，大于1的是途径点）
 	 * @return routeMps
 	 */
 
@@ -293,7 +303,7 @@ public class CarOrder implements Serializable{
 	}
 
 	/**  
-	 * 设置 行程地点列表  
+	 * 设置 行程地点列表（列表按照下标0是起点，1是终点，大于1的是途径点）
 	 * @param routeMps
 	 */
 	public void setRouteMps(List<RouteMapPoint> routeMps) {
@@ -825,8 +835,6 @@ public class CarOrder implements Serializable{
 	public int getIsHighSpeed() {
 		return isHighSpeed;
 	}
-	
-
 
 	/**  
 	 * 设置 是否走高速1-走高速；0-不走高速；  
@@ -835,4 +843,48 @@ public class CarOrder implements Serializable{
 	public void setIsHighSpeed(int isHighSpeed) {
 		this.isHighSpeed = isHighSpeed;
 	}
+	
+	/**  
+	 * 获取 确认出行地点  
+	 * @return confmStart
+	 */
+	public MapPoint getConfmStart() {
+		return confmStart;
+	}
+	
+	/**  
+	 * 设置 确认出行地点  
+	 * @param confmStart
+	 */
+	public void setConfmStart(MapPoint confmStart) {
+		this.confmStart = confmStart;
+	}
+	
+	/**  
+	 * 获取 确认完团地点  
+	 * @return confmEnd
+	 */
+	public MapPoint getConfmEnd() {
+		return confmEnd;
+	}
+	
+	/**  
+	 * 设置 确认完团地点  
+	 * @param confmEnd
+	 */
+	public void setConfmEnd(MapPoint confmEnd) {
+		this.confmEnd = confmEnd;
+	}
+
+@Override  
+    public Object clone() {  
+        CarOrder stu = null;  
+        try{  
+            stu = (CarOrder)super.clone();  
+        }catch(CloneNotSupportedException e) {  
+            e.printStackTrace();  
+        }  
+        return stu;  
+    }  
+	
 }

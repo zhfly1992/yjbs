@@ -711,43 +711,56 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 
 
 	@Override
-	public Map<String, Object> getAllPlateSeats(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			String unitNum,int type) {
-		String logtxt = U.log(log, "车辆-获取单位的所有"+(type==1?"车牌号":"车辆座位数"), reqsrc);
+	public Map<String, Object> getAllPlates(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String unitNum,String status) {
+		String logtxt = U.log(log, "车辆-获取单位的所有车牌号", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		try {
 			if (StringUtils.isBlank(unitNum)) {
 				U.setPutFalse(map, 0, "获取单位编号失败");
 			}
 			else {
-				if(type==1) {
-					List<String> plates=new ArrayList<String>();
-					String hql="select new CompanyVehicle(plateNumber) where unitNum=?0";
-					List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum);
-					for (CompanyVehicle each : companyVehicleList) {
-						plates.add(each.getPlateNumber());
-					}
-					map.put("plateNums", plates);
-					U.log(log, "车辆-获取单位的所有车牌号-成功");
-					U.setPut(map, 1, "查询成功");
-				}else {
-					List<String> seats=new ArrayList<String>();
-					String hql="select new CompanyVehicle(seats) where unitNum=?0 group by seats";
-					List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum);
-					for (CompanyVehicle each : companyVehicleList) {
-						seats.add(each.getSeats()+"");
-					}
-					map.put("seats", seats);
-					U.log(log, "车辆-获取单位的所有车辆座位数-成功");
-					U.setPut(map, 1, "查询成功");
+				List<String> plates=new ArrayList<String>();
+				String hql="select new CompanyVehicle(plateNumber) where unitNum=?0 and status=?1";
+				List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum,Integer.parseInt(status));
+				for (CompanyVehicle each : companyVehicleList) {
+					plates.add(each.getPlateNumber());
 				}
+				map.put("plateNums", plates);
+				U.log(log, "车辆-获取单位的所有车牌号-成功");
+				U.setPut(map, 1, "查询成功");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 		}
 		return map;
 	}
-
+	
+	@Override
+	public Map<String, Object> getAllSeats(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String unitNum) {
+		String logtxt = U.log(log, "车辆-获取单位的所有车辆座位数", reqsrc);
+		Map<String, Object> map = new HashMap<String, Object>();
+		try {
+			if (StringUtils.isBlank(unitNum)) {
+				U.setPutFalse(map, 0, "获取单位编号失败");
+			}
+			else {
+				List<String> seats=new ArrayList<String>();
+				String hql="select new CompanyVehicle(seats) where unitNum=?0 group by seats";
+				List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum);
+				for (CompanyVehicle each : companyVehicleList) {
+					seats.add(each.getSeats()+"");
+				}
+				map.put("seats", seats);
+				U.log(log, "车辆-获取单位的所有车辆座位数-成功");
+				U.setPut(map, 1, "查询成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+		}
+		return map;
+	}
 
 
 	@Override

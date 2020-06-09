@@ -1914,6 +1914,36 @@ public class CompanyFinanceController extends BaseController {
 		Message.print(response, map);
 	}
 	
+	
+	
+	/**
+	 * 检验科目名称是否可用 API（post）/company/finance/checkCourseName
+	 * @author zh
+	 * @date 20200608
+	 */
+	@ApiOperation(value="检验科目名称是否可用",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="courseName", 
+			dataType="String",
+			value="科目名称 eg:xxx"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@RequestMapping(value="checkCourseName", method = RequestMethod.POST)
+	public void checkCourseName(HttpServletResponse response, HttpServletRequest request,@RequestBody JSONObject jsonObject){
+		Map<String, Object> map = new HashMap<String, Object>();
+		String courseName = jsonObject.getString("courseName");
+		map = fcSer.checkCourseName(ReqSrc.PC_COMPANY, response, request, courseName);
+		Message.print(response, map);
+	}
+	
+	
 	/*********************************科目模块*******************end**************/
 	
 	/**

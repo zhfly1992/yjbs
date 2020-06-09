@@ -81,6 +81,7 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/page/*/login", "anon");
         filterChainDefinitionMap.put("/page/*/register", "anon");
         filterChainDefinitionMap.put("/page/notfound", "anon");
+        filterChainDefinitionMap.put("/page/error", "anon");
         /**页面拦截配置--end***/
         
         // 公共控制器接口

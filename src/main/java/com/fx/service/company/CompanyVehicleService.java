@@ -165,11 +165,24 @@ public interface CompanyVehicleService extends BaseService<CompanyVehicle, Long>
 	 * @param response
 	 * @param request
 	 * @param unitNum 单位编号
-	 * @param type 0座位数 1车牌号
+	 * @param status 车辆状态
 	 * @return
 	 */
-	public Map<String, Object> getAllPlateSeats(ReqSrc reqsrc, HttpServletResponse response,
-			HttpServletRequest request,String unitNum,int type);
+	public Map<String, Object> getAllPlates(ReqSrc reqsrc, HttpServletResponse response,
+			HttpServletRequest request,String unitNum,String status);
+	
+	/**
+	 * @author xx
+	 * @date 20200529
+	 * @Description:获取单位的所有座位数，用于下拉框
+	 * @param reqsrc
+	 * @param response
+	 * @param request
+	 * @param unitNum 单位编号
+	 * @return
+	 */
+	public Map<String, Object> getAllSeats(ReqSrc reqsrc, HttpServletResponse response,
+			HttpServletRequest request,String unitNum);
 	
 	/**
 	 * 

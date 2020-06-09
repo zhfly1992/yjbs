@@ -998,7 +998,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 									if(lastBtl!=null && i==startCell){
 										fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
 									}else{
-										fg=U.setPutFalse(map, "本次导入不成功：第"+i+"条余额不正确！请检查后重试！");
+										fg=U.setPutFalse(map, "本次导入不成功：有记录余额不正确！请检查后重试！");
 									}
 									break;
 								}
@@ -1009,7 +1009,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 									if(lastBtl!=null && i==startCell){
 										fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
 									}else{
-										fg=U.setPutFalse(map, "本次导入不成功：第"+i+"条余额不正确！请检查后重试！");
+										fg=U.setPutFalse(map, "本次导入不成功：有记录余额不正确！请检查后重试！");
 									}
 									break;
 								}

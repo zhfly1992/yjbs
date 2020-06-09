@@ -144,7 +144,7 @@ public class CountyListServiceImpl extends BaseServiceImpl<CountyList, Long> imp
 				List<Object> ps = new ArrayList<Object>();
 				
 				if(StringUtils.isNotBlank(cityCode)){
-					sb.append("and cityCode = ? ");
+					sb.append("and cityCode = ?0 ");
 					ps.add(cityCode);
 				}
 				sb.append("order by hotOrder asc");

@@ -260,15 +260,24 @@ public class CompanyVehicleController extends BaseController {
 	 * @version 20200529
 	 */
 	@ApiOperation(value="获取单位下的车牌号", notes="获取单位下的车牌号")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="status", 
+			dataType="String", 
+			value="车辆状态，默认获取正常的车辆 0正常，1维修，2报停"
+		)
+	})
 	@ApiResponses({
 		@ApiResponse(code=1, message="msg"),
 		@ApiResponse(code=0, message="msg"),
 		@ApiResponse(code=-1, message="msg")
 	})
 	@RequestMapping(value = "getAllPlateNum", method = RequestMethod.POST)
-	public void getAllPlateNum(HttpServletResponse response, HttpServletRequest request){
+	public void getAllPlateNum(HttpServletResponse response, HttpServletRequest request,@RequestBody JSONObject jsonObject){
+		String status = jsonObject.getString("status");
 		Map<String, Object> map = new HashMap<String, Object>();
-		map = companyVehicleService.getAllPlateSeats(ReqSrc.PC_COMPANY, response, request, LU.getLUnitNum(request, redis),1);
+		map = companyVehicleService.getAllPlates(ReqSrc.PC_COMPANY, response, request, LU.getLUnitNum(request, redis),status);
 		Message.print(response, map);
 	}
 	
@@ -289,7 +298,7 @@ public class CompanyVehicleController extends BaseController {
 	@RequestMapping(value = "getAllSeats", method = RequestMethod.POST)
 	public void getAllPlateSeats(HttpServletResponse response, HttpServletRequest request){
 		Map<String, Object> map = new HashMap<String, Object>();
-		map = companyVehicleService.getAllPlateSeats(ReqSrc.PC_COMPANY, response, request, LU.getLUnitNum(request, redis),0);
+		map = companyVehicleService.getAllSeats(ReqSrc.PC_COMPANY, response, request, LU.getLUnitNum(request, redis));
 		Message.print(response, map);
 	}
 	

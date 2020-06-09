@@ -2,13 +2,30 @@ package com.fx.commons.utils.other;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
+
+import com.fx.commons.utils.tools.U;
 
 public class EncodeUtils{
 	
 	public static void main(String[] args) {
-		String cn = "成都市";
-		System.out.println(getEncode(cn));
+		
+		Map<String, Object> ps = new HashMap<String, Object>();
+		ps.put("teamNo", "8112010001");
+		ps.put("lrole", "TEAM_DRIVER");
+		
+		String str = U.toJsonStr(ps);
+		str = str2urlencode(str);
+		
+		String url = str;
+		System.out.println(url);
+		
+		url = urldecode2str(url);
+		System.out.println(url);
 		
 		
 	}
@@ -21,6 +38,70 @@ public class EncodeUtils{
 	/**这里可以提供更多地编码格式,另外由于部分编码格式是一致的所以会返回 第一个匹配的编码格式 GBK 和 GB2312*/
     public static final String[] encodes = new String[] { "UTF-8", "GBK", "GB2312", "ISO-8859-1", "ISO-8859-2" };
 
+    /**
+     * 将字符串转换成url解析
+     * @param str 字符串
+     * @return url解析后的字符串
+     */
+    public static String str2urlencode(String str) {
+		try {
+			str = URLEncoder.encode(str, "utf-8");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return str;
+		}
+		
+		return str;
+	}
+    
+    /**
+     * 将url解析字符串转换成uft8字符串
+     * @param str 字符串
+     * @return utf-8字符串
+     */
+    public static String urldecode2str(String str) {
+		try {
+			str = URLDecoder.decode(str, "utf-8");
+		} catch (Exception e) {
+			e.printStackTrace();
+			return str;
+		}
+		
+		return str;
+	}
+    
+    
+    /**
+	 * 字符串转unicode
+	 * 
+	 * @param str
+	 * @return
+	 */
+	public static String stringToUnicode(String str) {
+		StringBuffer sb = new StringBuffer();
+		char[] c = str.toCharArray();
+		for (int i = 0; i < c.length; i++) {
+			sb.append("\\u" + Integer.toHexString(c[i]));
+		}
+		return sb.toString();
+	}
+ 
+	/**
+	 * unicode转字符串
+	 * 
+	 * @param unicode
+	 * @return
+	 */
+	public static String unicodeToString(String unicode) {
+		StringBuffer sb = new StringBuffer();
+		String[] hex = unicode.split("\\\\u");
+		for (int i = 1; i < hex.length; i++) {
+			int index = Integer.parseInt(hex[i], 16);
+			sb.append((char) index);
+		}
+		return sb.toString();
+	}
+    
     /**
      * 获取字符串编码格式
      * @param str

@@ -909,12 +909,6 @@ public class CompanyOrderController extends BaseController {
 			name="id", 
 			dataType="String", 
 			value="订单id eg：1"
-		),
-		@ApiImplicitParam(
-			required=true, 
-			name="confirmCollectionName", 
-			dataType="String",
-			value="确认收款人姓名 eg：xx"
 		)
 	})
 	@ApiResponses({
@@ -925,7 +919,7 @@ public class CompanyOrderController extends BaseController {
  	@RequestMapping(value="confirmCollection",method=RequestMethod.POST)
  	public void confirmCollection(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
- 		map = mainCarOrderService.confirmCollection(ReqSrc.PC_COMPANY, response, request, jsonObject);
+ 		map = mainCarOrderService.confirmCollection(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLUSER(request, redis));
  		Message.print(response, map);
  	}
  	
@@ -959,7 +953,7 @@ public class CompanyOrderController extends BaseController {
  	@RequestMapping(value="confirmPayment",method=RequestMethod.POST)
  	public void confirmPayment(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
- 		map = carOrderService.confirmPayment(ReqSrc.PC_COMPANY, response, request, jsonObject);
+ 		map = carOrderService.confirmPayment(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLUSER(request, redis));
  		Message.print(response, map);
  	}
  	
