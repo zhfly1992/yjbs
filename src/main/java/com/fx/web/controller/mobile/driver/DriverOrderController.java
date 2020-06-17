@@ -17,9 +17,9 @@ import com.fx.commons.utils.clazz.Message;
 import com.fx.commons.utils.enums.CusRole;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.tools.LU;
-import com.fx.entity.cus.BaseUser;
-import com.fx.entity.cus.CompanyUser;
+import com.fx.commons.utils.tools.U;
 import com.fx.service.order.CarOrderService;
+import com.fx.service.order.MainCarOrderService;
 import com.fx.web.util.RedisUtil;
 
 import io.swagger.annotations.ApiImplicitParam;
@@ -38,6 +38,9 @@ public class DriverOrderController {
 	/** 车辆订单-服务 */
 	@Autowired
 	private CarOrderService carOrderSer;
+	/** 主订单服务 */
+	@Autowired
+	private MainCarOrderService mainCarOrderSer;
 	/** 缓存-服务 */
 	@Autowired
 	private RedisUtil redis;
@@ -85,21 +88,18 @@ public class DriverOrderController {
 		@ApiResponse(code=-1, message="msg")
 	})
 	@RequestMapping(value="getDriverOrderList", method=RequestMethod.POST)
-  	public void getDriverOrderList(HttpServletRequest request, HttpServletResponse response, 
-  		@RequestBody JSONObject jsonObject){
-		
-		Map<String, Object> map = new HashMap<String, Object>();
-		
+  	public void getDriverOrderList(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject jsonObject){
 		String page = jsonObject.getString("page");
 		String rows = jsonObject.getString("rows");
 		String stime = jsonObject.getString("stime");
 		String etime = jsonObject.getString("etime");
 		String isTrip = jsonObject.getString("isTrip");
 		
-		BaseUser buser = LU.getLBuser();
-		CompanyUser comUser = LU.getLCompany(request, redis);
-		map = carOrderSer.findDriverOrderList(ReqSrc.WX, buser, comUser, page, rows, stime, 
-			etime, isTrip);
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		String lunitNum = LU.getLUnitNum(request, redis);
+		String luname = LU.getLUName(request, redis);
+		map = mainCarOrderSer.findXcjzMainOrderList(ReqSrc.WX, request, response, lunitNum, luname, page, rows, stime, etime, isTrip);
 		
 		Message.print(response, map);
   	}
@@ -112,12 +112,14 @@ public class DriverOrderController {
 	 * @param reason 	拒绝理由，100中文字符
 	 */
 	@RequestMapping(value="driverCofmOrder", method=RequestMethod.POST)
-	public void driverCofmOrder(HttpServletRequest request, HttpServletResponse response,
-		String orderNum, String isAgree, String reason){
+	public void driverCofmOrder(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
+		String orderNum = U.P(json, "orderNum");
+		String isAgree = U.P(json, "isAgree");
+		String reason = U.P(json, "reason");
+		
 		Map<String, Object> map = new HashMap<String, Object>();
 		
-		map = carOrderSer.updCofmOrder(ReqSrc.WX, CusRole.TEAM_DRIVER, request, response, 
-			orderNum, isAgree, reason);
+		map = carOrderSer.driverCofmOrder(ReqSrc.WX, CusRole.TEAM_DRIVER, request, response, orderNum, isAgree, reason);
 		
 		Message.print(response, map);
 	}
@@ -135,7 +137,7 @@ public class DriverOrderController {
 		String orderNum, String dayId, String lnglat, String isArr){
 		Map<String, Object> map = new HashMap<String, Object>();
 		
-		map = carOrderSer.updCofmDownCar(ReqSrc.WX, request, response, orderNum, dayId, lnglat, 
+		map = carOrderSer.driverCofmDownCar(ReqSrc.WX, request, response, orderNum, dayId, lnglat, 
 			isArr);
 		
 		Message.print(response, map);

@@ -14,7 +14,7 @@ import javax.persistence.Table;
  */
 @Entity
 @Table(name="route_line_info")
-public class RouteLineInfo implements Serializable {
+public class RouteLineInfo implements Serializable,Cloneable {
 	private static final long serialVersionUID = 6762292739770511741L;
 	
 	/** id */
@@ -158,5 +158,17 @@ public class RouteLineInfo implements Serializable {
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
+	
+	
+	@Override  
+    public Object clone() {  
+		RouteLineInfo stu = null;  
+        try{  
+            stu = (RouteLineInfo)super.clone();  
+        }catch(CloneNotSupportedException e) {  
+            e.printStackTrace();  
+        }  
+        return stu;  
+    } 
 	
 }

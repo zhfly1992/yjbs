@@ -127,7 +127,19 @@ public interface FeeCourseService extends BaseService<FeeCourse, Long> {
 	 * @author :zh
 	 * @version 2020年6月8日
 	 */
-	public Map<String, Object> checkCourseName(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,String courseName);
+	public Map<String, Object> checkCourseName(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,String courseName,String courseId);
+
+	/**
+	 * 获取-指定单位的科目列表
+	 * @param reqsrc 	请求来源
+	 * @param request 	request
+	 * @param response 	response
+	 * @param lunitNum 	登录单位编号
+	 * @param type 		科目收支类型 0-收入；1-支出
+	 * @return map{code: 结果状态码, msg: 结果状态码说明, data: 数据}
+	 */
+	public Map<String, Object> findFeeCourseList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String lunitNum, String type);
 }
 
 

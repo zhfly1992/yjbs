@@ -5,8 +5,10 @@ package com.fx.service.impl.finance;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -14,23 +16,24 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.query.NativeQuery;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
+import com.fx.commons.utils.clazz.Item;
 import com.fx.commons.utils.enums.ReqSrc;
+import com.fx.commons.utils.tools.FV;
 import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.dao.finance.BankTradeListDao;
 import com.fx.dao.finance.FeeCourseDao;
-import com.fx.dao.finance.ReimburseListDao;
+import com.fx.dao.finance.FeeCourseTradeDao;
 import com.fx.entity.finance.BankTradeList;
 import com.fx.entity.finance.FeeCourse;
-import com.fx.entity.finance.ReimburseList;
+import com.fx.entity.finance.FeeCourseTrade;
 import com.fx.service.finance.FeeCourseService;
 import com.fx.web.util.RedisUtil;
 
@@ -45,8 +48,10 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 	private FeeCourseDao	fcDao;
 	@Autowired
 	private BankTradeListDao bankTradeListDao;
+	
+	/** 科目交易记录-服务 */
 	@Autowired
-	private ReimburseListDao reimburseListDao;
+	private FeeCourseTradeDao fctDao;
 
 
 	@Override
@@ -265,27 +270,61 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 					
 					if (delete) {
 						//判断被删除的科目是否被银行日记账使用
-						String sqlBTL = "select * from bank_trade_list where fee_course_id in ?0 ";
-						NativeQuery createSQLQuery = bankTradeListDao.getCurrentSession().createSQLQuery(sqlBTL).addEntity(BankTradeList.class);
-						createSQLQuery.setParameter(0, deleteIds);
-						List<BankTradeList> resBTL = createSQLQuery.list();
+//						String sqlBTL = "select * from bank_trade_list where fee_course_id in ?0 ";
+//						NativeQuery createSQLQuery = bankTradeListDao.getCurrentSession().createSQLQuery(sqlBTL).addEntity(BankTradeList.class);
+//						createSQLQuery.setParameter(0, deleteIds);
+//						List<BankTradeList> resBTL = createSQLQuery.list();
+//						if (!resBTL.isEmpty()) {
+//							delete = false;
+//							List<String> useCourseNames =  new  ArrayList<>();
+//							for(BankTradeList bankTradeList:resBTL){
+//								useCourseNames.add(bankTradeList.getFeeCourseId().getCourseName());
+//							}
+//							U.logFalse(log, "科目-删除-失败，科目被bankTradeList引用");
+//							U.setPutFalse(map, 0, "删除科目失败,科目" + useCourseNames.toString() + "被银行日记账使用");
+//						}
+						
+						
+						String hql = "from BankTradeList where feeCourseId.id in (:v0)";
+						List <BankTradeList> resBTL=bankTradeListDao.findListIns(hql, deleteIds.toArray());
 						if (!resBTL.isEmpty()) {
 							delete = false;
-							U.logFalse(log, "科目-删除-失败，科目被bankTradeList引用");
-							U.setPutFalse(map, 0, "查找科目失败，科目在使用中");
+							Set<String> useCourseNames =  new HashSet<>();
+							for(BankTradeList bankTradeList:resBTL){
+								useCourseNames.add(bankTradeList.getFeeCourseId().getCourseName());
+							}
+							U.logFalse(log, "科目-删除-失败，科目被交易记录引用");
+							U.setPutFalse(map, 0, "删除科目失败，科目" + useCourseNames.toString() +"已被科目交易记录使用");
 						}
 					}
 					
 					if (delete) {
-						//判断被删除的科目是否被银行日记账使用
-						String sqlRBL = "select * from reimburse_list where fee_course_id in ?0 ";
+						//判断被删除的科目是否被单位凭证记录使用
+						/*String sqlRBL = "select * from reimburse_list where fee_course_id in ?0 ";
 						NativeQuery createSQLQuery = reimburseListDao.getCurrentSession().createSQLQuery(sqlRBL).addEntity(ReimburseList.class);
 						createSQLQuery.setParameter(0, deleteIds);
 						List<ReimburseList> resRBL = createSQLQuery.list();
 						if (!resRBL.isEmpty()) {
 							delete = false;
+							List<String> useCourseNames =  new  ArrayList<>();
+							for(ReimburseList reimburseList:resRBL){
+								useCourseNames.add(reimburseList.getFeeCourseId().getCourseName());
+							}
 							U.logFalse(log, "科目-删除-失败，科目被ReimburseList引用");
-							U.setPutFalse(map, 0, "查找科目失败，科目在使用中");
+							U.setPutFalse(map, 0, "删除科目失败，科目" + useCourseNames.toString() +"被单位凭证记录使用");
+						}*/
+						
+						//判断被删除的科目是否已有交易记录
+						String hql = "from FeeCourseTrade where feeCourseId.id in (:v0)";
+						List <FeeCourseTrade> fctList=fctDao.findListIns(hql, deleteIds.toArray());
+						if (!fctList.isEmpty()) {
+							delete = false;
+							Set<String> useCourseNames =  new HashSet<>();
+							for(FeeCourseTrade fct:fctList){
+								useCourseNames.add(fct.getFeeCourseId().getCourseName());
+							}
+							U.logFalse(log, "科目-删除-失败，科目被交易记录引用");
+							U.setPutFalse(map, 0, "删除科目失败，科目" + useCourseNames.toString() +"已被科目交易记录使用");
 						}
 					}
 
@@ -382,7 +421,7 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 
 	@Override
 	public Map<String, Object> checkCourseName(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			String courseName) {
+			String courseName,String courseId) {
 		String logtxt = U.log(log, "科目-判断科目名称是否可用", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		try {
@@ -396,13 +435,74 @@ public class FeeCourseServiceImpl extends BaseServiceImpl<FeeCourse, Long> imple
 					U.setPut(map, 1, "名称可用");
 				}
 				else{
-					U.logFalse(log, "科目-判断科目名称是否-不可用");
-					U.setPutFalse(map, 0, "科目名称重复，不可用");
+					if (courseId != null) 
+						//courseId不为null说明是修改
+						{
+							if (findByField.getId() == Long.parseLong(courseId)) {
+								U.log(log, "科目-判断科目名称是否可用-可用");
+								U.setPut(map, 1, "名称可用");
+							}
+							else{
+								U.logFalse(log, "科目-判断科目名称是否-不可用");
+								U.setPutFalse(map, 0, "科目名称重复，不可用");
+							}
+						}
+					else {
+						U.logFalse(log, "科目-判断科目名称是否-不可用");
+						U.setPutFalse(map, 0, "科目名称重复，不可用");
+					}
+
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
 			U.setPutEx(map, log, e, logtxt);
+		}
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> findFeeCourseList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String lunitNum, String type) {
+		String logtxt = U.log(log, "获取-指定单位的科目列表", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
+		boolean fg = true;
+		
+		try {
+			int _type = -1;
+			if(fg) {
+				if(StringUtils.isBlank(type)) {
+					fg = U.setPutFalse(map, "[科目收支类型]不能为空");
+				}else {
+					type = type.trim();
+					if(!FV.isInteger(type)) {
+						fg = U.setPutFalse(map, "[科目收支类型]格式错误");
+					}else {
+						_type = Integer.parseInt(type);
+					}
+					
+					U.log(log, "[科目收支类型] type="+type);
+				}
+			}
+			
+			if(fg) {
+				hql = "select new FeeCourse(id,courseName) from FeeCourse where unitNum = ?0 and courseStatus = ?1 and courseType = ?2 order by id asc";
+				List<FeeCourse> fcs = fcDao.findhqlList(hql, lunitNum, "0", _type);
+				
+				List<Item> its = new ArrayList<Item>();
+				for (FeeCourse fc : fcs) {
+					its.add(new Item(fc.getId()+"", fc.getCourseName()));
+				}
+				
+				map.put("data", its);
+				
+				U.setPut(map, 1, "获取成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
 		}
 		return map;
 	}

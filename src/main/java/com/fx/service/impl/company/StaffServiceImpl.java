@@ -39,6 +39,7 @@ import com.fx.entity.company.CompanyCustom;
 
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
+import com.fx.entity.cus.CompanyUser;
 import com.fx.entity.cus.Customer;
 import com.fx.entity.cus.permi.Dept;
 import com.fx.service.company.StaffService;
@@ -52,6 +53,9 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 	/** 员工-数据源 */
 	@Autowired
 	private StaffDao	staffDao;
+	
+	@Autowired
+	private CompanyCustomDao companyCustomDao;
 
 
 
@@ -62,8 +66,7 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 
 	@Autowired
 	private BaseUserDao			baseUserdao;
-	@Autowired
-	private CompanyCustomDao	companyCustomDao;
+
 
 
 
@@ -129,13 +132,23 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 	 */
 	@Override
 	public Map<String, Object> subStaffAdd(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			JSONObject jsonObject) {
+			JSONObject jsonObject,CompanyUser companyUser) {
 
 		String logtxt = U.log(log, "新增-员工", reqsrc);
 		Map<String, Object> map = new HashMap<>();
 		boolean fg = true;
-		Staff staff = jsonObject.toJavaObject(Staff.class);
+		
+		//入职公司不为空，根据id获得公司信息
+		String entryCompany = jsonObject.getString("entryCompany");
+		if (!StringUtils.isBlank(entryCompany)) {
+			CompanyCustom entryCom = companyCustomDao.findByField("id", Long.parseLong(entryCompany));
+			jsonObject.put("entryCompany", entryCom);
+		}
 
+		//获取当前公司的公司名称，用于添加员工时员工为当前公司；
+		String currentCompany = companyUser.getCompanyName();
+		Staff staff = jsonObject.toJavaObject(Staff.class);
+		
 		try {
 			if (fg) {
 				if (StringUtils.isBlank(staff.getBaseUserId().getPhone())) {
@@ -177,9 +190,18 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 				// 检查是否已经在companyCustom表中
 				CompanyCustom checkIfExists = companyCustomDao.checkIfExists(reqsrc, unitNum, uname);
 				if (checkIfExists == null) {
-					CompanyCustom addCompanyCustom = addCompanyCustom(baseUser, unitNum, staff.getEntryCompany(),
-							CusType.COMPANY, 0, "员工", jsonObject.getString("serviceMan"),
-							jsonObject.getString("recomMan"));
+					CompanyCustom addCompanyCustom;
+					if (staff.getEntryCompany() != null) {
+						addCompanyCustom = addCompanyCustom(baseUser, unitNum, staff.getEntryCompany().getUnitName(),
+								CusType.COMPANY, 0, "员工", jsonObject.getString("serviceMan"),
+								jsonObject.getString("recomMan"));
+					}
+					else{
+						addCompanyCustom = addCompanyCustom(baseUser, unitNum, currentCompany,
+								CusType.COMPANY, 0, "员工", jsonObject.getString("serviceMan"),
+								jsonObject.getString("recomMan"));
+					}
+		
 					if (addCompanyCustom == null) {
 						U.logFalse(log, "公司-新增员工-新增客户失败");
 						fg = U.setPutFalse(map, 0, "公司-新增员工-新增客户失败");
@@ -302,6 +324,12 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 		boolean fg = true;
 
 		try {
+			
+			String entryCompany = jsonObject.getString("entryCompany");
+			if (!StringUtils.isBlank(entryCompany)) {
+				CompanyCustom entryCom = companyCustomDao.findByField("id", Long.parseLong(entryCompany));
+				jsonObject.put("entryCompany", entryCom);
+			}
 			Staff staff = jsonObject.toJavaObject(Staff.class);
 
 			if (fg) {

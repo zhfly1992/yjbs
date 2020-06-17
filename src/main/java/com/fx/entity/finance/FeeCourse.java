@@ -67,6 +67,18 @@ public class FeeCourse implements Serializable {
 	@Column(name="parent_id",columnDefinition="bigint(20)  COMMENT '上层科目id,若是根层级则为null'")
 	private Long parentId;
 	
+	/** 余额 */
+	@Column(name="balance", columnDefinition="double(10,2) default '0.00' COMMENT '余额'")
+	private double balance;
+	
+	public FeeCourse() {}
+	
+	public FeeCourse(long id, String courseName) {
+		super();
+		this.id = id;
+		this.courseName = courseName;
+	}
+
 	/**  
 	 * 获取 唯一id自增长主键  
 	 * @return 唯一id自增长主键
@@ -247,6 +259,24 @@ public class FeeCourse implements Serializable {
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
+
+	/**  
+	 * 获取 余额  
+	 * @return balance
+	 */
+	public double getBalance() {
+		return balance;
+	}
+	
+
+	/**  
+	 * 设置 余额  
+	 * @param balance 
+	 */
+	public void setBalance(double balance) {
+		this.balance = balance;
+	}
+	
 	
 
 }

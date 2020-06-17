@@ -19,6 +19,7 @@ import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.hibernate.internal.CriteriaImpl;
 import org.hibernate.query.Query;
+import org.hibernate.sql.JoinType;
 import org.hibernate.transform.ResultTransformer;
 import org.springframework.util.Assert;
 
@@ -114,6 +115,8 @@ public class HibernateUtils {
 	public static Criteria setParameters(Criteria criteria, Page<?> pageData){
 		//第一步：设置查询条件
 		setFiltrationParameter(criteria, pageData.getFiltrations());
+		//设置别名
+		setAlias(criteria, pageData.getAlias());
 		//第二步：读取记录总数
 		if (pageData.getPagination().isReadTotalCount()){
 			long totalCount = countCriteriaResult(criteria);
@@ -124,9 +127,20 @@ public class HibernateUtils {
 		criteria.setMaxResults(pageData.getPagination().getPageSize());
 		//排序条件(可多条件排序)
 		setCompositorParameters(criteria, pageData.getCompositors());
+		
 		return criteria;
 	}
-	
+	/**
+	 * 设置别名
+	 */
+	public static Criteria setAlias(Criteria criteria, List<String> alias){
+		if(alias!=null && alias.size()>0) {
+			for (String alia : alias) {
+				criteria.createAlias(alia, alia, JoinType.INNER_JOIN);
+			}
+		}
+		return criteria;
+	}
 	/**
 	 * 设置过滤条件到Criteria对象
 	 */

@@ -5,6 +5,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import com.fx.commons.utils.clazz.CarRouteRes;
 import com.fx.commons.utils.enums.ReqSrc;
 
@@ -83,5 +85,27 @@ public interface CommonService {
 	 * @return 车辆行程结果
 	 */
 	public CarRouteRes queryCarRouteRes(String spoint, String epoint, String waypoints, String stg);
+
+	/**
+	 * 添加-记账报销-文件
+	 * @param reqsrc 	请求来源
+	 * @param ftype 	文件类型
+	 * @param lteamNo 	登录车队编号
+	 * @param luname 	登录用户名
+	 * @param files 	文件数组
+	 * @param uid 		更新记账记录
+	 * @return map{code: 结果状态码, msg: 结果状态码说明, ids: 文件上传成功后数据id数组}
+	 */
+	public Map<String, Object> addJzbxFile(ReqSrc reqsrc, String ftype, String lteamNo, String luname, 
+		MultipartFile[] files, String uid);
+	
+	/**
+	 * 修改-记账报销-文件
+	 * @param reqsrc 	请求来源
+	 * @param fid 		文件数据对象自定义id
+	 * @param files 	文件数组
+	 * @return map{code: 结果状态码, msg: 结果状态码说明, ids: 文件上传成功后数据id数组}
+	 */
+	public Map<String, Object> updJzbxFile(ReqSrc reqsrc, String fid, MultipartFile[] files);
 	
 }

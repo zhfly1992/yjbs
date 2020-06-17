@@ -877,14 +877,8 @@ public class CarOrder implements Serializable,Cloneable{
 	}
 
 @Override  
-    public Object clone() {  
-        CarOrder stu = null;  
-        try{  
-            stu = (CarOrder)super.clone();  
-        }catch(CloneNotSupportedException e) {  
-            e.printStackTrace();  
-        }  
-        return stu;  
-    }  
+public Object clone() throws CloneNotSupportedException {
+	return super.clone();
+}
 	
 }

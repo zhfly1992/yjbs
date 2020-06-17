@@ -1078,6 +1078,12 @@ public class CompanyOrderController extends BaseController {
 			value="订单号，多个逗号拼接"
 		),
 		@ApiImplicitParam(
+			required=true, 
+			name="sendModel", 
+			dataType="String", 
+			value="获取模式，需要用户自己选择：0淡季模式 1旺季模式"
+		),
+		@ApiImplicitParam(
 			name="firstCar", 
 			dataType="String", 
 			value="车辆优先顺序 eg：1 自营优先 2挂靠优先"
@@ -1106,7 +1112,8 @@ public class CompanyOrderController extends BaseController {
  		String seats = jsonObject.getString("seats");
 		String notContainPn = jsonObject.getString("notContainPn");
 		String sendPlate = jsonObject.getString("sendPlate");
- 		map = carOrderService.smartSendOrder(ReqSrc.PC_COMPANY, response, request, sendOrderNum, firstCar, seats, notContainPn, sendPlate);
+		String sendModel = jsonObject.getString("sendModel");
+ 		map = carOrderService.smartSendOrder(ReqSrc.PC_COMPANY, response, request, sendOrderNum, firstCar, seats, notContainPn, sendPlate,sendModel);
  		Message.print(response, map);
  	}
  	/**

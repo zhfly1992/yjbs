@@ -10,6 +10,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.service.BaseService;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.entity.company.Staff;
+import com.fx.entity.cus.CompanyUser;
 
 
 
@@ -61,10 +62,11 @@ public interface StaffService extends BaseService<Staff, Long> {
 	 * @param response
 	 * @param request
 	 * @param staff
+	 * @param companyUser 当前账号信息
 	 * @return
 	 */
 	public Map<String, Object> subStaffAdd(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			JSONObject jsonObject);
+			JSONObject jsonObject,CompanyUser companyUser);
 
 
 

@@ -54,7 +54,7 @@ public class Staff implements Serializable{
 	private Role roleId;
 	
 	/** 入职时间 */
-	@Temporal(TemporalType.TIMESTAMP)
+	@Temporal(TemporalType.DATE)
 	@Column(name="entry_time", nullable=false, columnDefinition="datetime COMMENT '入职时间'")
 	private Date entryTime;
 	
@@ -64,16 +64,17 @@ public class Staff implements Serializable{
 	private StaffState staffState;
 	
 	/** 试用截止/合同到期时间 */
-	@Temporal(TemporalType.TIMESTAMP)
+	@Temporal(TemporalType.DATE)
 	@Column(name="expire_time", nullable=false, columnDefinition="datetime COMMENT '试用截止/合同到期时间'")
 	private Date expireTime;
 	
 	/** 入职公司 */
-	@Column(name="entry_company", nullable=false, columnDefinition="varchar(100) COMMENT '入职公司'")
-	private String entryCompany;
+	@OneToOne(targetEntity = CompanyCustom.class)
+	@JoinColumn(name="entry_company",referencedColumnName="id",columnDefinition="varchar(100) COMMENT '入职公司'")
+	private CompanyCustom entryCompany;
 	
 	/** 社保单位 */
-	@Column(name="social_unit", nullable=false, columnDefinition="varchar(100) COMMENT '社保单位'")
+	@Column(name="social_unit",columnDefinition="varchar(100) COMMENT '社保单位'")	
 	private String socialUnit;
 	
 	/** 身份证号 */
@@ -102,7 +103,7 @@ public class Staff implements Serializable{
 	private int isDriver;
 	
 	/** 驾驶证领证时间 */
-	@Temporal(TemporalType.TIMESTAMP)
+	@Temporal(TemporalType.DATE)
 	@Column(name="take_drive_time", columnDefinition="datetime COMMENT '驾驶证领证时间'")
 	private Date takeDriveTime;
 	
@@ -115,7 +116,7 @@ public class Staff implements Serializable{
 	private String certificateType;
 	
 	/** 资格证领证时间 */
-	@Temporal(TemporalType.TIMESTAMP)
+	@Temporal(TemporalType.DATE)
 	@Column(name="take_certificate_time", columnDefinition="datetime COMMENT '资格证领证时间'")
 	private Date takeCertificateTime;
 	
@@ -271,7 +272,7 @@ public class Staff implements Serializable{
 	 * 获取 入职公司  
 	 * @return entryCompany
 	 */
-	public String getEntryCompany() {
+	public CompanyCustom getEntryCompany() {
 		return entryCompany;
 	}
 	
@@ -280,7 +281,7 @@ public class Staff implements Serializable{
 	 * 设置 入职公司  
 	 * @param entryCompany 
 	 */
-	public void setEntryCompany(String entryCompany) {
+	public void setEntryCompany(CompanyCustom entryCompany) {
 		this.entryCompany = entryCompany;
 	}
 	

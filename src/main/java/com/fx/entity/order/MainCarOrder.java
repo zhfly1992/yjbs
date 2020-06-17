@@ -29,7 +29,6 @@ import com.fx.commons.utils.enums.ServiceType;
  */
 @Entity
 @Table(name="main_car_order")
-
 public class MainCarOrder implements Serializable {
 	private static final long serialVersionUID = 47175572696246752L;
 
@@ -58,6 +57,16 @@ public class MainCarOrder implements Serializable {
 	/** 提醒师傅现收（元） 业务员填写了现收金额，则会提醒师傅现收 */
 	@Column(name="rem_driver_charge", nullable=false, columnDefinition="double(20,2) default 0 COMMENT '提醒师傅现收（元） '")
 	private double remDriverCharge;
+	
+	/** 起点 */
+	@OneToOne(targetEntity = MapPoint.class,cascade = CascadeType.ALL)
+	@JoinColumn(name="spoint", nullable=false, referencedColumnName="id", columnDefinition="bigint COMMENT  '起点'")
+	private MapPoint spoint;
+	
+	/** 终点 */
+	@OneToOne(targetEntity = MapPoint.class,cascade = CascadeType.ALL)
+	@JoinColumn(name="epoint", nullable=false, referencedColumnName="id", columnDefinition="bigint COMMENT  '终点'")
+	private MapPoint epoint;
 	
 	/** 出发时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -113,7 +122,6 @@ public class MainCarOrder implements Serializable {
 	@JoinColumn(name="main_order_id")
 	private List<DisCarInfo> mainCars;
 	
-	
 	/** 是否软删除 0-否；1-是；*/
 	@Column(name="is_del", columnDefinition="tinyint(1) default 0 COMMENT '是否软删除'")
 	private int isDel;
@@ -143,8 +151,6 @@ public class MainCarOrder implements Serializable {
 	public String getOrderNum() {
 		return orderNum;
 	}
-	
-
 
 	/**  
 	 * 设置 订单编号  
@@ -268,6 +274,46 @@ public class MainCarOrder implements Serializable {
 	 */
 	public void setRemDriverCharge(double remDriverCharge) {
 		this.remDriverCharge = remDriverCharge;
+	}
+	
+
+
+	/**  
+	 * 获取 起点  
+	 * @return spoint
+	 */
+	public MapPoint getSpoint() {
+		return spoint;
+	}
+	
+
+
+	/**  
+	 * 设置 起点  
+	 * @param spoint 
+	 */
+	public void setSpoint(MapPoint spoint) {
+		this.spoint = spoint;
+	}
+	
+
+
+	/**  
+	 * 获取 终点  
+	 * @return epoint
+	 */
+	public MapPoint getEpoint() {
+		return epoint;
+	}
+	
+
+
+	/**  
+	 * 设置 终点  
+	 * @param epoint 
+	 */
+	public void setEpoint(MapPoint epoint) {
+		this.epoint = epoint;
 	}
 	
 

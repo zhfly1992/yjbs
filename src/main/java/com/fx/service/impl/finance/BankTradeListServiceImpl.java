@@ -1169,7 +1169,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	}
 	@Override
 	public Map<String, Object> downBtlMoney(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			String btlId,String feeCourseId, String money, String companyCusId, String remark, String notice_uname,
+			String btlId, String money, String companyCusId, String remark, String notice_uname,
 			String notice_note, String orderNum) {
 		String logtxt = U.log(log, "银行账下账", reqsrc);
 		
@@ -1181,17 +1181,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 				if(fg){
 					if(StringUtils.isEmpty(btlId)){
 						fg = U.setPutFalse(map, "[下账记录]不能为空");
-					}
-				}
-				FeeCourse fc=null;
-				if(fg){
-					if(StringUtils.isEmpty(feeCourseId)){
-						fg = U.setPutFalse(map, "[科目id]不能为空");
-					}else{
-						fc=fcDao.findByField("id", Long.valueOf(feeCourseId));
-						if(fc==null){
-							fg = U.setPutFalse(map, "科目不存在");
-						}
 					}
 				}
 				if(fg){
@@ -1225,7 +1214,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						btl.setCheckMoney(tradeMoney);
 						//btl.setCusName(obj.getReimName()+","+obj.getcName());//客户名称 20191219
 						btl.setRemark(remark);
-						btl.setFeeCourseId(fc);
 						btl.setNoticeMan(notice_uname);
 						btl.setNoticeRemark(notice_note);
 						btl.setOrderNum(orderNum);
@@ -1244,9 +1232,9 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		return map;
 	}
 	@Override
-	public Map<String, Object> checkDownBtlMoney(ReqSrc reqsrc, HttpServletResponse response,
-			HttpServletRequest request, String btlId, String isPass) {
-		String logtxt = U.log(log, "银行账审核下账记录", reqsrc);
+	public Map<String, Object> checkYesBtl(ReqSrc reqsrc, HttpServletResponse response,
+			HttpServletRequest request, String btlId,String feeCourseId) {
+		String logtxt = U.log(log, "银行账审核下账记录-通过", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -1258,9 +1246,15 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						fg = U.setPutFalse(map, "[审核记录]不能为空");
 					}
 				}
+				FeeCourse fc=null;
 				if(fg){
-					if(StringUtils.isEmpty(isPass)){
-						fg = U.setPutFalse(map, "[审核状态]不能为空");
+					if(StringUtils.isEmpty(feeCourseId)){
+						fg = U.setPutFalse(map, "[科目id]不能为空");
+					}else{
+						fc=fcDao.findByField("id", Long.valueOf(feeCourseId));
+						if(fc==null){
+							fg = U.setPutFalse(map, "科目不存在");
+						}
 					}
 				}
 				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
@@ -1279,50 +1273,91 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					}
 				}
 				if(fg){
-					if("0".equals(isPass)) {//审核不通过
-						for (BankTradeList btl : btlist) {
-							btl.setIsCheck(0);//未操作
+					double tradeMoney=0;
+					String operMark="";
+					for (BankTradeList btl : btlist) {
+						operMark=UT.creatOperMark();
+						tradeMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
+						if(btl.getIsCheck()==1){//待审核
+							if(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2)>=tradeMoney){//报销完成
+								btl.setIsCheck(-1);
+							}else{
+								btl.setIsCheck(2);//已审核
+							}
+							btl.setReimMoney(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2));
 							btl.setCheckMoney(0);
-							btl.setCusName(null);//客户名称
-							btl.setVoucherNumber(null);
-							btl.setDocumentNumber(null);
-							btl.setNoticeMan(null);
-							btl.setNoticeRemark(null);
-							btl.setOrderNum(null);
+							btl.setFeeCourseId(fc);
+							btl.setOperMark(StringUtils.isBlank(btl.getOperMark())?operMark:btl.getOperMark()+","+operMark);
 							btlDao.update(btl);
-						}
-					}else {//审核通过
-						double tradeMoney=0;
-						String operMark="";
-						for (BankTradeList btl : btlist) {
-							operMark=UT.creatOperMark();
-							tradeMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
-							if(btl.getIsCheck()==1){//待审核
-								if(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2)>=tradeMoney){//报销完成
-									btl.setIsCheck(-1);
-								}else{
-									btl.setIsCheck(2);//已审核
-								}
-								btl.setReimMoney(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2));
-								btl.setCheckMoney(0);
-								btl.setOperMark(StringUtils.isBlank(btl.getOperMark())?operMark:btl.getOperMark()+","+operMark);
-								btlDao.update(btl);
-								if(StringUtils.isNotBlank(btl.getOrderNum())){//订单只能收款完成
-									String [] orderNums=btl.getOrderNum().split(",");
-									for (String eachNum : orderNums) {
-										MainCarOrder col=mcoDao.findByField("orderNum", eachNum);
-										if(col!=null){
-											col.setAlGathPrice(col.getPrice());
-											col.setPayStatus(OrderPayStatus.FULL_PAID);
-											mcoDao.update(col);
-										}
+							if(StringUtils.isNotBlank(btl.getOrderNum())){//订单只能收款完成
+								String [] orderNums=btl.getOrderNum().split(",");
+								for (String eachNum : orderNums) {
+									MainCarOrder col=mcoDao.findByField("orderNum", eachNum);
+									if(col!=null){
+										col.setAlGathPrice(col.getPrice());
+										col.setPayStatus(OrderPayStatus.FULL_PAID);
+										mcoDao.update(col);
 									}
 								}
-								if(StringUtils.isNotBlank(btl.getNoticeMan())){//发送通知
-									
-								}
+							}
+							if(StringUtils.isNotBlank(btl.getNoticeMan())){//发送通知
+								
 							}
 						}
+					}
+					U.setPut(map, 1, "操作成功");
+				}
+			}else{
+				U.setPut(map, 0, QC.ERRORS_MSG);
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	@Override
+	public Map<String, Object> checkNoBtl(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String btlId) {
+		String logtxt = U.log(log, "银行账审核下账记录-不通过", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(ReqSrc.PC_COMPANY == reqsrc){
+				if(fg){
+					if(StringUtils.isEmpty(btlId)){
+						fg = U.setPutFalse(map, "[审核记录]不能为空");
+					}
+				}
+				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
+				if(fg) {
+					String [] btlIds=btlId.split(",");
+					BankTradeList btl=null;
+					for (String each : btlIds) {
+						btl=btlDao.findByField("id", Long.valueOf(each));
+						if(btl!=null){
+							if(btl.getIsCheck()!=1) {
+								fg = U.setPutFalse(map, "有审核记录状态非待审核状态，不能审核");
+								break;
+							}
+							btlist.add(btl);
+						}
+					}
+				}
+				if(fg){
+					for (BankTradeList btl : btlist) {
+						btl.setIsCheck(0);//未操作
+						btl.setCheckMoney(0);
+						btl.setCusName(null);//客户名称
+						btl.setVoucherNumber(null);
+						btl.setDocumentNumber(null);
+						btl.setNoticeMan(null);
+						btl.setNoticeRemark(null);
+						btl.setOrderNum(null);
+						btlDao.update(btl);
 					}
 					U.setPut(map, 1, "操作成功");
 				}

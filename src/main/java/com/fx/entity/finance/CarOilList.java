@@ -27,9 +27,6 @@ import com.fx.entity.cus.BaseUser;
 @Entity
 @Table(name="car_oil_list")
 public class CarOilList implements Serializable{
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -5456678969617141878L;
 
 	@Id

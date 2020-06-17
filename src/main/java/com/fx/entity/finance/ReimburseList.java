@@ -2,26 +2,25 @@ package com.fx.entity.finance;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fx.commons.utils.enums.ReqSrc;
-import com.fx.entity.cus.BaseUser;
-import com.fx.entity.cus.permi.Dept;
-import com.fx.entity.order.CarOrder;
-import com.fx.entity.order.MainCarOrder;
 /**
  * 单位凭证记录
  * @author xx
@@ -40,23 +39,14 @@ public class ReimburseList implements Serializable{
 	@Column(name="unit_num",nullable=false, columnDefinition="varchar(20) COMMENT '单位编号'")
 	private String unitNum;
 	
-	/** 业务部门 */
-	@OneToOne(targetEntity = Dept.class)
-	@JoinColumn(name="dept_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '业务部门id'")
-	private Dept deptId;
-	
 	/** 凭证号码 */
 	@Column(name="voucher_num",  columnDefinition="varchar(100) COMMENT '凭证号码'")
 	private String voucherNum;
 	
-	/** 科目名称 */
-	@OneToOne(targetEntity = FeeCourse.class)
-	@JoinColumn(name="fee_course_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目id'")
-	private FeeCourse feeCourseId;
-	
-	/** 0收入 1支出 */
-	@Column(name="fee_status",  columnDefinition="int(11) default '0' COMMENT '0收入 1支出'")
-	private int feeStatus;
+	/** 科目交易列表 */
+	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
+	@JoinColumn(name="course_trade_id")
+	private List<FeeCourseTrade> courseTrades;
 	
 	/** 记账时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -64,42 +54,21 @@ public class ReimburseList implements Serializable{
 	private Date gainTime;
 	
 	/** 车牌号 */
-	@Column(name="plate_num",  columnDefinition="text COMMENT '车牌号'")
+	@Column(name="plate_num", columnDefinition="text COMMENT '车牌号'")
 	private String plateNum;
 	
-	/** 报销人信息 */
-	@OneToOne(targetEntity = BaseUser.class)
-	@JoinColumn(name="reim_user_id", nullable=false, referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '报销人信息'")
-	private BaseUser reimUserId;
+	/** 员工报账列表 */
+	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
+	@JoinColumn(name="staff_reim_id")
+	private List<StaffReimburse> staffReims;
 	
-	/** 摘要 */
-	@Column(name="remark",  columnDefinition="varchar(255) COMMENT '摘要'")
-	private String remark;
-	
-	/** -1已驳回 0 未审核 1已审核 2已核销 3已关联 */
-	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '-1已驳回 0 未审核 1已审核 2已核销 3已关联'")
+	/** 0未关联 1已核销 2已关联 */
+	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '0未关联 1已核销 2已关联'")
 	private int isCheck;
-	
-	/**  驳回原因 */
-	@Column(name="refuse_reason",  columnDefinition="varchar(255) COMMENT '驳回原因'")
-	private String refuseReason;
-	
-	/** 凭证图片下载地址 */
-	@Column(name="reim_voucher_url", columnDefinition="varchar(255) COMMENT '凭证图片下载地址'")
-	private String reimVoucherUrl;
-	
-	/** 添加时间 */
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="add_time", columnDefinition="datetime COMMENT '添加时间'")
-	private Date addTime;
 	
 	/** 总金额:元 */
 	@Column(name="total_money", columnDefinition="double(10,2) default '0.00' COMMENT '总金额:元'")
 	private double totalMoney;
-	
-	/** 已核销金额 */
-	@Column(name="verification_money", columnDefinition="double(10,2) default '0.00' COMMENT '已核销金额'")
-	private double verificationMoney;
 	
 	/** 我的银行户名/我的银行账号 */
 	@Column(name="my_bank_info",  columnDefinition="varchar(100) COMMENT '我的银行户名/我的银行账号'")
@@ -109,20 +78,17 @@ public class ReimburseList implements Serializable{
 	@Column(name="transfer_info",  columnDefinition="varchar(100) COMMENT '对方户名/对方账号'")
 	private String transferInfo;
 	
-	/** 子订单引用 */
-	@OneToOne(targetEntity = CarOrder.class)
-	@JoinColumn(name="car_order_reim", referencedColumnName="order_num", columnDefinition="varchar(30) COMMENT '子订单引用'")
-	private CarOrder carOrderReim;
-	
-	/** 主订单引用 */
-	@OneToOne(targetEntity = MainCarOrder.class)
-	@JoinColumn(name="main_order_reim", referencedColumnName="order_num", columnDefinition="varchar(30) COMMENT '主订单引用'")
-	private MainCarOrder mainOrderReim;
+	/** 添加时间 */
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="add_time", columnDefinition="datetime COMMENT '添加时间'")
+	private Date addTime;
 	
 	/**  数据来源 */
 	@Enumerated(EnumType.STRING)
 	@Column(name="reqsrc", columnDefinition="varchar(20) COMMENT '数据来源'")
 	private ReqSrc reqsrc;
+	
+	
 	
 	/** 每次操作标识号 */
 	@Column(name="oper_mark", columnDefinition="text COMMENT '每次操作标识号'")
@@ -131,7 +97,7 @@ public class ReimburseList implements Serializable{
 	/** 操作备注 */
 	@Column(name="oper_note",columnDefinition="text COMMENT '操作备注'")
 	private String operNote;
-	
+
 	/**  
 	 * 获取 id  
 	 * @return id
@@ -140,6 +106,7 @@ public class ReimburseList implements Serializable{
 		return id;
 	}
 	
+
 	/**  
 	 * 设置 id  
 	 * @param id 
@@ -148,6 +115,7 @@ public class ReimburseList implements Serializable{
 		this.id = id;
 	}
 	
+
 	/**  
 	 * 获取 单位编号eg：Uxxxx  
 	 * @return unitNum
@@ -156,6 +124,7 @@ public class ReimburseList implements Serializable{
 		return unitNum;
 	}
 	
+
 	/**  
 	 * 设置 单位编号eg：Uxxxx  
 	 * @param unitNum 
@@ -165,23 +134,6 @@ public class ReimburseList implements Serializable{
 	}
 	
 
-	/**  
-	 * 获取 业务部门  
-	 * @return deptId
-	 */
-	public Dept getDeptId() {
-		return deptId;
-	}
-	
-
-	/**  
-	 * 设置 业务部门  
-	 * @param deptId 
-	 */
-	public void setDeptId(Dept deptId) {
-		this.deptId = deptId;
-	}
-	
 	/**  
 	 * 获取 凭证号码  
 	 * @return voucherNum
@@ -200,42 +152,25 @@ public class ReimburseList implements Serializable{
 	}
 	
 
-
 	/**  
-	 * 获取 科目名称  
-	 * @return feeCourseId
+	 * 获取 科目交易列表  
+	 * @return courseTrades
 	 */
-	public FeeCourse getFeeCourseId() {
-		return feeCourseId;
+	public List<FeeCourseTrade> getCourseTrades() {
+		return courseTrades;
 	}
 	
 
+
 	/**  
-	 * 设置 科目名称  
-	 * @param feeCourseId 
+	 * 设置 科目交易列表  
+	 * @param courseTrades 
 	 */
-	public void setFeeCourseId(FeeCourse feeCourseId) {
-		this.feeCourseId = feeCourseId;
+	public void setCourseTrades(List<FeeCourseTrade> courseTrades) {
+		this.courseTrades = courseTrades;
 	}
 	
 
-	/**  
-	 * 获取 0收入1支出  
-	 * @return feeStatus
-	 */
-	public int getFeeStatus() {
-		return feeStatus;
-	}
-	
-
-	/**  
-	 * 设置 0收入1支出  
-	 * @param feeStatus 
-	 */
-	public void setFeeStatus(int feeStatus) {
-		this.feeStatus = feeStatus;
-	}
-	
 
 	/**  
 	 * 获取 记账时间  
@@ -274,43 +209,25 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 获取 报销人信息  
-	 * @return reimUserId
+	 * 获取 员工报账列表  
+	 * @return staffReims
 	 */
-	public BaseUser getReimUserId() {
-		return reimUserId;
+	public List<StaffReimburse> getStaffReims() {
+		return staffReims;
 	}
 	
 
 	/**  
-	 * 设置 报销人信息  
-	 * @param reimUserId 
+	 * 设置 员工报账列表  
+	 * @param staffReims 
 	 */
-	public void setReimUserId(BaseUser reimUserId) {
-		this.reimUserId = reimUserId;
+	public void setStaffReims(List<StaffReimburse> staffReims) {
+		this.staffReims = staffReims;
 	}
 	
 
 	/**  
-	 * 获取 摘要  
-	 * @return remark
-	 */
-	public String getRemark() {
-		return remark;
-	}
-	
-
-	/**  
-	 * 设置 摘要  
-	 * @param remark 
-	 */
-	public void setRemark(String remark) {
-		this.remark = remark;
-	}
-	
-
-	/**  
-	 * 获取 -1已驳回0未审核1已审核2已核销3已关联  
+	 * 获取 0未关联1已核销2已关联  
 	 * @return isCheck
 	 */
 	public int getIsCheck() {
@@ -319,65 +236,11 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 设置 -1已驳回0未审核1已审核2已核销3已关联  
+	 * 设置 0未关联1已核销2已关联  
 	 * @param isCheck 
 	 */
 	public void setIsCheck(int isCheck) {
 		this.isCheck = isCheck;
-	}
-	
-
-	/**  
-	 * 获取 驳回原因  
-	 * @return refuseReason
-	 */
-	public String getRefuseReason() {
-		return refuseReason;
-	}
-	
-
-	/**  
-	 * 设置 驳回原因  
-	 * @param refuseReason 
-	 */
-	public void setRefuseReason(String refuseReason) {
-		this.refuseReason = refuseReason;
-	}
-	
-
-	/**  
-	 * 获取 凭证图片下载地址  
-	 * @return reimVoucherUrl
-	 */
-	public String getReimVoucherUrl() {
-		return reimVoucherUrl;
-	}
-	
-
-	/**  
-	 * 设置 凭证图片下载地址  
-	 * @param reimVoucherUrl 
-	 */
-	public void setReimVoucherUrl(String reimVoucherUrl) {
-		this.reimVoucherUrl = reimVoucherUrl;
-	}
-	
-
-	/**  
-	 * 获取 添加时间  
-	 * @return addTime
-	 */
-	public Date getAddTime() {
-		return addTime;
-	}
-	
-
-	/**  
-	 * 设置 添加时间  
-	 * @param addTime 
-	 */
-	public void setAddTime(Date addTime) {
-		this.addTime = addTime;
 	}
 	
 
@@ -400,25 +263,25 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 获取 已核销金额  
-	 * @return verificationMoney
+	 * 获取 我的银行户名我的银行账号  
+	 * @return myBankInfo
 	 */
-	public double getVerificationMoney() {
-		return verificationMoney;
+	public String getMyBankInfo() {
+		return myBankInfo;
 	}
 	
 
 	/**  
-	 * 设置 已核销金额  
-	 * @param verificationMoney 
+	 * 设置 我的银行户名我的银行账号  
+	 * @param myBankInfo 
 	 */
-	public void setVerificationMoney(double verificationMoney) {
-		this.verificationMoney = verificationMoney;
+	public void setMyBankInfo(String myBankInfo) {
+		this.myBankInfo = myBankInfo;
 	}
 	
 
 	/**  
-	 * 获取 付款方名称/付款方账号  
+	 * 获取 对方户名对方账号  
 	 * @return transferInfo
 	 */
 	public String getTransferInfo() {
@@ -427,7 +290,7 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 设置 付款方名称/付款方账号  
+	 * 设置 对方户名对方账号  
 	 * @param transferInfo 
 	 */
 	public void setTransferInfo(String transferInfo) {
@@ -436,20 +299,20 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 获取 订单引用  
-	 * @return carOrderReim
+	 * 获取 添加时间  
+	 * @return addTime
 	 */
-	public CarOrder getCarOrderReim() {
-		return carOrderReim;
+	public Date getAddTime() {
+		return addTime;
 	}
 	
 
 	/**  
-	 * 设置 订单引用  
-	 * @param carOrderReim 
+	 * 设置 添加时间  
+	 * @param addTime 
 	 */
-	public void setCarOrderReim(CarOrder carOrderReim) {
-		this.carOrderReim = carOrderReim;
+	public void setAddTime(Date addTime) {
+		this.addTime = addTime;
 	}
 	
 
@@ -469,7 +332,6 @@ public class ReimburseList implements Serializable{
 	public void setReqsrc(ReqSrc reqsrc) {
 		this.reqsrc = reqsrc;
 	}
-	
 
 	/**  
 	 * 获取 每次操作标识号  
@@ -514,41 +376,6 @@ public class ReimburseList implements Serializable{
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
-
-	/**  
-	 * 获取 我的银行户名/我的银行账号  
-	 * @return myBankInfo
-	 */
-	public String getMyBankInfo() {
-		return myBankInfo;
-	}
-	
-
-	/**  
-	 * 设置 我的银行户名/我的银行账号  
-	 * @param myBankInfo 
-	 */
-	public void setMyBankInfo(String myBankInfo) {
-		this.myBankInfo = myBankInfo;
-	}
-
-	/**  
-	 * 获取 主订单引用  
-	 * @return mainOrderReim
-	 */
-	public MainCarOrder getMainOrderReim() {
-		return mainOrderReim;
-	}
-	
-
-	/**  
-	 * 设置 主订单引用  
-	 * @param mainOrderReim 
-	 */
-	public void setMainOrderReim(MainCarOrder mainOrderReim) {
-		this.mainOrderReim = mainOrderReim;
-	}
-	
 	
 	
 	

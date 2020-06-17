@@ -9,21 +9,14 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Criteria;
-import org.hibernate.criterion.Order;
-import org.hibernate.criterion.Projections;
-import org.hibernate.criterion.Restrictions;
-import org.hibernate.sql.JoinType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Repository;
-
-import com.fx.commons.hiberantedao.dao.HibernateUtils;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
-import com.fx.commons.hiberantedao.pagingcom.Compositor.CompositorType;
-import com.fx.commons.hiberantedao.pagingcom.Filtration.MatchType;
 import com.fx.commons.hiberantedao.pagingcom.Compositor;
+import com.fx.commons.hiberantedao.pagingcom.Compositor.CompositorType;
 import com.fx.commons.hiberantedao.pagingcom.Filtration;
+import com.fx.commons.hiberantedao.pagingcom.Filtration.MatchType;
 import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.utils.enums.MainOrderStatus;
 import com.fx.commons.utils.enums.OrderPayStatus;
@@ -36,23 +29,24 @@ import com.fx.commons.utils.tools.U;
 import com.fx.dao.company.CompanyVehicleDao;
 import com.fx.entity.order.CarOrder;
 import com.fx.entity.order.MainCarOrder;
+import com.fx.entity.order.MapPoint;
 
 @Repository
 public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 
 	/** 日志记录 */
-	private Logger			log	= LogManager.getLogger(this.getClass());
+	private Logger				log	= LogManager.getLogger(this.getClass());
 
 	@Autowired
-	private DisCarInfoDao	disCarInfoDao;
+	private DisCarInfoDao		disCarInfoDao;
 
 	/** 派车订单-数据源 */
 	@Autowired
 	@Lazy(value = true)
-	private CarOrderDao		coDao;
+	private CarOrderDao			coDao;
 	/** 公司车辆-数据源 */
 	@Autowired
-	private CompanyVehicleDao cvdao;
+	private CompanyVehicleDao	cvdao;
 
 
 
@@ -92,7 +86,6 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 	 * @author :zh
 	 * @version 2020年5月21日
 	 */
-	@SuppressWarnings("deprecation")
 	public Map<String, Object> findMainCarOrderList(ReqSrc reqsrc, String page, String rows, String find,
 			OrderPayStatus orderPayStatus, OrderSource orderSource, MainOrderStatus orderStatus, String startTime,
 			String endTime, CompositorType compositorType, String timeType, String driver, Integer seat, String dutyMan,
@@ -101,180 +94,115 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 		String logtxt = U.log(log, "获取-后台订单-分页列表", reqsrc);
 		Page<MainCarOrder> pd = new Page<MainCarOrder>();
 		Map<String, Object> result = new HashMap<String, Object>();
-		// Page<CarOrder> pd = new Page<CarOrder>();
-		// List<Compositor> comps = new ArrayList<Compositor>();
-		// List<Filtration> filts = new ArrayList<Filtration>();
 
-		Criteria criteria = this.getCurrentSession().createCriteria(MainCarOrder.class);
+		List<Compositor> comps = new ArrayList<Compositor>();
+		List<Filtration> filts = new ArrayList<Filtration>();
 
-		criteria.createAlias("mainOrderBase", "mainOrderBase", JoinType.INNER_JOIN);
+
 
 		try {
 			if (ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
-
-				criteria.add(Restrictions.eq("id", null));
+				filts.add(new Filtration(MatchType.EQ, null, "id"));
+			
 			} else {
-				criteria.add(Restrictions.eq("mainOrderBase.unitNum", companyNum));
-				criteria.add(Restrictions.eq("isDel", 0));
-
+				//设置别名
+				List<String> alias = new ArrayList<String>();
+				alias.add("mainOrderBase");
+				pd.setAlias(alias);
+				filts.add(new Filtration(MatchType.EQ, companyNum, "mainOrderBase.unitNum"));
+		
+				// 未删除
+				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
 
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
-					if (compositorType.equals("ASC")) {
-						criteria.addOrder(Order.asc("stime"));
-					} else {
-						criteria.addOrder(Order.desc("stime"));
-					}
-
-					// comps.add(new Compositor("stime", compositorType));
-					criteria.add(Restrictions.ge("stime", DateUtils.strToDate(startTime)));
-					// filts.add(new Filtration(MatchType.GE,
-					// DateUtils.strToDate(startTime), "stime"));
-					criteria.add(Restrictions.le("etime", DateUtils.strToDate(endTime)));
-					// filts.add(new Filtration(MatchType.LE,
-					// DateUtils.strToDate(endTime), "etime"));
+					comps.add(new Compositor("stime", compositorType));
+					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
-					if (compositorType.equals("ASC")) {
-						criteria.addOrder(Order.asc("addTime"));
-					} else {
-						criteria.addOrder(Order.desc("addTime"));
-					}
-					// comps.add(new Compositor("atime", compositorType));
-					criteria.add(Restrictions.ge("addTime", DateUtils.strToDate(startTime)));
-					// filts.add(new Filtration(MatchType.GE,
-					// DateUtils.strToDate(startTime), "atime"));
-					criteria.add(Restrictions.le("addTime", DateUtils.strToDate(endTime)));
-					// filts.add(new Filtration(MatchType.LE,
-					// DateUtils.strToDate(endTime), "atime"));
+				
+					comps.add(new Compositor("addTime", compositorType));
+					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
 				}
 				if (orderStatus != null) {
-					// 添加订单状态搜索
-					criteria.add(Restrictions.eq("mainOrderBase.status", orderStatus));
-					// filts.add(new Filtration(MatchType.EQ, orderStatus,
-					// "status"));
-				}
-				else{
-					//默认不查出已取消的
-					criteria.add(Restrictions.ne("mainOrderBase.status", MainOrderStatus.CANCELED));
+					filts.add(new Filtration(MatchType.EQ, orderStatus, "mainOrderBase.status"));
+				} else {
+					filts.add(new Filtration(MatchType.NE, MainOrderStatus.CANCELED, "mainOrderBase.status"));
 				}
 				if (orderPayStatus != null) {
-					// 添加付款状态
-					criteria.add(Restrictions.eq("payStatus", orderPayStatus));
-					// filts.add(new Filtration(MatchType.EQ, orderPayStatus,
-					// "payStatus"));
+					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
 				}
 				if (orderSource != null) {
-					// 添加订单来源
-					criteria.add(Restrictions.eq("mainOrderBase.orderSource", orderSource));
-					// filts.add(new Filtration(MatchType.EQ, orderSource,
-					// "orderSource"));
+					filts.add(new Filtration(MatchType.EQ, orderSource, "mainOrderBase.orderSource"));
 				}
 				if (routeType != null) {
-					// 添加订单行程类型
-					criteria.add(Restrictions.eq("mainOrderBase.routeType", routeType));
-					// filts.add(new
-					// Filtration(MatchType.EQ,routeType,"routeType"));
+					filts.add(new Filtration(MatchType.EQ, routeType, "mainOrderBase.routeType"));
 				}
 				if (serviceType != null) {
-					// 添加订单业务类型
-					criteria.add(Restrictions.eq("serviceType", serviceType));
-					// filts.add(new
-					// Filtration(MatchType.EQ,serviceType,"serviceType"));
+					filts.add(new Filtration(MatchType.EQ, serviceType, "serviceType"));
 				}
 				// 通过驾驶员手机号和姓名查询
 				if (!StringUtils.isBlank(driver)) {
 					List<Long> mainCarOrderIdList = disCarInfoDao.getMainCarOrderIdByDriverInfo(reqsrc, driver);
 					// 通过驾驶员手机号和姓名查询到的子订单id集合为空
 					if (mainCarOrderIdList.size() == 0) {
-						criteria.add(Restrictions.eq("id", null));
-						// filts.add(new Filtration(MatchType.EQ, null, "id"));
+						filts.add(new Filtration(MatchType.EQ, null, "id"));
 					} else {
-						criteria.add(Restrictions.in("id", mainCarOrderIdList.toArray()));
-						// filts.add(new Filtration(MatchType.IN,
-						// carOrderIdList.toArray(), "id"));
+						filts.add(new Filtration(MatchType.IN, mainCarOrderIdList.toArray(), "id"));
 					}
 				}
 				// 关键字搜索，业务员，订单号
 				if (!StringUtils.isBlank(find)) {
-
-					criteria.add(Restrictions.or(Restrictions.like("orderNum", "%" + find + "%"),
-							Restrictions.like("mainOrderBase.serviceMan", "%" + find + "%")));
-					// filts.add(new Filtration(MatchType.LIKE, find,
-					// "orderNum", "serviceMan"));
+					filts.add(new Filtration(MatchType.LIKE, find, "orderNum", "mainOrderBase.serviceMan"));
 				}
 				// 座位搜索
 				if (seat != null) {
-					criteria.add(Restrictions.eq("needCars", seat.intValue()));
-					// filts.add(new Filtration(MatchType.EQ, seat.intValue(),
-					// "needSeats", "realSeats"));
+					filts.add(new Filtration(MatchType.EQ, seat.intValue(), "needSeats"));
 				}
 				// 用车方负责人搜索
 				if (!StringUtils.isBlank(dutyMan)) {
-					criteria.add(Restrictions.eq("mainOrderBase.dutyService", dutyMan));
-					// filts.add(new Filtration(MatchType.EQ, dutyMan,
-					// "dutyService"));
+					filts.add(new Filtration(MatchType.EQ, dutyMan, "mainOrderBase.dutyService"));
 				}
 				// 供车方负责人搜索
 				if (!StringUtils.isBlank(suppMan)) {
 					List<Long> mainCarOrderIdBySuppCarHead = disCarInfoDao.getMainCarOrderIdBySuppCarHead(reqsrc,
 							suppMan);
 					if (mainCarOrderIdBySuppCarHead.size() == 0) {
-						criteria.add(Restrictions.eq("id", null));
-						// filts.add(new Filtration(MatchType.EQ, null, "id"));
+						 filts.add(new Filtration(MatchType.EQ, null, "id"));
 					} else {
-						criteria.add(Restrictions.in("id", mainCarOrderIdBySuppCarHead.toArray()));
-						// filts.add(new Filtration(MatchType.IN,
-						// carOrderIdBySuppCarHead.toArray(), "id"));
+						filts.add(new Filtration(MatchType.IN, mainCarOrderIdBySuppCarHead.toArray(), "id"));
 					}
 				}
 				// 车牌号搜索
 				if (!StringUtils.isBlank(plateNum)) {
-					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc, plateNum);
+					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc,
+							plateNum);
 					if (mainCarOrderIdByPlateNum.size() == 0) {
-						criteria.add(Restrictions.eq("id", null));
-						// filts.add(new Filtration(MatchType.EQ, null, "id"));
+						 filts.add(new Filtration(MatchType.EQ, null, "id"));
 					} else {
-						criteria.add(Restrictions.in("id", mainCarOrderIdByPlateNum.toArray()));
-						// filts.add(new Filtration(MatchType.IN,
-						// carOrderIdByPlateNum.toArray(), "id"));
+						filts.add(new Filtration(MatchType.IN, mainCarOrderIdByPlateNum.toArray(), "id"));
 					}
 				}
 
-				criteria.addOrder(Order.asc("orderNum"));
-				// 取得总数
-				Long uniqueResult = (Long) criteria.setProjection(Projections.countDistinct("id")).uniqueResult();
-				// 分页设置
-				criteria.setProjection(null);
-				criteria.setResultTransformer(Criteria.DISTINCT_ROOT_ENTITY);
-				// criteria.setFirstResult((Integer.parseInt(page)-1)*
-				// Integer.parseInt(rows));
-				// criteria.setMaxResults(Integer.parseInt(rows));
-				List<MainCarOrder> list = criteria.list();
 
-				// 手动分页,在criteria中分页会出错
-				// int pageint = Integer.parseInt(page);
-				// int rowint = Integer.parseInt(rows);
-				// int start = (pageint -1) * rowint;
-				//
-				//
-				// List<MainCarOrder> resultList = new ArrayList<>();
-				// //start+m<list.size()防止越界
-				// for(int m = 0; m< rowint && start+m<list.size();m++){
-				// resultList.add(list.get(start + m));
-				// }
-
-				System.out.println("123");
-
+				comps.add(new Compositor("orderNum", CompositorType.ASC));
 				/////////////////// --分页设置--////////////////////////////
-				result.put("count", uniqueResult);
-				result.put("data", list);
-				// pd.setPageNo(Integer.parseInt(page)); // 页码
-				// pd.getPagination().setPageSize(Integer.parseInt(rows)); //
-				// 页大小
-				// pd.setResult(list);
-				// System.out.println("123");
+				pd.setPageNo(1); // 页码
+				pd.getPagination().setPageSize(1000000); // 页大小
+				pd.setCompositors(comps); // 排序条件
+				pd.setFiltrations(filts); // 查询条件
+				pd = findPageByOrders(pd);	
+//				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), MainCarOrder.class);
+//				// 设置别名，否则无法匹配属性名
+//				criteria.createAlias("mainOrderBase", "mainOrderBase", JoinType.INNER_JOIN);
+//				HibernateUtils.setParameters(criteria, pd);
+//				pd.setResult(criteria.list());
+				result.put("count", pd.getPagination().getTotalCount());
+				result.put("data", pd.getResult());
+
 
 			}
 		} catch (Exception e) {
@@ -318,6 +246,8 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			Date eTime = colist.get(0).getEtime();// 结束时间
 			String routeDetails = "";// 行程详情
 			double orderPrice = 0;// 订单价格
+			MapPoint spoint=colist.get(0).getRouteMps().get(0).getMapPoint();//起点
+			MapPoint epoint=colist.get(0).getRouteMps().get(1).getMapPoint();//终点
 			boolean isHaveCitySer = false;
 			boolean isHaveProSer = false;
 			for (CarOrder eachco : colist) {
@@ -326,9 +256,11 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				remDriverCharge += eachco.getRemDriverCharge();
 				if (eachco.getStime().before(sTime)) {
 					sTime = eachco.getStime();
+					spoint=eachco.getRouteMps().get(0).getMapPoint();
 				}
 				if (eachco.getEtime().after(eTime)) {
 					eTime = eachco.getEtime();
+					epoint=eachco.getRouteMps().get(1).getMapPoint();
 				}
 				routeDetails += eachco.getRouteDetail() + ";";
 				orderPrice += eachco.getPrice();
@@ -342,6 +274,8 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			mco.setNeedCars(needCars);
 			mco.setNeedSeats(needSeats.substring(0, needSeats.length() - 1));
 			mco.setRemDriverCharge(remDriverCharge);
+			mco.setSpoint(spoint);
+			mco.setEpoint(epoint);
 			mco.setStime(sTime);
 			mco.setEtime(eTime);
 			mco.setRouteDetail(routeDetails.substring(0, routeDetails.length() - 1));
@@ -373,7 +307,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 	public Page<MainCarOrder> getMainCarOrderForCollection(ReqSrc reqsrc, String page, String rows,
 			OrderPayStatus orderPayStatus, String startTime, String endTime, CompositorType compositorType,
 			String timeType, String driver, String dutyService, String plateNum, String orderNum, String routeDetail,
-			String serviceMan, String unitNum, String customer,String businessType) {
+			String serviceMan, String unitNum, String customer, String businessType) {
 
 		String logtxt = U.log(log, "获取-业务收款-分页列表", reqsrc);
 
@@ -384,7 +318,10 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			if (ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
 				filts.add(new Filtration(MatchType.EQ, null, "id"));
 			} else {
-
+				//设置别名
+				List<String> alias = new ArrayList<String>();
+				alias.add("mainOrderBase");
+				pd.setAlias(alias);
 				// 未删除
 				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
 
@@ -400,7 +337,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
-					comps.add(new Compositor("atime", compositorType));
+					comps.add(new Compositor("addTime", compositorType));
 					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
 					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
 				}
@@ -428,9 +365,10 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 
 				// 车牌号搜索
 				if (!StringUtils.isBlank(plateNum)) {
-					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc, plateNum);
-					filts.add(new Filtration(MatchType.IN,mainCarOrderIdByPlateNum.toArray(),"id"));
-					
+					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc,
+							plateNum);
+					filts.add(new Filtration(MatchType.IN, mainCarOrderIdByPlateNum.toArray(), "id"));
+
 				}
 				// 业务员搜索
 				if (!StringUtils.isBlank(serviceMan)) {
@@ -452,12 +390,12 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				if (!StringUtils.isBlank(businessType)) {
 					List<String> plateNums = cvdao.getPlateNumsByBusinessType(reqsrc, businessType, unitNum);
 					if (plateNums.size() == 0) {
-						//无该类型车辆
+						// 无该类型车辆
 						filts.add(new Filtration(MatchType.EQ, null, "id"));
-					}
-					else{
-						List<Long> mainCarOrderIdByPlateNums = disCarInfoDao.getMainCarOrderIdByPlateNums(reqsrc, plateNums);
-						filts.add(new Filtration(MatchType.IN,mainCarOrderIdByPlateNums.toArray(),"id"));
+					} else {
+						List<Long> mainCarOrderIdByPlateNums = disCarInfoDao.getMainCarOrderIdByPlateNums(reqsrc,
+								plateNums);
+						filts.add(new Filtration(MatchType.IN, mainCarOrderIdByPlateNums.toArray(), "id"));
 					}
 				}
 
@@ -466,14 +404,13 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				pd.getPagination().setPageSize(Integer.parseInt(rows)); // 页大小
 				pd.setCompositors(comps); // 排序条件
 				pd.setFiltrations(filts); // 查询条件
-
-				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), MainCarOrder.class);
+				pd = findPageByOrders(pd);	
+				/*Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), MainCarOrder.class);
 				// 设置别名，否则无法匹配属性名
 				criteria.createAlias("mainOrderBase", "mainOrderBase", JoinType.INNER_JOIN);
 				HibernateUtils.setParameters(criteria, pd);
 
-				pd.setResult(criteria.list());
-				System.out.println("123");
+				pd.setResult(criteria.list());*/
 
 			}
 		} catch (Exception e) {
@@ -482,12 +419,13 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 		}
 		return pd;
 	}
-	
-	
+
+
+
 	public Map<String, Object> countMainCarOrderForCollection(ReqSrc reqsrc, String page, String rows,
 			OrderPayStatus orderPayStatus, String startTime, String endTime, CompositorType compositorType,
 			String timeType, String driver, String dutyService, String plateNum, String orderNum, String routeDetail,
-			String serviceMan, String unitNum, String customer,String businessType) {
+			String serviceMan, String unitNum, String customer, String businessType) {
 
 		String logtxt = U.log(log, "获取-业务收款-统计", reqsrc);
 		Map<String, Object> statics = new HashMap<String, Object>();
@@ -498,7 +436,10 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			if (ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
 				filts.add(new Filtration(MatchType.EQ, null, "id"));
 			} else {
-
+				//设置别名
+				List<String> alias = new ArrayList<String>();
+				alias.add("mainOrderBase");
+				pd.setAlias(alias);
 				// 未删除
 				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
 
@@ -542,9 +483,10 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 
 				// 车牌号搜索
 				if (!StringUtils.isBlank(plateNum)) {
-					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc, plateNum);
-					filts.add(new Filtration(MatchType.IN,mainCarOrderIdByPlateNum.toArray(),"id"));
-					
+					List<Long> mainCarOrderIdByPlateNum = disCarInfoDao.getMainCarOrderIdBySinglePlateNum(reqsrc,
+							plateNum);
+					filts.add(new Filtration(MatchType.IN, mainCarOrderIdByPlateNum.toArray(), "id"));
+
 				}
 				// 业务员搜索
 				if (!StringUtils.isBlank(serviceMan)) {
@@ -566,12 +508,12 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				if (!StringUtils.isBlank(businessType)) {
 					List<String> plateNums = cvdao.getPlateNumsByBusinessType(reqsrc, businessType, unitNum);
 					if (plateNums.size() == 0) {
-						//无该类型车辆
+						// 无该类型车辆
 						filts.add(new Filtration(MatchType.EQ, null, "id"));
-					}
-					else{
-						List<Long> mainCarOrderIdByPlateNums = disCarInfoDao.getMainCarOrderIdByPlateNums(reqsrc, plateNums);
-						filts.add(new Filtration(MatchType.IN,mainCarOrderIdByPlateNums.toArray(),"id"));
+					} else {
+						List<Long> mainCarOrderIdByPlateNums = disCarInfoDao.getMainCarOrderIdByPlateNums(reqsrc,
+								plateNums);
+						filts.add(new Filtration(MatchType.IN, mainCarOrderIdByPlateNums.toArray(), "id"));
 					}
 				}
 
@@ -580,16 +522,16 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				pd.getPagination().setPageSize(Integer.parseInt(rows)); // 页大小
 				pd.setCompositors(comps); // 排序条件
 				pd.setFiltrations(filts); // 查询条件
-
-				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), MainCarOrder.class);
+				pd = findPageByOrders(pd);
+/*				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), MainCarOrder.class);
 				// 设置别名，否则无法匹配属性名
 				criteria.createAlias("mainOrderBase", "mainOrderBase", JoinType.INNER_JOIN);
 				HibernateUtils.setParameters(criteria, pd);
 
-				pd.setResult(criteria.list());
+				pd.setResult(criteria.list());*/
 				double totalPrice = 0;
 				double totalAlGathPrice = 0;
-				for(MainCarOrder mainCarOrder:pd.getResult()){
+				for (MainCarOrder mainCarOrder : pd.getResult()) {
 					totalPrice += mainCarOrder.getPrice();
 					totalAlGathPrice += mainCarOrder.getAlGathPrice();
 				}
@@ -601,5 +543,47 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 			e.printStackTrace();
 		}
 		return statics;
+	}
+
+
+
+	/**
+	 * 获取-主订单分页数据列表
+	 * @param reqsrc  	请求来源
+	 * @param page 		页码
+	 * @param rows 		页大小
+	 * @param mons		主订单编号数组
+	 * @return 分页后的主订单数据列表
+	 */
+	public Page<MainCarOrder> findPageMainOrderList(ReqSrc reqsrc, String page, String rows, List<Object> mons) {
+		String logtxt = U.log(log, "获取-主订单-分页列表", reqsrc);
+		
+		Page<MainCarOrder> pd = new Page<MainCarOrder>();
+		List<Compositor> comps = new ArrayList<Compositor>();
+		List<Filtration> filts = new ArrayList<Filtration>();
+		try {
+			////////////////////--默认排序--//////////////////////////
+			// 主订单出发时间-正序
+			comps.add(new Compositor("stime", CompositorType.ASC));
+			
+			/////////////////// --条件--begin//////////////////////////
+			// 未软删除
+			filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
+			// 指定订单编号查询
+			filts.add(new Filtration(MatchType.IN, mons.toArray(), "orderNum"));
+			/////////////////// --条件--end////////////////////////////
+			
+			/////////////////// --分页设置--////////////////////////////
+			pd.setPageNo(Integer.parseInt(page)); 					// 页码
+			pd.getPagination().setPageSize(Integer.parseInt(rows)); // 页大小
+			pd.setCompositors(comps); 								// 排序条件
+			pd.setFiltrations(filts); 								// 查询条件
+			pd = findPageByOrders(pd); 								// 设置列表数据
+		} catch (Exception e) {
+			U.log(log, logtxt, e);
+			e.printStackTrace();
+		}
+		
+		return pd;
 	}
 }

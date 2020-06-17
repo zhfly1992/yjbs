@@ -28,6 +28,10 @@ public class RouteTradeList{
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY) 
 	private long id;
+	
+	/** 订单编号 */
+	@Column(name="order_num", nullable=false, columnDefinition="varchar(30) COMMENT '订单编号'")
+	private String orderNum;
 	/**
 	 * 车牌号
 	 */
@@ -138,7 +142,8 @@ public class RouteTradeList{
 	public void setPlateNum(String plateNum) {
 		this.plateNum = plateNum;
 	}
-/*	public double getGroupCash() {
+	
+	/*	public double getGroupCash() {
 		return groupCash;
 	}
 	public void setGroupCash(double groupCash) {
@@ -256,4 +261,37 @@ public class RouteTradeList{
 	public void setOperNote(String operNote) {
 		this.operNote = operNote;
 	}
+	/**  
+	 * 获取 订单编号  
+	 * @return orderNum
+	 */
+	public String getOrderNum() {
+		return orderNum;
+	}
+	
+	/**  
+	 * 设置 订单编号  
+	 * @param orderNum 
+	 */
+	public void setOrderNum(String orderNum) {
+		this.orderNum = orderNum;
+	}
+	
+	/**  
+	 * 获取 驾驶员信息  
+	 * @return driverInfo
+	 */
+	public BaseUser getDriverInfo() {
+		return driverInfo;
+	}
+	
+	/**  
+	 * 设置 驾驶员信息  
+	 * @param driverInfo 
+	 */
+	public void setDriverInfo(BaseUser driverInfo) {
+		this.driverInfo = driverInfo;
+	}
+	
+	
 }

@@ -153,10 +153,11 @@ public interface CompanyVehicleService extends BaseService<CompanyVehicle, Long>
      * @param avgSpeed 平均速度
      * @param notContainPn 不包含的车牌号
      * @param isSmart 0手动  1智能
+     * @param sendModel 0淡季模式  1旺季模式
 	 * @return list
 	 */
 	public List<Map<String, Object>> lastSmartCar(ReqSrc reqsrc,OrderTemp ot,String firstCar,String seats,String force,
-  			String runArea,String plateNum,String selfOwned,double avgSpeed,String notContainPn,int isSmart) throws Exception;
+  			String runArea,String plateNum,String selfOwned,double avgSpeed,String notContainPn,int isSmart,int sendModel) throws Exception;
 	/**
 	 * @author xx
 	 * @date 20200529
@@ -211,5 +212,19 @@ public interface CompanyVehicleService extends BaseService<CompanyVehicle, Long>
 	 */
 	public Map<String, Object> checkBeforeSetDriver(ReqSrc reqsrc, HttpServletResponse response,
 			HttpServletRequest request,String uname,String unitNum);
+
+
+
+	/**
+	 * 获取-车队所有车辆
+	 * @param reqsrc 	请求来源
+	 * @param request 	request
+	 * @param response 	response
+	 * @param teamNo 	车队编号
+	 * @param lname 	指定用户名
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息], data[数据对象]}
+	 */
+	public Map<String, Object> findTeamAllCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String teamNo, String lname);
 	
 }

@@ -5,16 +5,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.hibernate.Criteria;
-import org.hibernate.sql.JoinType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
-
-import com.fx.commons.hiberantedao.dao.HibernateUtils;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Compositor;
 import com.fx.commons.hiberantedao.pagingcom.Compositor.CompositorType;
@@ -103,7 +98,11 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 			if (ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
 				filts.add(new Filtration(MatchType.EQ, null, "id"));
 			} else {
-
+				//设置别名
+				List<String> alias = new ArrayList<String>();
+				alias.add("carOrderBase");
+				alias.add("disCar");
+				pd.setAlias(alias);
 				// 未删除
 				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
 				// 添加外调条件
@@ -130,18 +129,6 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
 				}
 
-				// 通过驾驶员手机号和姓名查询
-				// if (!StringUtils.isBlank(driver)) {
-				// List<Long> carOrderIdList =
-				// disCarInfoDao.getMainCarOrderIdByDriverInfo(reqsrc, driver);
-				// // 通过驾驶员手机号和姓名查询到的订单id集合为空
-				// if (carOrderIdList.size() == 0) {
-				// filts.add(new Filtration(MatchType.EQ, null, "id"));
-				// } else {
-				// filts.add(new Filtration(MatchType.IN,
-				// carOrderIdList.toArray(), "id"));
-				// }
-				// }
 				// 通过驾驶员uname搜索
 				if (!StringUtils.isBlank(driver)) {
 					List<Filtration> unameFilt = new ArrayList<Filtration>();
@@ -191,16 +178,14 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 				pd.getPagination().setPageSize(Integer.parseInt(rows)); // 页大小
 				pd.setCompositors(comps); // 排序条件
 				pd.setFiltrations(filts); // 查询条件
+				pd = findPageByOrders(pd);
 
-				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), CarOrder.class);
+			/*	Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), CarOrder.class);
 				// 设置别名，否则无法匹配属性名
 				criteria.createAlias("carOrderBase", "carOrderBase", JoinType.INNER_JOIN);
 				criteria.createAlias("disCar", "disCar", JoinType.INNER_JOIN);
 				HibernateUtils.setParameters(criteria, pd);
-
-				pd.setResult(criteria.list());
-				System.out.println("123");
-
+				pd.setResult(criteria.list());*/
 			}
 		} catch (Exception e) {
 			U.log(log, logtxt, e);
@@ -381,7 +366,11 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 			if (ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
 				filts.add(new Filtration(MatchType.EQ, null, "id"));
 			} else {
-
+				//设置别名
+				List<String> alias = new ArrayList<String>();
+				alias.add("carOrderBase");
+				alias.add("disCar");
+				pd.setAlias(alias);
 				// 未删除
 				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
 				// 添加外调条件
@@ -457,13 +446,7 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 				pd.getPagination().setPageSize(Integer.parseInt(rows)); // 页大小
 				pd.setCompositors(comps); // 排序条件
 				pd.setFiltrations(filts); // 查询条件
-
-				Criteria criteria = HibernateUtils.createCriteria(this.getCurrentSession(), CarOrder.class);
-				// 设置别名，否则无法匹配属性名
-				criteria.createAlias("carOrderBase", "carOrderBase", JoinType.INNER_JOIN);
-				criteria.createAlias("disCar", "disCar", JoinType.INNER_JOIN);
-				HibernateUtils.setParameters(criteria, pd);
-				pd.setResult(criteria.list());
+				pd = findPageByOrders(pd);
 				double totalDisPrice = 0;
 				double totalAlPayPrice = 0;
 				for(CarOrder carOrder:pd.getResult()){

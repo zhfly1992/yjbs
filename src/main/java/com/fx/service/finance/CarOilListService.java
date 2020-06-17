@@ -9,7 +9,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import com.alibaba.fastjson.JSONObject;
-import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseService;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.entity.finance.CarOilList;
@@ -51,12 +50,12 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 * @param request 	request
 	 * @param response 	response
 	 * @param teamNo 	驾驶员所属车队编号
-	 * @param driver 	驾驶员账号（用于判断是否是驾驶员和获取充值卡） 
+	 * @param luname 	驾驶员账号（用于判断是否是驾驶员和获取充值卡） 
 	 * @param type 		类型：0-加油方式；1-充值卡；2-加油站；3-维修站；
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息], data[数据对象]}
 	 */
-	public Map<String, Object> findCarOilRepair(ReqSrc reqsrc, HttpServletRequest request, 
-		HttpServletResponse response, String teamNo, String driver, String type);
+	public Map<String, Object> findCarOilRepair(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String teamNo, String luname, String type);
 	/**
 	 * 获取-加油记账-分页列表
 	 * @param reqsrc 	数据来源
@@ -66,16 +65,16 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 * @param rows 		页大小
 	 * @param stime 	开始时间
 	 * @param etime 	结束时间
-	 * @return pd 		分页后的数据
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
-	public Page<CarOilList> findCoiList(ReqSrc reqsrc, HttpServletRequest request, 
-		HttpServletResponse response, String page, String rows, String stime, String etime);
+	public Map<String, Object> findJyjzList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String page, String rows, String stime, String etime);
 	/**
 	 * 车队驾驶员-添加/修改-加油记录
 	 * @param reqsrc 		请求来源
 	 * @param request 		request
 	 * @param response 		response
-	 * @param uid  			加油记录id
+	 * @param fids  		上传成功图片id数组
 	 * @param lname  		登录账号
 	 * @param plateNum 		车牌号
 	 * @param currentKilo 	当前公里数
@@ -86,14 +85,11 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 * @param oilCard 		加油卡号
 	 * @param jyDate 		加油日期
 	 * @param jyRemark 		加油备注
-	 * @param isCn 			是否是出纳：0/空-不是；1-是；
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> addUpdCoi(ReqSrc reqsrc, HttpServletRequest request,
-		HttpServletResponse response, MultipartHttpServletRequest multReq, String uid, 
-		String lname, String plateNum, String currentKilo, String addOilWay, 
-		String oilStation, String oilRise, String oilMoney, String oilCard, String jyDate, 
-		String jyRemark, String isCn,String oilRealMoney);
+//	public Map<String, Object> addUpdCoi(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+//		String fids, String lname, String plateNum, String currentKilo, String addOilWay, String oilStation, 
+//		String oilRise, String oilMoney, String oilCard, String jyDate, String jyRemark, String oilRealMoney);
 	/**
 	 * 修改-加油记录
 	 * @param reqsrc 		请求来源
@@ -129,25 +125,27 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 * @param reqsrc 		请求来源
 	 * @param request 		request
 	 * @param response 		response
+	 * @param lunitNum		登录单位编号
 	 * @param lname			登录用户名
 	 * @param did			加油记录id
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> delCoi(ReqSrc reqsrc, HttpServletRequest request,
-		HttpServletResponse response, String lname, String did);
+	public Map<String, Object> delJyjz(ReqSrc reqsrc, HttpServletRequest request,
+		HttpServletResponse response, String lunitNum, String lname, String did);
 	/**
 	 * 获取-添加加油记账-上一次车辆的公里数和最大续航里程
 	 * @param reqsrc 		请求来源
 	 * @param request 		request
 	 * @param response 		response
+	 * @param teamNo		车队编号
 	 * @param lname			驾驶员用户名
 	 * @param plateNum		车牌号
 	 * @param uid 			修改加油记账id
 	 * @param type 查询类型：1-加油记账；2-维修记账；
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息], prevkm[上一次车辆的公里数], maxkm[车辆最大续航里数]}
 	 */
-	public Map<String, Object> findPrevkmAndMaxkm(ReqSrc reqsrc, HttpServletRequest request, 
-		HttpServletResponse response, String lname, String plateNum, String uid, String type);
+	public Map<String, Object> findPrevkmAndMaxkm(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String teamNo, String lname, String plateNum, String uid, String type);
 	/**
 	 * 审核/复核/核销加油记录
 	 * @author xx
@@ -172,7 +170,7 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 * @param id 		加油记账对象id
 	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据}
 	 */
-	public Map<String, Object> findCarOilListDetail(ReqSrc reqsrc, HttpServletRequest request, 
+	public Map<String, Object> findJyjzDetail(ReqSrc reqsrc, HttpServletRequest request, 
 		HttpServletResponse response, String luname, String id);
 	/**
 	 * 
@@ -200,4 +198,61 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 */
 	public Map<String, Object> addCarOil(ReqSrc reqSrc,HttpServletRequest request, 
 			HttpServletResponse response,String unitNum,JSONObject jsonObject);
+	/**
+	 * 获取-车辆记账数据
+	 * @param reqSrc 	请求来源
+	 * @param request 	request
+	 * @param response 	response
+	 * @param lteamNo 	登录车队编号
+	 * @param luname 	登录用户名
+	 * @param type 		类型：0-加油方式；1-充值卡；2-加油站；3-维修站；
+	 */
+	public Map<String, Object> findCarJzDat(ReqSrc reqSrc, HttpServletRequest request, HttpServletResponse response,
+		String teamNo, String luname, String type);
+	
+	/**
+	 * 添加-加油记账
+	 * @param reqsrc 		请求来源
+	 * @param request 		request
+	 * @param response 		response
+	 * @param flen 			上传文件个数
+	 * @param lunitNum		登录单位编号
+	 * @param luname		登录用户名
+	 * @param plateNum 		车牌号
+	 * @param currKm 		当前公里数
+	 * @param jyWay 		加油方式 
+	 * @param jyStation 	加油站名称
+	 * @param jyCount 		加油数量
+	 * @param jyMoney 		加油金额
+	 * @param jyCard 		加油卡号
+	 * @param jyDate 		加油日期
+	 * @param jyRemark 		加油备注
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
+	 */
+	public Map<String, Object> addJyjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String lunitNum, String luname, String flen, String plateNum, String currKm, String jyWay, String jyStation, 
+		String jyCount, String jyMoney, String jyCard, String jyDate, String jyRemark);
+	
+	/**
+	 * 修改-加油记账
+	 * @param reqsrc 		请求来源
+	 * @param request 		request
+	 * @param response 		response
+	 * @param uid 			加油记账对象id
+	 * @param flen 			上传文件的个数
+	 * @param lunitNum		登录单位编号
+	 * @param luname		登录用户名
+	 * @param currKm 		当前公里数
+	 * @param jyWay 		加油方式 
+	 * @param jyStation 	加油站名称
+	 * @param jyCount 		加油数量
+	 * @param jyMoney 		加油金额
+	 * @param jyCard 		加油卡号
+	 * @param jyDate 		加油日期
+	 * @param jyRemark 		加油备注
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
+	 */
+	public Map<String, Object> updJyjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String lunitNum, String luname, String uid, String flen, String currKm, String jyWay, String jyStation, 
+		String jyCount, String jyMoney, String jyCard, String jyDate, String jyRemark);
 }

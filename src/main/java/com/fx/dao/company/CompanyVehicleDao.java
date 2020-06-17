@@ -40,7 +40,27 @@ public class CompanyVehicleDao extends ZBaseDaoImpl<CompanyVehicle, Long> {
 	private DisCarInfoDao discarInfoDao;
 
 
-
+	/**
+	 * 获取-单位车辆
+	 * @param unitNum 	单位编号
+	 * @param plateNum 	车辆车牌号
+	 */
+	public CompanyVehicle findCompanyCar(String unitNum, String plateNum) {
+		String logtxt = U.log(log, "获取-单位车辆");
+		
+		String hql = "";
+		CompanyVehicle car = null;
+		
+		try {
+			hql = "from CompanyVehicle where unitNum = ?0 and plateNumber = ?1";
+			car = findObj(hql, unitNum, plateNum);
+		} catch (Exception e) {
+			U.logEx(log, logtxt);
+			e.printStackTrace();
+		}
+		
+		return car;
+	}
 
 	/**
 	 * 

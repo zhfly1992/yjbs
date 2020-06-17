@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Compositor.CompositorType;
@@ -32,22 +31,24 @@ import com.fx.commons.utils.enums.RouteType;
 import com.fx.commons.utils.enums.ServiceType;
 import com.fx.commons.utils.other.DateUtils;
 import com.fx.commons.utils.other.MathUtils;
+import com.fx.commons.utils.tools.FV;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
-import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.CompanyCustomDao;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.finance.FeeCourseDao;
-import com.fx.dao.finance.ReimburseListDao;
+import com.fx.dao.finance.StaffReimburseDao;
+import com.fx.dao.order.CarOrderDao;
+import com.fx.dao.order.DisCarInfoDao;
 import com.fx.dao.order.MainCarOrderDao;
 import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.Customer;
-import com.fx.entity.finance.FeeCourse;
-import com.fx.entity.finance.ReimburseList;
+import com.fx.entity.finance.StaffReimburse;
+import com.fx.entity.order.CarOrder;
+import com.fx.entity.order.DisCarInfo;
 import com.fx.entity.order.MainCarOrder;
-
 import com.fx.service.order.MainCarOrderService;
 
 @Service
@@ -59,20 +60,24 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 	/** 主订单-数据源 */
 	@Autowired
 	private MainCarOrderDao	mcoDao;
-	
 	/** 单位员工-服务 */
 	@Autowired
 	private StaffDao staffDao;
-	
-	/** 单位凭证-服务 */
+	/** 单位员工报账-服务 */
 	@Autowired
-	private ReimburseListDao reimDao;
+	private StaffReimburseDao		srDao;
 	/** 科目-服务 */
 	@Autowired
 	private FeeCourseDao fcDao;
 	/** 单位客户-服务 */
 	@Autowired
 	private CompanyCustomDao ccDao;
+	/** 派单车辆-服务 */
+	@Autowired
+	private DisCarInfoDao disCarInfoDao;
+	/** 车辆订单-服务 */
+	@Autowired
+	private CarOrderDao carOrderDao;
 
 
 
@@ -444,17 +449,17 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 						U.log(log, "收款摘要="+gathRemark);
 					}
 				}
-				FeeCourse fc=null;
+				/*FeeCourse fc=null;
 				if(fg) {
 					fc=fcDao.findByField("courseName", "业务收款");
 					if(fc==null) {
 						fg = U.setPutFalse(map, "[科目“业务收款”]不存在");
 					}
-				}
+				}*/
 				CompanyCustom cc=null;
-				FeeCourse fcDown=null;
+				//FeeCourse fcDown=null;
 				if(fg && StringUtils.isNotBlank(cusId)){
-					fcDown=fcDao.findByField("courseName", "内部下账");
+					/*fcDown=fcDao.findByField("courseName", "内部下账");
 					if(fcDown==null) {
 						fg = U.setPutFalse(map, "[科目“内部下账”]不存在");
 					}else {
@@ -462,12 +467,16 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 						if(cc!=null && cc.getPreMoney()<_gathMoney) {
 							fg = U.setPutFalse(map, "该客户可下账余额（"+cc.getPreMoney()+"）不足");
 						}
+					}*/
+					cc=ccDao.findByField("id", cusId);
+					if(cc!=null && cc.getPreMoney()<_gathMoney) {
+						fg = U.setPutFalse(map, "该客户可下账余额（"+cc.getPreMoney()+"）不足");
 					}
 				}
-				FeeCourse fcPre=null;
+				//FeeCourse fcPre=null;
 				if(fg) {
 					if(StringUtils.isNotBlank(preMoney)) {
-						fcPre=fcDao.findByField("courseName", "客户预存款");
+						/*fcPre=fcDao.findByField("courseName", "客户预存款");
 						if(fcPre==null) {
 							fg = U.setPutFalse(map, "[科目“客户预存款”]不存在");
 						}else {
@@ -475,7 +484,8 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 						}
 						if(cc==null) {//客户预存款
 							cc=ccDao.findByField("id", cusId);
-						}
+						}*/
+						_gathMoney=MathUtils.add(_gathMoney, Double.valueOf(preMoney), 2);
 					}
 				}
 				List<MainCarOrder> mcolist=new ArrayList<MainCarOrder>();
@@ -495,12 +505,12 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 				}
 				if(fg){
 					String operMark="";//操作标识号
-					Staff staff=staffDao.findByField("baseUserId.uname", operUname);//当前员工，正常情况是出纳
-					String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
+					Staff staff=staffDao.findByField("baseUserId.uname", operUname);//当前员工
+					/*String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
 					Object sortNum=reimDao.findObj(hql, unitNum,DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
-					int sortVou=Integer.parseInt(sortNum.toString());//单位当天添加的最后一条凭证记录
+					int sortVou=Integer.parseInt(sortNum.toString());//单位当天添加的最后一条凭证记录*/					
 					for (int i=0;i<mcolist.size();i++) {
-						sortVou=sortVou+i;
+						//sortVou=sortVou+i;
 						mco=mcolist.get(i);
 						operMark=DateUtils.getOrderNum(7);
 						if (mcolist.size() > 1) {// 多个订单收款默认每个订单均收款完成
@@ -515,7 +525,7 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 						mco.setAlGathPrice(MathUtils.add(mco.getAlGathPrice(), _gathMoney, 2));
 						mcoDao.update(mco);
 						//添加收款凭证
-						ReimburseList reim=new ReimburseList();
+						/*ReimburseList reim=new ReimburseList();
 						reim.setUnitNum(unitNum);
 						reim.setReimUserId(mco.getMainOrderBase().getBaseUserId());
 						reim.setDeptId(staff.getDeptId());
@@ -531,9 +541,24 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 						reim.setOperMark(operMark);
 						reim.setMainOrderReim(mco);
 						reim.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
-						reimDao.save(reim);
+						reimDao.save(reim);*/
+						//添加员工报账
+						StaffReimburse obj = new StaffReimburse();
+						obj.setUnitNum(unitNum);
+						obj.setReimUserId(mco.getMainOrderBase().getBaseUserId());
+						if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
+						obj.setGathMoney(_gathMoney);
+						obj.setPayMoney(0);
+						obj.setRemark(gathRemark);
+						obj.setIsCheck(0);
+						obj.setAddTime(new Date());
+						obj.setReqsrc(reqsrc);
+						obj.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
+						obj.setOperMark(operMark);
+						srDao.save(obj);
+						
 						if(cc!=null){//有下账客户添加支出凭证
-							sortVou=sortVou+1;
+							/*sortVou=sortVou+1;
 							ReimburseList reimDown=new ReimburseList();
 							reimDown.setUnitNum(unitNum);
 							reimDown.setReimUserId(mco.getMainOrderBase().getBaseUserId());
@@ -550,14 +575,29 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 							reimDown.setOperMark(operMark);
 							reimDown.setMainOrderReim(mco);
 							reimDown.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
-							reimDao.save(reimDown);
+							reimDao.save(reimDown);*/
+							
+							StaffReimburse objDown = new StaffReimburse();
+							objDown.setUnitNum(unitNum);
+							objDown.setReimUserId(mco.getMainOrderBase().getBaseUserId());
+							if(staff!=null) objDown.setDeptId(staff.getDeptId());//是员工就有部门
+							objDown.setGathMoney(0);
+							objDown.setPayMoney(_gathMoney);//下载应该是客户的支出金额
+							objDown.setRemark(gathRemark);
+							objDown.setIsCheck(0);
+							objDown.setAddTime(new Date());
+							objDown.setReqsrc(reqsrc);
+							objDown.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
+							objDown.setOperMark(operMark);
+							srDao.save(objDown);
+							
 							//减去客户预存款
 							cc.setPreMoney(MathUtils.sub(cc.getPreMoney(), _gathMoney, 2));
 							ccDao.update(cc);
 						}
 					}
-					if(fcPre!=null){//客户预存款
-						sortVou=sortVou+1;
+					if(StringUtils.isNotBlank(preMoney)) {//客户预存款
+						/*sortVou=sortVou+1;
 						ReimburseList reimPre=new ReimburseList();
 						reimPre.setUnitNum(unitNum);
 						reimPre.setReimUserId(mco.getMainOrderBase().getBaseUserId());
@@ -574,7 +614,22 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 						reimPre.setOperMark(DateUtils.getOrderNum(7));
 						reimPre.setMainOrderReim(mco);
 						reimPre.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
-						reimDao.save(reimPre);
+						reimDao.save(reimPre);*/
+						
+						StaffReimburse objPre = new StaffReimburse();
+						objPre.setUnitNum(unitNum);
+						objPre.setReimUserId(mco.getMainOrderBase().getBaseUserId());
+						if(staff!=null) objPre.setDeptId(staff.getDeptId());//是员工就有部门
+						objPre.setGathMoney(_gathMoney);
+						objPre.setPayMoney(0);
+						objPre.setRemark(gathRemark);
+						objPre.setIsCheck(0);
+						objPre.setAddTime(new Date());
+						objPre.setReqsrc(reqsrc);
+						objPre.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
+						objPre.setOperMark(operMark);
+						srDao.save(objPre);
+						
 						//添加客户预存款
 						cc.setPreMoney(MathUtils.add(cc.getPreMoney(), Double.valueOf(preMoney), 2));
 						ccDao.update(cc);
@@ -646,7 +701,7 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 					Hibernate.initialize(mainCarOrder.getMainCars());
 				}
 				U.setPageData(map, pd);
-				Map<String, Object> countMainCarOrderForCollection = mcoDao.countMainCarOrderForCollection(reqsrc, page, "100000", payStatus, startTime, endTime, compositorType, timeType, driver, dutyService, plateNum, orderNum, routeDetail, serviceMan, unitNum, customer, businessType);
+				Map<String, Object> countMainCarOrderForCollection = mcoDao.countMainCarOrderForCollection(reqsrc, "1", "100000", payStatus, startTime, endTime, compositorType, timeType, driver, dutyService, plateNum, orderNum, routeDetail, serviceMan, unitNum, customer, businessType);
 				map.put("statics", countMainCarOrderForCollection);
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
@@ -716,4 +771,146 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 		}
 		return map;
 	}
+	
+	@Override
+	public Map<String, Object> findXcjzMainOrderList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String lunitNum, String luname, String page, String rows, String stime, String etime, String datType) {
+		String logtxt = U.log(log, "获取-行程记账-主订单列表", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
+		boolean fg = true;
+		
+		try {
+			fg = U.valPageNo(map, page, rows, "行程收支订单");
+			fg = U.valSEtime(map, stime, etime, "出发时间");
+			
+			int _datType = -1;
+			if(fg) {
+				if(StringUtils.isBlank(datType)) {
+					fg = U.setPutFalse(map, "[查询数据类型]不能为空");
+				}else {
+					datType = datType.trim();
+					if(!FV.isInteger(datType)) {
+						fg = U.setPutFalse(map, "[数据类型]格式错误");
+					}else {
+						_datType = Integer.parseInt(datType);
+					}
+					
+					U.log(log, "[查询数据类型] datType="+datType);
+				}
+			}
+			
+			List<Object> mons = new ArrayList<Object>();		// 存储主订单编号
+			List<CarOrder> cols = new ArrayList<CarOrder>();	// 存储主订单下面的所有子订单
+			if(fg) {
+				// 1.根据驾驶员用户名匹配派单车辆主、副驾驶员账号，获取订单编号数组
+				List<String> ons = new ArrayList<String>();
+				hql = "select new DisCarInfo(orderNum) from DisCarInfo where main_driver.uname = ?0 order by id asc";
+				List<DisCarInfo> dcis = disCarInfoDao.findhqlList(hql, luname);
+				if(dcis.size() == 0) {
+					U.setPageData(map, mons);// 设置为空列表
+					fg = U.setPutFalse(map, 1, "未获取到主行程数据");
+				}else {
+					for (DisCarInfo dci : dcis) {
+						ons.add(dci.getOrderNum());
+					}
+					
+					// 2.根据订单编号数组，获取对应订单列表，再根据出发时间（默认当天）、为出行和已出行的行程条件过滤，得到符合条件的列表；
+					Date st = DateUtils.strToDate(stime);
+					Date et = DateUtils.strToDate(etime);
+					Object[] status = null;
+					if(_datType == 0) {// 未出行
+						status = new Object[] { OrderStatus.DRIVER_NOT_CONFIRM, OrderStatus.DRIVER_CONFIRMED };
+					}else if(_datType == 1) {// 已出行
+						status = new Object[] { OrderStatus.AL_TRAVEL, OrderStatus.COMPLETED };
+					}else if(_datType == 2) {// 行程收支-未出行和已出行
+						status = new Object[] { OrderStatus.DRIVER_NOT_CONFIRM, OrderStatus.DRIVER_CONFIRMED, 
+								OrderStatus.AL_TRAVEL, OrderStatus.COMPLETED };
+					}else {
+						status = new Object[] { };
+					}
+					
+					// 3.最后获取对应的主订单编号、当前登录单位编号，查询出主订单；
+					hql = "from CarOrder where orderNum in(:v0) and status in(:v1) and (stime >= :v2 and etime <= :v3) order by stime asc";
+					cols = carOrderDao.findListIns(hql, ons.toArray(), status, st, et);
+					for (CarOrder co : cols) {
+						if(co.getCarOrderBase().getUnitNum().equals(lunitNum) && mons.indexOf(co.getMainOrderNum()) == -1) {
+							mons.add(co.getMainOrderNum());
+						}
+					}
+					
+					if(mons.size() == 0) {
+						U.setPageData(map, mons);// 设置为空列表
+						fg = U.setPutFalse(map, 1, "未获取到主行程数据");
+					}
+				}
+			}
+			
+			if(fg) {
+				Page<MainCarOrder> pd = mcoDao.findPageMainOrderList(reqsrc, page, rows, mons);
+				
+				// 处理结果数据
+				List<Object> mainOrderList = new ArrayList<Object>();
+				List<MainCarOrder> mcolist = pd.getResult();
+				for(MainCarOrder mco : mcolist) {
+					Map<String, Object> mcoMap = new HashMap<String, Object>(); // 主订单对象
+					
+					mcoMap.put("id", mco.getId());										// 主订单id
+					String[] routeType = new String[] {mco.getMainOrderBase().getRouteType().name(), mco.getMainOrderBase().getRouteType().getKey()};;
+					mcoMap.put("routeType", routeType);									// 行程类型
+					mcoMap.put("routeTypeTxt", mco.getMainOrderBase().getRouteType().getKey());		// 主订单编号
+					mcoMap.put("mainOrderNum", mco.getOrderNum());						// 主订单编号
+					mcoMap.put("saddr", mco.getSpoint().getAddress());					// 出发地址（第一条子订单出发地址）
+					mcoMap.put("eaddr", mco.getEpoint().getAddress());					// 到达地址（最后一条子订单到达地址）
+					mcoMap.put("stime", mco.getStime());								// 出发时间（第一条子订单出发时间） 
+					mcoMap.put("etime", mco.getEtime());								// 到达时间（最后一条子订单到达时间）
+					
+					// 所有派单车辆信息列表（不仅是登录驾驶员用户的订单）
+					List<Map<String, Object>> disCars = new ArrayList<Map<String, Object>>();
+					for (DisCarInfo dci : mco.getMainCars()) {
+						Map<String, Object> o = new HashMap<String, Object>();
+						o.put("id", dci.getId()); 								// 派单车辆id
+						o.put("stime", dci.getMainDriverStime());				// 主驾开始时间
+						o.put("plateNum", dci.getPlateNum()); 					// 派单车辆车牌号
+						o.put("name", dci.getMain_driver().getRealName()); 		// 派单车辆主驾驶员姓名
+						o.put("phone", dci.getMain_driver().getPhone()); 		// 派单车辆主驾驶员手机号
+						disCars.add(o);
+					}
+					mcoMap.put("disCarList", disCars);
+					
+					// 被派的订单列表
+					List<Map<String, Object>> disOrders = new ArrayList<Map<String, Object>>();
+					for (CarOrder co : cols) {
+						if(co.getMainOrderNum().equals(mco.getOrderNum())) {
+							Map<String, Object> o = new HashMap<String, Object>();
+							o.put("id", co.getId()); 											// 订单id
+							o.put("orderNum", co.getOrderNum());								// 订单编号
+							o.put("status", co.getStatus()); 									// 订单状态
+							o.put("saddr", co.getRouteMps().get(0).getMapPoint().getAddress()); // 出发地址
+							o.put("eaddr", co.getRouteMps().get(1).getMapPoint().getAddress()); // 到达地址
+							o.put("stime", co.getStime()); 										// 出发时间
+							o.put("etime", co.getEtime()); 										// 到达时间
+							o.put("isjz", co.getTrades().size() > 0 ? true : false); 			// 是否已有记账
+							disOrders.add(o);
+						}
+					}
+					mcoMap.put("disOrderList", disOrders);
+					
+					mainOrderList.add(mcoMap);
+				}
+				
+				// 返回前端所需参数
+				U.setPageData(map, mainOrderList);
+				
+				U.setPut(map, 1, "获取成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+
+		return map;
+	}
+	
 }

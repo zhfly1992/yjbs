@@ -3,6 +3,7 @@ package com.fx.service.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,13 +20,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fx.commons.exception.GlobalException;
 import com.fx.commons.utils.clazz.CarRouteRes;
+import com.fx.commons.utils.enums.FileType;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.other.EncodeUtils;
+import com.fx.commons.utils.other.UtilFile;
 import com.fx.commons.utils.other.vcode.Captcha;
 import com.fx.commons.utils.other.vcode.CreateImageCode;
 import com.fx.commons.utils.other.vcode.GifCaptcha;
@@ -35,7 +39,17 @@ import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.CommonDao;
+import com.fx.dao.back.FileManDao;
+import com.fx.dao.finance.CarOilListDao;
+import com.fx.dao.finance.CarRepairListDao;
+import com.fx.dao.finance.StaffReimburseDao;
+import com.fx.dao.order.RouteTradeListDao;
 import com.fx.dao.order.StationListDao;
+import com.fx.entity.back.FileMan;
+import com.fx.entity.finance.CarOilList;
+import com.fx.entity.finance.CarRepairList;
+import com.fx.entity.finance.StaffReimburse;
+import com.fx.entity.order.RouteTradeList;
 import com.fx.entity.order.StationList;
 import com.fx.service.CommonService;
 
@@ -57,6 +71,21 @@ public class CommonServiceImpl implements CommonService {
 	/** 站点列表-服务 */
 	@Autowired
 	private StationListDao stationListDao;
+	/** 文件管理-服务 */
+	@Autowired
+	private FileManDao fileManDao;
+	/** 加油记账 */
+	@Autowired
+	private CarOilListDao carOilListDao;
+	/** 维修记账 */
+	@Autowired
+	private CarRepairListDao carRepairListDao;
+	/** 其他记账 */
+	@Autowired
+	private StaffReimburseDao staffReimburseDao;
+	/** 行程收支记账 */
+	@Autowired
+	private RouteTradeListDao routeTradeListDao;
 	
 	
 	@Override
@@ -508,6 +537,271 @@ public class CommonServiceImpl implements CommonService {
 	@Override
 	public CarRouteRes queryCarRouteRes(String spoint, String epoint, String waypoints, String stg) {
 		return commonDao.queryCarRouteRes(spoint, epoint, waypoints, stg);
+	}
+	
+	@Override
+	public Map<String, Object> addJzbxFile(ReqSrc reqsrc, String ftype, String lteamNo, String luname, 
+		MultipartFile[] files, String uid) {
+		String logtxt = U.log(log, "添加-记账报销-文件", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			FileType _ftype = null;
+			if(fg) {
+				if(StringUtils.isBlank(ftype)) {
+					fg = U.setPutFalse(map, "[文件类型]不能为空");
+				}else {
+					ftype = ftype.trim();
+					if(!FV.isOfEnum(FileType.class, ftype)) {
+						fg = U.setPutFalse(map, "[文件类型]格式错误");
+					}else {
+						_ftype = FileType.valueOf(ftype);
+					}
+					
+					U.log(log, "[文件类型] ftype="+ftype);
+				}
+			}
+			
+			if(fg) {
+				if(StringUtils.isBlank(lteamNo)) {
+					fg = U.setPutFalse(map, "[登录车队编号]不能为空");
+				}else {
+					lteamNo = lteamNo.trim();
+					
+					U.log(log, "[登录车队编号] lteamNo="+lteamNo);
+				}
+			}
+			
+			if(fg) {
+				if(StringUtils.isBlank(luname)) {
+					fg = U.setPutFalse(map, "[登录用户名]不能为空");
+				}else {
+					luname = luname.trim();
+					
+					U.log(log, "[登录用户名] luname="+luname);
+				}
+			}
+			
+			String jzImgUrls = "";
+			if(fg) {
+				if(files.length == 0) {
+					fg = U.setPutFalse(map, "文件为空，请选择文件");
+				}else {
+					U u = new U();
+					String pf = u.getClassPath();// 获取盘符
+					
+					// 存放文件根目录
+					String rootPath = UtilFile.JZBX_FILE_PATH+UT.getYearMonthFolder(new Date());
+					// 判断文件夹是否存在，不存在则创建
+				    U.creatFolder(rootPath);					
+					
+				    List<String> fids = new ArrayList<String>();
+				    List<String> urls = new ArrayList<String>();
+				    
+					for(int i = 0; i < files.length; i++) {
+						MultipartFile file = files[i];
+						
+						// 创建新文件名并固定文件后缀名
+						String fileName = U.getUUID()+".png";
+						file.transferTo(new File(pf+":"+rootPath+"/"+fileName));
+						
+						// 添加上传数据记录
+						FileMan fm = new FileMan();
+						fm.setAtime(new Date());
+						fm.setFid(UT.creatFileNum(fm.getAtime()));
+						fm.setFname(fileName);
+						fm.setFolderName(rootPath.replace(UtilFile.JZBX_FILE_PATH, "/jzbx"));
+						fm.setReqsrc(reqsrc);
+						fm.setFtype(_ftype);
+						if(StringUtils.isNoneBlank(uid)) {
+							fm.setFdat(lteamNo+"="+luname+"="+uid);// 车队编号,添加用户名,记账对id
+						}
+						fileManDao.save(fm);
+						U.log(log, "添加-"+fm.getFtype().getKey()+"-成功");
+						
+						// 保存文件id
+						fids.add(fm.getId()+"");
+						
+						// 保存图片地址
+						urls.add(fm.getFolderName()+"/"+fm.getFname());
+						
+						U.log(log, "上传文件完成");
+					}
+					
+					// 将新添加的文件数据id传给前端
+					map.put("fids", fids.size() > 0 ? StringUtils.join(fids.toArray(), ",") : "");
+					
+					U.setPut(map, 1, "上传文件成功");
+				}
+			}
+			
+			if(fg) {
+				if(StringUtils.isNoneBlank(uid)) {
+					U.log(log, "存在修改对象id，则需要更新对应类型的对象数据");
+					
+					if(!FV.isLong(uid)) {
+						fg = U.setPutFalse(map, "[修改对象id]格斯错误");
+					}else {
+						String dat = "";
+						if(_ftype == FileType.JYJZ_IMG) {
+							CarOilList jyjz = carOilListDao.findByField("id", Long.parseLong(uid));
+							if(jyjz == null) {
+								fg = U.logFalse(log, "[加油记账]不存在");
+							}else {
+								// 修改加油记账记录的凭证url
+								jyjz.setOilVoucherUrl(jzImgUrls);
+								carOilListDao.update(jyjz);
+								U.log(log, "更新-加油记账-凭证url-完成");
+								
+								// 对应员工记账
+								dat = jyjz.getUnitNum()+"="+jyjz.getOilDriver().getUname()+"="+jyjz.getId();
+								StaffReimburse sr = staffReimburseDao.findByField("dat", dat);
+								if(sr == null) {
+									fg = U.logFalse(log, "[对应员工记账]不存在");
+								}else {
+									sr.setReimVoucherUrl(jzImgUrls);
+									staffReimburseDao.update(sr);
+									U.log(log, "更新-员工记账-凭证url-完成");
+									
+									U.setPut(map, 1, "更新-凭证图片地址-完成");
+								}
+							}
+						}else if(_ftype == FileType.WXJZ_IMG) {
+							CarRepairList wxjz = carRepairListDao.findByField("id", Long.parseLong(uid));
+							if(wxjz == null) {
+								fg = U.logFalse(log, "[维修记账]不存在");
+							}else {
+								// 修改维修记账记录的凭证url
+								wxjz.setRepairVoucherUrl(jzImgUrls);
+								carRepairListDao.update(wxjz);
+								U.log(log, "更新-维修记账-凭证url-完成");
+								
+								// 对应员工记账
+								dat = wxjz.getUnitNum()+"="+wxjz.getRepairDriver().getUname()+"="+wxjz.getId();
+								StaffReimburse sr = staffReimburseDao.findByField("dat", dat);
+								if(sr == null) {
+									fg = U.logFalse(log, "[对应员工记账]不存在");
+								}else {
+									sr.setReimVoucherUrl(jzImgUrls);
+									staffReimburseDao.update(sr);
+									U.log(log, "更新-员工记账-凭证url-完成");
+									
+									U.setPut(map, 1, "更新-凭证图片地址-完成");
+								}
+							}
+						}else if(_ftype == FileType.QTJZ_IMG) {
+							StaffReimburse sr = staffReimburseDao.findByField("id", Long.parseLong(uid));
+							if(sr == null) {
+								fg = U.logFalse(log, "[对应员工记账]不存在");
+							}else {
+								sr.setReimVoucherUrl(jzImgUrls);
+								staffReimburseDao.update(sr);
+								U.log(log, "更新-员工记账-凭证url-完成");
+								
+								U.setPut(map, 1, "更新-凭证图片地址-完成");
+							}
+						}else if(_ftype == FileType.XCSZ_IMG) {
+							StaffReimburse sr = staffReimburseDao.findByField("id", Long.parseLong(uid));
+							if(sr == null) {
+								fg = U.logFalse(log, "[对应员工记账]不存在");
+							}else {
+								sr.setReimVoucherUrl(jzImgUrls);
+								staffReimburseDao.update(sr);
+								U.log(log, "更新-员工记账-凭证url-完成");
+								
+								// 修改对应行程收支
+								RouteTradeList xcsz = sr.getOrderTrade();
+								if(xcsz == null) {
+									fg = U.logFalse(log, "[行程收支]不存在");
+								}else {
+									// 修改加油记账记录的凭证url
+									xcsz.setRouteVoucherUrl(jzImgUrls);
+									routeTradeListDao.update(xcsz);
+									U.log(log, "更新-行程收支-凭证url-完成");
+								}
+								
+								U.setPut(map, 1, "更新-凭证图片地址-完成");
+							}
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> updJzbxFile(ReqSrc reqsrc, String fid, MultipartFile[] files) {
+		String logtxt = U.log(log, "修改-记账报销-文件", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+//		boolean fg = true;
+		
+		try {
+//			if(fg) {
+//				if(StringUtils.isBlank(lteamNo)) {
+//					fg = U.setPutFalse(map, "[登录车队编号]不能为空");
+//				}else {
+//					lteamNo = lteamNo.trim();
+//					
+//					U.log(log, "[登录车队编号] lteamNo="+lteamNo);
+//				}
+//			}
+//			
+//			if(fg) {
+//				if(StringUtils.isBlank(luname)) {
+//					fg = U.setPutFalse(map, "[登录用户名]不能为空");
+//				}else {
+//					luname = luname.trim();
+//					
+//					U.log(log, "[登录用户名] luname="+luname);
+//				}
+//			}
+//			
+//			if(fg) {
+//				if(files.length == 0) {
+//					fg = U.setPutFalse(map, "文件为空，请选择文件");
+//				}else {
+//					// 存放文件根目录
+//					String rootPath = UtilFile.JZBX_FILE_PATH+UT.getYearMonthFolder(new Date());
+//					// 判断文件夹是否存在，不存在则创建
+//				    U.creatFolder(rootPath);					
+//					
+//					for(int i = 0; i < files.length; i++) {
+//						MultipartFile file = files[i];
+//						
+//						// 创建新文件名并固定文件后缀名
+//						String fileName = U.getUUID()+".png";
+//						
+//						FileMan fm = new FileMan();
+//						fm.setAtime(new Date());
+//						fm.setFid(UT.creatFileNum(fm.getAtime()));
+//						fm.setFname(fileName);
+//						fm.setFolderName(rootPath);
+//						fm.setReqsrc(reqsrc);
+//						fm.setFtype(FileType.JYJZ_IMG);
+//						fm.setFdat(lteamNo+","+luname);// 车队编号,添加用户名
+//						fileManDao.save(fm);
+//						U.log(log, "添加-"+fm.getFtype().getKey()+"-成功");
+//						
+//						file.transferTo(new File(rootPath+"/"+fileName));
+//						
+//						U.log(log, "上传文件完成");
+//					}
+//				}
+//			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
 	}
 	
 }

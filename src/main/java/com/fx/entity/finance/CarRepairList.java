@@ -28,70 +28,6 @@ import com.fx.entity.cus.BaseUser;
 public class CarRepairList implements Serializable{
 	private static final long serialVersionUID = 790681427799404372L;
 
-	/**  
-	 * 获取 维修摘要  
-	 * @return repairRemark
-	 */
-	public String getRepairRemark() {
-		return repairRemark;
-	}
-	
-
-	/**  
-	 * 设置 维修摘要  
-	 * @param repairRemark 
-	 */
-	public void setRepairRemark(String repairRemark) {
-		this.repairRemark = repairRemark;
-	}
-	
-
-	/**  
-	 * 获取 每次操作标识号  
-	 * @return operMark
-	 */
-	public String getOperMark() {
-		return operMark;
-	}
-	
-
-	/**  
-	 * 设置 每次操作标识号  
-	 * @param operMark 
-	 */
-	public void setOperMark(String operMark) {
-		this.operMark = operMark;
-	}
-	
-
-	/**  
-	 * 获取 操作备注  
-	 * @return operNote
-	 */
-	public String getOperNote() {
-		return operNote;
-	}
-	
-
-	/**  
-	 * 设置 操作备注  
-	 * @param operNote 
-	 */
-	public void setOperNote(String operNote) {
-		this.operNote = operNote;
-	}
-	
-
-	/**  
-	 * 获取 serialVersionUID  
-	 * @return serialVersionUID
-	 */
-	public static long getSerialversionuid() {
-		return serialVersionUID;
-	}
-	
-
-
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY) 
 	private long id;
@@ -172,6 +108,68 @@ public class CarRepairList implements Serializable{
 		super();
 		this.id = id;
 		this.currentKilo = currentKilo;
+	}
+	
+	/**  
+	 * 获取 维修摘要  
+	 * @return repairRemark
+	 */
+	public String getRepairRemark() {
+		return repairRemark;
+	}
+	
+
+	/**  
+	 * 设置 维修摘要  
+	 * @param repairRemark 
+	 */
+	public void setRepairRemark(String repairRemark) {
+		this.repairRemark = repairRemark;
+	}
+	
+
+	/**  
+	 * 获取 每次操作标识号  
+	 * @return operMark
+	 */
+	public String getOperMark() {
+		return operMark;
+	}
+	
+
+	/**  
+	 * 设置 每次操作标识号  
+	 * @param operMark 
+	 */
+	public void setOperMark(String operMark) {
+		this.operMark = operMark;
+	}
+	
+
+	/**  
+	 * 获取 操作备注  
+	 * @return operNote
+	 */
+	public String getOperNote() {
+		return operNote;
+	}
+	
+
+	/**  
+	 * 设置 操作备注  
+	 * @param operNote 
+	 */
+	public void setOperNote(String operNote) {
+		this.operNote = operNote;
+	}
+	
+
+	/**  
+	 * 获取 serialVersionUID  
+	 * @return serialVersionUID
+	 */
+	public static long getSerialversionuid() {
+		return serialVersionUID;
 	}
 
 	/**  

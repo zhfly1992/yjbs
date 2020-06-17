@@ -148,7 +148,7 @@ public class CompanyCustomerController extends BaseController {
 			@RequestBody JSONObject jsonObject) {
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		map = ccSer.subCompanyCusAdup(ReqSrc.PC_COMPANY, response, request, "8112010001", jsonObject);
+		map = ccSer.subCompanyCusAdup(ReqSrc.PC_COMPANY, response, request, LU.getLUnitNum(request, redis), jsonObject);
 		Message.print(response, map);
 	}
 
@@ -432,7 +432,7 @@ public class CompanyCustomerController extends BaseController {
 			@RequestBody JSONObject jsonObject) {
 		Map<String, Object> map = new HashMap<String, Object>();
 
-		map = staSer.subStaffAdd(ReqSrc.PC_COMPANY, response, request, jsonObject);
+		map = staSer.subStaffAdd(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLCompany(request, redis));
 
 		Message.print(response, map);
 	}
@@ -478,7 +478,7 @@ public class CompanyCustomerController extends BaseController {
 		String page = jsonObject.getString("page");
 		String rows = jsonObject.getString("rows");
 		String find = jsonObject.getString("find");
-		map = staSer.findStaffList(ReqSrc.PC_COMPANY, page, rows, "8112010001", find);
+		map = staSer.findStaffList(ReqSrc.PC_COMPANY, page, rows, LU.getLUnitNum(request, redis), find);
 		Message.print(response, map);
 	}
 

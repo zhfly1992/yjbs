@@ -38,6 +38,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
+import com.fx.commons.utils.clazz.Item;
 import com.fx.commons.utils.clazz.OrderTemp;
 import com.fx.commons.utils.enums.BusinessType;
 import com.fx.commons.utils.enums.CarNature;
@@ -414,7 +415,7 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 
 	@Override
 	public List<Map<String, Object>> lastSmartCar(ReqSrc reqsrc,OrderTemp ot, String firstCar, String seats, String force,
-			String runArea, String plateNum, String selfOwned, double avgSpeed, String notContainPn, int isSmart) {
+			String runArea, String plateNum, String selfOwned, double avgSpeed, String notContainPn, int isSmart,int sendModel) {
 		String logtxt = U.log(log, (isSmart==0?"人工":"智能")+"派单获取最优车辆", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		try {
@@ -436,27 +437,7 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 			}else{
 				/**找到已确认的冲突订单，排除该车辆 start*/
 				if(!"1".equals(force)){//非强制查询
-					String hqlCo="from CarOrder a where a.carOrderBase.unitNum=:v0 and a.status in (:v1) and a.disCar<>null and "
-							+ "((a.stime>='"+ot.getStime()+"' and a.etime<='"+ot.getEtime()+"') or "
-							+ "(a.stime<'"+ot.getStime()+"' and a.etime>='"+ot.getStime()+"' and a.etime<='"+ot.getEtime()+"') or "
-							+ "(a.stime>='"+ot.getStime()+"' and a.stime<='"+ot.getEtime()+"' and a.etime>'"+ot.getEtime()+"') or "
-							+ "(a.stime<'"+ot.getStime()+"' and a.etime>'"+ot.getEtime()+"'))";
-					Object[] obj = {OrderStatus.DRIVER_NOT_CONFIRM,OrderStatus.DRIVER_CONFIRMED,OrderStatus.AL_TRAVEL,OrderStatus.COMPLETED};//已确认的订单状态
-					List<CarOrder> colist=coDao.findListIns(hqlCo,ot.getUnitNum(),obj);
-					Set<String>  conflictPn=new HashSet<String>();
-					if(colist.size()>0){
-						for (CarOrder eachco:colist) {
-							conflictPn.add(eachco.getDisCar().getPlateNum());
-						}
-						Iterator<String> it = conflictPn.iterator();
-						while (it.hasNext()) {
-						  	if(StringUtils.isNotBlank(notContainPn)){
-						  		notContainPn+=","+it.next();
-							}else{
-								notContainPn=it.next();
-							}
-						}
-					}
+					notContainPn=currNotContainPn(ot, sendModel, notContainPn);
 				}
 				/**找到已确认的冲突订单，排除该车辆 end*/
 				if(ot.getRouteType().equals(RouteType.ONE_WAY) && isSmart==1){//单程接送&&智能派单
@@ -498,7 +479,7 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 							avgSpeed=DateUtils.getAvgSpeed(ot.getStime(), ot.getEtime(), pds.getCusSmsSet());
 						}
 					}
-					return colligate(vehicles, hql, ot.getStime(),ot.getEtime(), ot.getsLonLat(),ot.geteLonLat(),avgSpeed);
+					return colligate(vehicles, hql, ot.getStime(),ot.getEtime(), ot.getsLonLat(),ot.geteLonLat(),avgSpeed,sendModel);
 					/****时间+距离排序获取最小值*****/
 				}
 			}
@@ -507,6 +488,44 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 			e.printStackTrace();
 		}
 		return null;
+	}
+	//根据状态和续团时间找到本次不查询的车辆
+	private String currNotContainPn(OrderTemp ot,int sendModel,String notContainPn) {
+		String hqlCo="from CarOrder a where a.carOrderBase.unitNum=:v0 and a.status not in (:v1) and a.disCar<>null and "
+				+ "((a.stime>='"+ot.getStime()+"' and a.etime<='"+ot.getEtime()+"') or "
+				+ "(a.stime<'"+ot.getStime()+"' and a.etime>='"+ot.getStime()+"' and a.etime<='"+ot.getEtime()+"') or "
+				+ "(a.stime>='"+ot.getStime()+"' and a.stime<='"+ot.getEtime()+"' and a.etime>'"+ot.getEtime()+"') or "
+				+ "(a.stime<'"+ot.getStime()+"' and a.etime>'"+ot.getEtime()+"'))";
+		Object[] obj = {OrderStatus.NOT_DIS_CAR,OrderStatus.CANCELED,OrderStatus.REFUSED};//未派车、已取消、已拒绝的订单状态
+		List<CarOrder> colist=coDao.findListIns(hqlCo,ot.getUnitNum(),obj);
+		Set<String>  conflictPn=new HashSet<String>();
+		if(colist.size()>0){
+			if(sendModel==0) {//淡季模式全部排除
+				for (CarOrder eachco:colist) {
+					conflictPn.add(eachco.getDisCar().getPlateNum());
+				}
+			}else {
+				if(colist.size()>1){//多个续团冲突直接排除
+					//conflictCar.add(each);
+				}else{
+					for (CarOrder eachco:colist) {
+						if(eachco.getStatus()!=OrderStatus.JL_NOT_CONFIRM || !(ot.getStime().before(eachco.getStime()) && 
+								ot.getEtime().after(eachco.getStime()))) {//已确认的订单或者已有开始时间不在当前行程时间内排除
+							conflictPn.add(eachco.getDisCar().getPlateNum());
+						}
+					}
+				}
+			}
+			Iterator<String> it = conflictPn.iterator();
+			while (it.hasNext()) {
+			  	if(StringUtils.isNotBlank(notContainPn)){
+			  		notContainPn+=","+it.next();
+				}else{
+					notContainPn=it.next();
+				}
+			}
+		}
+		return notContainPn;
 	}
 	//排除限号的车辆
 	private List<CompanyVehicle> restrictedCar(List<CompanyVehicle> carList,Set<CompanyVehicle> conflictCar,String restrictedNum) throws Exception{
@@ -520,39 +539,43 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 	}
 	//综合优先:距离+时间的最小值
 	private List<Map<String, Object>> colligate(List<CompanyVehicle> vehicles,String hql,
-			Date stime,Date etime,String usLonLat,String ueLonLat,double avgSpeed) throws Exception{
-		TreeMap<String, Map<String, Object>> bestMap = new TreeMap<String, Map<String, Object>>();//有订单的车辆
+			Date ustime,Date uetime,String usLonLat,String ueLonLat,double avgSpeed,int sendModel) throws Exception{
+		/*TreeMap<String, Map<String, Object>> bestMap = new TreeMap<String, Map<String, Object>>();//有订单的车辆
 		TreeMap<String, Map<String, Object>> seatMap = new TreeMap<String,Map<String, Object>>();//无订单的车辆
 		TreeMap<Integer, Integer> seats = new TreeMap<Integer, Integer>();//所有车辆的座位数
-		String [] lestCount=null;
+*/		
+		TreeMap<String, Map<String, Object>> haveNextMap = new TreeMap<String,Map<String, Object>>();//有下一程订单的车辆
+		TreeMap<String, Map<String, Object>> noneNextMap = new TreeMap<String,Map<String, Object>>();//无下一程订单的车辆
+		String [] lestCount=null;//[时间差+距离差，取消订单号，有无下一程，提示]
 		List<CarOrder> colist=null;
 		Date lastTime=null;
-		//Object[] status = {OrderStatus.CANCELED,OrderStatus.REFUSED};//无效的订单状态
+		long haveNextBest=0;//有下一程最优值
+		long noneNextBest=0;//无下一程最优值
 		for (CompanyVehicle each:vehicles) {
 			lestCount=getSecondsDistanceSub(hql, lastTime, each.getPlateNumber(),each.getDockedLongitude()+","+each.getDockedLatitude(),
-					stime, usLonLat,ueLonLat, "", null,avgSpeed, 1,0,"",etime,"0",1).split("/");
+					ustime,uetime, usLonLat,ueLonLat, "", null,avgSpeed, 1,0,"",sendModel).split("/");
 			if(Long.valueOf(lestCount[0])>0){//车辆符合接单
 				Map<String, Object> fmap = new HashMap<String, Object>();
 				StringBuffer sb=new StringBuffer();
-				/**查询日程冲突，已确认的订单车辆已排除 start*/
-				/*String hqlCo="from CarOrder where status not in (:v0) and "
-						+ "((stime>='"+stime+"' and etime<='"+etime+"') or "
-						+ "(stime<'"+stime+"' and etime>='"+stime+"' and etime<='"+etime+"') or "
-						+ "(stime>='"+stime+"' and stime<='"+etime+"' and etime>'"+etime+"') or "
-						+ "(stime<'"+stime+"' and etime>'"+etime+"'))";
-				colist=coDao.findListIns(hqlCo,status);*/
-				
+				/**查询日程冲突，已确认的订单车辆或者未确认但是已有开始时间不在当前用车时间内的已排除，此处剩余车辆都是已有开始时间在当前用车时间之内的 start*/
 				String dcihql="from CarOrder a where a.disCar.plateNum=?0 and "
-						+ "((a.disCar.mainDriverStime>='"+stime+"' and a.disCar.mainDriverEtime<='"+etime+"') or "
-						+ "(a.disCar.mainDriverStime<'"+stime+"' and a.disCar.mainDriverEtime>='"+stime+"' and a.disCar.mainDriverEtime<='"+etime+"') or "
-						+ "(a.disCar.mainDriverStime>='"+stime+"' and a.disCar.mainDriverStime<='"+etime+"' and a.disCar.mainDriverEtime>'"+etime+"') or "
-						+ "(a.disCar.mainDriverStime<'"+stime+"' and a.disCar.mainDriverEtime>'"+etime+"'))";
+						+ "((a.disCar.mainDriverStime>='"+ustime+"' and a.disCar.mainDriverEtime<='"+uetime+"') or "
+						+ "(a.disCar.mainDriverStime<'"+ustime+"' and a.disCar.mainDriverEtime>='"+ustime+"' and a.disCar.mainDriverEtime<='"+uetime+"') or "
+						+ "(a.disCar.mainDriverStime>='"+ustime+"' and a.disCar.mainDriverStime<='"+uetime+"' and a.disCar.mainDriverEtime>'"+uetime+"') or "
+						+ "(a.disCar.mainDriverStime<'"+ustime+"' and a.disCar.mainDriverEtime>'"+uetime+"'))";
 				colist=coDao.findhqlList(dcihql,each.getPlateNumber());
 				if(colist.size()>0){
 					for (CarOrder co:colist) {
 						sb.append(co.getOrderNum()).append(",");
+						if("0".equals(lestCount[1])){//接下一个行程不冲突，编写续团冲突提示
+							String distance=HttpReqMeth.getRoutTimeAndDis_amap(usLonLat,
+									co.getRouteMps().get(0).getMapPoint().getLngLat(),"", "").split("-")[0];
+							if(MathUtils.div(Double.valueOf(distance), 1000, 2)>50) avgSpeed=70;
+							int endSecs=(int)MathUtils.mul(MathUtils.div(MathUtils.div(Double.valueOf(distance), 1000, 2),avgSpeed, 2), 3600, 2);//接客人耗时最终需要的秒数
+				  			lestCount[3]+="并且当前行程距离下个行程"+MathUtils.div(Double.valueOf(distance), 1000, 2)+"公里，-"+
+				  					MathUtils.div(Double.valueOf(endSecs), 60, 0)+"分钟";
+						}
 					}
-					lestCount[2]="-1";//日程冲突当天一定是有订单的
 				}
 				/**查询日程冲突，已确认的订单车辆已排除 end*/
 				
@@ -565,20 +588,27 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 					}else{
 						fmap.put("cancelNum", "0");
 					}
-					/*查询日程冲突*/
 					fmap.put("choiceCar", each);
-					fmap.put("haveRoute", lestCount[2]);
-					if("0".equals(lestCount[2])){//当前车辆在用车开始当天没有订单
-						seatMap.put(Long.valueOf(lestCount[0])+","+each.getId(),fmap);
-						seats.put(each.getSeats(), each.getSeats());
-					}else{
-						bestMap.put(Long.valueOf(lestCount[0])+","+each.getId(),fmap);
+					fmap.put("tips", lestCount[3]);
+					if("1".equals(lestCount[2])){//有下一程
+						if(haveNextBest==0){
+							haveNextBest=Long.valueOf(lestCount[0]);
+						}else if(Long.valueOf(lestCount[0])<haveNextBest){
+							haveNextBest=Long.valueOf(lestCount[0]);
+						}
+						haveNextMap.put(Long.valueOf(lestCount[0])+","+each.getId(),fmap);
+					}else{//无下一程
+						if(noneNextBest==0){
+							noneNextBest=Long.valueOf(lestCount[0]);
+						}else if(Long.valueOf(lestCount[0])<noneNextBest){
+							noneNextBest=Long.valueOf(lestCount[0]);
+						}
+						noneNextMap.put(Long.valueOf(lestCount[0])+","+each.getId(),fmap);
 					}
 				}
 			}
 		}
-		List<Map<String, Object>> fcar = new ArrayList<Map<String, Object>>();
-		if(seatMap.size()>0){//当天没有订单,取小座位数里面取最优的
+		/*if(seatMap.size()>0){//当天没有订单,取小座位数里面取最优的
 			List<Map<String, Object>> area = new ArrayList<Map<String, Object>>();//区域车辆
 			TreeMap<Integer, Integer> runArea = new TreeMap<Integer, Integer>();//所有车辆可跑区域
 			CompanyVehicle car=null;
@@ -611,72 +641,139 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 					}
 				}
 			}
+		}*/
+		
+		List<Map<String, Object>> fcar = new ArrayList<Map<String, Object>>();
+		if(noneNextMap.size()>0){
+			fcar=getBestCar(noneNextBest,noneNextMap, fcar);
 		}
-		if(bestMap.size()>0){
-			fcar.add(bestMap.get(bestMap.firstKey()));
-			//return bestMap.get(bestMap.firstKey());
+		if(haveNextMap.size()>0){
+			fcar=getBestCar(haveNextBest,noneNextMap, fcar);
+		}
+		return fcar;
+	}
+	//通过最优值寻找最优车辆
+	private List<Map<String, Object>> getBestCar(long minBest,TreeMap<String, Map<String, Object>> carMap,List<Map<String, Object>> fcar){
+		TreeMap<Integer, Integer> runArea = new TreeMap<Integer, Integer>();//已匹配车辆的可跑区域
+		TreeMap<Integer, Integer> seat = new TreeMap<Integer, Integer>();//已匹配车辆的座位数
+		CompanyVehicle car=null;
+		List<Map<String, Object>> minBestSame = new ArrayList<Map<String, Object>>();//最小值相同的车辆
+		for(Map.Entry<String, Map<String, Object>> entry : carMap.entrySet()){
+			car=(CompanyVehicle)entry.getValue().get("choiceCar");
+			if(Long.valueOf(entry.getKey().split(",")[0])==minBest){//已知最小的key,所以后续大的一定不选，只会在相等的中选
+				minBestSame.add(entry.getValue());
+				seat.put(car.getSeats(), car.getSeats());
+			}
+		}
+		List<Map<String, Object>> area = new ArrayList<Map<String, Object>>();//最小值相同座位数也相同的车辆
+		for(Map<String, Object> entry: minBestSame){
+		    car=(CompanyVehicle)entry.get("choiceCar");
+		    if(car.getSeats()==seat.firstKey()){//依次循环最优值对应座位数刚好是最小的座位数
+		    	area.add(entry);
+		    	runArea.put(car.getRunningArea(), car.getRunningArea());
+		    }
+		}
+		if(runArea.lastKey()==3){//县际业务优先匹配川A车辆
+			for (Map<String, Object> entry: area) {
+			    car=(CompanyVehicle)entry.get("choiceCar");
+			    if(car.getPlateNumber().startsWith("川A")){
+	    			fcar.add(entry);
+			    	break;
+	    		}
+			}
+			
+		}
+		if(fcar.size()==0){
+			for (Map<String, Object> entry: area) {
+			    car=(CompanyVehicle)entry.get("choiceCar");
+			    if(car.getRunningArea()==runArea.lastKey()){//依次循环可跑区域座位数刚好是订单业务类型
+			    	fcar.add(entry);
+			    	break;
+			    }
+			}
 		}
 		return fcar;
 	}
 	//获取当前车辆在用车开始时间之前最大的结束时间与用车开始时间的时间差值(秒)+获取当前车辆最后一个行程的结束地点与新订单开始时间的距离
-	private String getSecondsDistanceSub(String hql,Date lastTime,String plateNum,String stayPosition,Date stime,
+	private String getSecondsDistanceSub(String hql,Date lastTime,String plateNum,String stayPosition,Date ustime,Date uetime,
 			String usLonLat,String ueLonLat,String distance,CarOrder beforeJcNext,double avgSpeed,long least,long endSecs,
-			String lastJieKeren,Date etime,String cancelNum,int haveRoute) throws Exception{
-		//是否能接到下个订单
-		//hql="FROM CarOrder WHERE id=(SELECT MIN(id) FROM CarOrder WHERE plateNumber=:v0 AND stime >=:v1 and orderState not in (:v2))";
-		hql="from CarOrder a where a.disCar.plateNum=?0 and a.disCar.mainDriverStime>=?1 order by a.disCar.mainDriverStime asc";
-		beforeJcNext =coDao.findObj(hql,plateNum,etime,"LIMIT 1");//当前车辆在当前用车结束时间之后第一个行程
-		if(beforeJcNext!=null){
-			String [] res=HttpReqMeth.getRoutTimeAndDis_amap(ueLonLat,
-					beforeJcNext.getRouteMps().get(0).getMapPoint().getLngLat(),"", "").split("-");//当前订单终点到下个订单起点
-			if(MathUtils.div(Double.valueOf(res[0]), 1000, 2)>50)avgSpeed=70;//超过50公里平均速度按70算
-			endSecs=(int)MathUtils.mul(MathUtils.div(MathUtils.div(Double.valueOf(res[0]), 1000, 2), avgSpeed, 2), 3600, 2);//接客人耗时最终需要的秒数
-  			lastJieKeren=DateUtils.getPlusSeconds(DateUtils.yyyy_MM_dd_HH_mm_ss, etime, endSecs);
-  			if(DateUtils.strToDate(DateUtils.yyyy_MM_dd_HH_mm_ss, lastJieKeren).after(beforeJcNext.getStime())){//不满足接下个订单耗时
-  				if(OrderStatus.DRIVER_NOT_CONFIRM.equals(beforeJcNext.getStatus()) || 
-  				   OrderStatus.DRIVER_CONFIRMED.equals(beforeJcNext.getStatus()) ||
-  				   OrderStatus.AL_TRAVEL.equals(beforeJcNext.getStatus())|| 
-  				   OrderStatus.COMPLETED.equals(beforeJcNext.getStatus())){
-  					return "-1/"+beforeJcNext.getOrderNum();//计调已确认派车并且接不到下个订单，当前车辆就不能被派单，不然就要取消计调已确认的订单
-  				}else{
-  					cancelNum=beforeJcNext.getOrderNum();
-  				}
-  			}
-		}
-		String sLonAndLat="";
-		Date sTime=null;
-		//hql="FROM CarOrder WHERE plateNumber=:v0 AND etime <=:v1 and orderState in (:v2) order by etime desc";
-		//Object[] obj = {OrderStatus.JD_NOT_CONFIRM,OrderStatus.DRIVER_NOT_CONFIRM,OrderStatus.DRIVER_CONFIRMED,OrderStatus.AL_TRAVEL,OrderStatus.COMPLETED};//有效的订单状态
+			String lastJieKeren,int sendModel) throws Exception{
+		String sLonAndLat="";//用于计算行程耗时的起点
+		Date sTime=null;//用于计算接客人的开始时间
+		String cancelNum="0";//取消订单号
+		int haveNext=0;//默认无下个行程
+		String tips="";//提示
 		hql="from CarOrder a where a.disCar.plateNum=?0 and a.disCar.mainDriverEtime<=?1 order by a.disCar.mainDriverEtime desc";
-		beforeJcNext =coDao.findObj(hql,plateNum,etime,"LIMIT 1");//当前车辆在当前用车开始时间之前最后一个行程
+		beforeJcNext =coDao.findObj(hql,plateNum,ustime,"LIMIT 1");//当前车辆在当前用车开始时间之前最后一个行程
 		if(beforeJcNext!=null){
 			sTime=beforeJcNext.getEtime();//默认以最后一个订单结束时间来算
 			sLonAndLat=stayPosition;//默认以停靠点来算
-			if(DateUtils.getHoursOfTowDiffDate(beforeJcNext.getEtime(), stime)<=3){//三小时内取最后一个时间和最后一个结束地点
-				least=DateUtils.getSecondsOfTowDiffDate(beforeJcNext.getEtime(), stime);
+			if(DateUtils.getHoursOfTowDiffDate(beforeJcNext.getEtime(), ustime)<=3){//三小时内取最后一个时间和最后一个结束地点
+				least=DateUtils.getSecondsOfTowDiffDate(beforeJcNext.getEtime(), ustime);
 				sLonAndLat=beforeJcNext.getRouteMps().get(1).getMapPoint().getLngLat();
 			}else{//三小时外以停靠点来算
-				if(org.apache.commons.lang3.time.DateUtils.isSameDay(beforeJcNext.getEtime(), stime)){//是同一天
-					least=DateUtils.getSecondsOfTowDiffDate(beforeJcNext.getEtime(), stime);
+				if(org.apache.commons.lang3.time.DateUtils.isSameDay(beforeJcNext.getEtime(), ustime)){//是同一天
+					least=DateUtils.getSecondsOfTowDiffDate(beforeJcNext.getEtime(), ustime);
 				}else{
-					least=DateUtils.getSecondsOfTowDiffDate(DateUtils.std_st(DateUtils.DateToStr(stime)), stime);
-					sTime=DateUtils.std_st(DateUtils.DateToStr(stime));
-					haveRoute=0;//用车当天没有订单
+					least=DateUtils.getSecondsOfTowDiffDate(DateUtils.std_st(DateUtils.DateToStr(ustime)), ustime);
+					sTime=DateUtils.std_st(DateUtils.DateToStr(ustime));
+					//haveRoute=0;//用车当天没有订单
 				}
 			}
 			distance=HttpReqMeth.getRoutTimeAndDis_amap(sLonAndLat,usLonLat, "", "").split("-")[0];
 			least+=Long.valueOf(distance);
+			tips="距离当前行程"+MathUtils.div(Double.valueOf(distance), 1000, 2)+"公里";
 			if(MathUtils.div(Double.valueOf(distance), 1000, 2)>50)avgSpeed=70;//超过50公里平均速度按70算
 			endSecs=(int)MathUtils.mul(MathUtils.div(MathUtils.div(Double.valueOf(distance), 1000, 2), 
 					avgSpeed, 2), 3600, 2);//接客人耗时最终需要的秒数
+			tips+="，"+MathUtils.div(Double.valueOf(endSecs), 60, 0)+"分钟";
 			lastJieKeren=DateUtils.getPlusSeconds(DateUtils.yyyy_MM_dd_HH_mm_ss, sTime, endSecs);
-			if(DateUtils.strToDate(DateUtils.yyyy_MM_dd_HH_mm_ss, lastJieKeren).after(stime)){
+			if(DateUtils.strToDate(DateUtils.yyyy_MM_dd_HH_mm_ss, lastJieKeren).after(ustime)){
   				least=-1;//当前车辆不满足当前订单
   			}
-		}else {
+		}/*else {
 			haveRoute=0;//用车当天没有订单
+		}*/
+		if(least!=-1) {//上个行程结束后能接到当前行程
+			//是否能接到下个订单
+			hql="from CarOrder a where a.disCar.plateNum=?0 and a.disCar.mainDriverStime>=?1 order by a.disCar.mainDriverStime asc";
+			beforeJcNext =coDao.findObj(hql,plateNum,uetime,"LIMIT 1");//当前车辆在当前用车结束时间之后第一个行程
+			if(beforeJcNext!=null){
+				String [] res=HttpReqMeth.getRoutTimeAndDis_amap(ueLonLat,
+						beforeJcNext.getRouteMps().get(0).getMapPoint().getLngLat(),"", "").split("-");//当前订单终点到下个订单起点
+				if(MathUtils.div(Double.valueOf(res[0]), 1000, 2)>50)avgSpeed=70;//超过50公里平均速度按70算
+				endSecs=(int)MathUtils.mul(MathUtils.div(MathUtils.div(Double.valueOf(res[0]), 1000, 2), avgSpeed, 2), 3600, 2);//接客人耗时最终需要的秒数
+	  			lastJieKeren=DateUtils.getPlusSeconds(DateUtils.yyyy_MM_dd_HH_mm_ss, uetime, endSecs);
+	  			if(DateUtils.strToDate(DateUtils.yyyy_MM_dd_HH_mm_ss, lastJieKeren).after(beforeJcNext.getStime())){//不满足接下个订单耗时
+	  				if(sendModel==0){
+		  				least=-1;//淡季模式有冲突的车辆直接排除
+		  			}else{//旺季模式才判断是否取消冲突订单
+		  				if(OrderStatus.DRIVER_NOT_CONFIRM.equals(beforeJcNext.getStatus()) || 
+		 	  				   OrderStatus.DRIVER_CONFIRMED.equals(beforeJcNext.getStatus()) ||
+		 	  				   OrderStatus.AL_TRAVEL.equals(beforeJcNext.getStatus())|| 
+		 	  				   OrderStatus.COMPLETED.equals(beforeJcNext.getStatus())){
+		  					least= -1;//计调已确认派车并且接不到下个订单，当前车辆就不能被派单，不然就要取消计调已确认的订单	
+	 	  				}else{
+	 	  					cancelNum=beforeJcNext.getOrderNum();
+	 	  				}
+		  			}
+	  			}
+	  			if(least!=-1){//能接到下个订单
+	  				least+=DateUtils.getSecondsOfTowDiffDate(uetime, beforeJcNext.getStime());
+					least+=Long.valueOf(distance);
+		  			//当前订单结束时间和下个行程开始时间在3小时内或者在同一天或者接不到下个行程代表有下一程，否则都不算有下一程
+					if(DateUtils.getHoursOfTowDiffDate(uetime, beforeJcNext.getStime())<=3 ||
+					org.apache.commons.lang3.time.DateUtils.isSameDay(uetime, beforeJcNext.getStime()) ||
+					!"0".equals(cancelNum)){
+						haveNext=1;//有下个行程
+						tips+="并且当前行程距离下个行程"+MathUtils.div(Double.valueOf(distance), 1000, 2)+"公里，"+
+						MathUtils.div(Double.valueOf(endSecs), 60, 0)+"分钟";
+					}
+	  			}
+			}
 		}
-		return least+"/"+cancelNum+"/"+haveRoute;
+		if(haveNext==0) tips+="，无下一程";
+		return least+"/"+cancelNum+"/"+haveNext+"/"+tips;
 	}
 
 
@@ -721,7 +818,7 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 			}
 			else {
 				List<String> plates=new ArrayList<String>();
-				String hql="select new CompanyVehicle(plateNumber) where unitNum=?0 and status=?1";
+				String hql="select new CompanyVehicle(plateNumber) from CompanyVehicle where unitNum=?0 and status=?1";
 				List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum,Integer.parseInt(status));
 				for (CompanyVehicle each : companyVehicleList) {
 					plates.add(each.getPlateNumber());
@@ -747,7 +844,7 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 			}
 			else {
 				List<String> seats=new ArrayList<String>();
-				String hql="select new CompanyVehicle(seats) where unitNum=?0 group by seats";
+				String hql="select new CompanyVehicle(seats) from CompanyVehicle where unitNum=?0 group by seats";
 				List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum);
 				for (CompanyVehicle each : companyVehicleList) {
 					seats.add(each.getSeats()+"");
@@ -787,6 +884,63 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 		}
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> findTeamAllCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String teamNo, String lname) {
+		String logtxt = U.log(log, "获取-车队所有车辆", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
+		boolean fg = true;
+		
+		try {
+			if(fg){
+				if(StringUtils.isEmpty(teamNo)){
+					fg = U.setPutFalse(map, "[车队编号]不能为空");
+				}else{
+					teamNo = teamNo.trim();
+					
+					U.log(log, "车队编号：teamNo="+teamNo);
+				}
+			}
+			
+			if(fg){
+				if(StringUtils.isEmpty(lname)){
+					U.log(log, "[指定用户名]为空，则不获取单个车辆");
+				}else{
+					lname = lname.trim();
+					
+					U.log(log, "指定用户名：lname="+lname);
+				}
+			}
+			
+			if(fg){
+				List<CompanyVehicle> seats = new ArrayList<CompanyVehicle>();
+				if(StringUtils.isNotBlank(lname)){
+					hql = "select new CompanyVehicle(id, seats, plateNumber) from CompanyVehicle where unitNum = ?0 and uname like ?1 order by seats asc";
+					seats = companyVehicleDao.findhqlList(hql, teamNo, lname+"%");
+				}else{
+					hql = "select new CompanyVehicle(id, seats, plateNumber) from CompanyVehicle where unitNum = ?0 order by seats asc";
+					seats = companyVehicleDao.findhqlList(hql, teamNo);
+				}
+				
+				List<Item> its = new ArrayList<Item>();
+				for(int i = 0; i < seats.size(); i++){
+					// id, 座位数, 车牌
+					its.add(new Item(seats.get(i).getId()+"", seats.get(i).getSeats()+"", seats.get(i).getPlateNumber()));
+				}
+				map.put("data", its);
+				
+				U.setPut(map, 1, "获取成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
 		return map;
 	}
 

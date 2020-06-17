@@ -21,6 +21,9 @@ import com.fx.commons.utils.enums.VehiclePowerSourceType;
 import com.fx.commons.utils.enums.VehicleType;
 import com.fx.entity.cus.BaseUser;
 
+/**
+ * 单位车辆
+ */
 @Entity
 @Table(name="company_vehicle")
 public class CompanyVehicle {
@@ -72,18 +75,14 @@ public class CompanyVehicle {
     @Column(name="status",nullable=false, columnDefinition="tinyint(1) DEFAULT '0' COMMENT '车辆状态 0正常，1维修，2报停'")
     private Integer status;
     
-    
     /** 状态时间段 eg：2020-04-26 12:00-2020-04-26 14:00 */
 	@Column(name="status_timeslot", columnDefinition="varchar(50) COMMENT '状态时间段，若是正常则为null'")
     private String  statusTimeslot;
-
-
 
 	/** 购买日期 eg：2020 04/09 11:11 */
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name="purchase_date",nullable=false, columnDefinition="datetime COMMENT '购买日期'")
     private Date purchaseDate;
-
 
     /** 车辆品牌ID  */
     @Column(name="brand_id",nullable=false, columnDefinition="int(11) COMMENT '车辆品牌ID'")
@@ -148,6 +147,7 @@ public class CompanyVehicle {
 	/** 所属公司简称 eg：A1 */
     @Column(name="company_simple_name", columnDefinition="varchar(100) COMMENT '所属公司简称'")
 	private String belongComapnySimName;
+    
     /** 创建单位编号*/
     @Column(name="unit_num",nullable=false, columnDefinition="varchar(20) COMMENT '单位编号'")
     private String unitNum;

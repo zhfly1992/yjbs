@@ -76,7 +76,6 @@ spring:
     host: 127.0.0.1       #Redis 服务器地址
     port: 6379            #Redis 服务器连接端口
     timeout: 6000         #连接超时时间 单位 ms（毫秒）
-#    password: qfc120      #设置密码防止攻击更安全
     password: fx123456.   #设置密码防止攻击更安全
 
   #jpa数据持久层

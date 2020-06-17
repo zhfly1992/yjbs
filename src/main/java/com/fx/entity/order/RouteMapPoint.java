@@ -21,7 +21,6 @@ import com.fx.commons.utils.enums.PointType;
  */
 @Entity
 @Table(name="route_map_point")
-
 public class RouteMapPoint implements Serializable {
 	private static final long serialVersionUID = 6762292739770511741L;
 	

@@ -3,11 +3,8 @@ package com.fx.service.finance;
 
 import java.util.Map;
 
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.pagingcom.Page;
@@ -78,29 +75,6 @@ public interface CarRepairListService extends BaseService<CarRepairList, Long> {
 	public Map<String, Object> delRepair(ReqSrc reqsrc, HttpServletRequest request,
 		HttpServletResponse response, String lname, String did);
 	/**
-	 * 车队驾驶员-添加/修改-维修记录
-	 * @param reqsrc 		请求来源
-	 * @param request 		request
-	 * @param response 		response
-	 * @param multReq		文件上传request
-	 * @param uid  			加油记录id
-	 * @param lname  		登录账号
-	 * @param plateNum 		车牌号
-	 * @param currKm 		当前公里数
-	 * @param wxPayWay 		支付方式：CASH_PAY-现金；JZ_PAY-记账；
-	 * @param wxStation 	维修站名称
-	 * @param wxMoney 		维修金额
-	 * @param wxDate 		维修日期
-	 * @param wxRemark 		维修备注
-	 * @param updPicId 		修改后图片id
-	 * @param isCn 			是否是出纳：0/空-不是；1-是；
-	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
-	 */
-	public Map<String, Object> addUpdRepair(ReqSrc reqsrc, HttpServletRequest request, 
-		HttpServletResponse response, MultipartHttpServletRequest multReq, String uid, 
-		String lname, String plateNum, String currKm, String wxPayWay, String wxStation,
-		String wxMoney, String wxDate, String wxRemark, String updPicId, String isCn);
-	/**
 	 * 审核/复核/核销维修记录
 	 * @author xx
 	 * @date 20190524
@@ -126,29 +100,6 @@ public interface CarRepairListService extends BaseService<CarRepairList, Long> {
 	 */
 	public Map<String, Object> findRepairDetail(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
 		String luname, String id);
-	/**
-	 * 修改-维修记录
-	 * @param reqsrc 		请求来源
-	 * @param request 		request
-	 * @param response 		response
-	 * @param multReq		文件上传request
-	 * @param teamNo  		登录车队账号
-	 * @param luname  		登录账号
-	 * @param uid  			加油记录id
-	 * @param plateNum 		车牌号
-	 * @param currKm 		当前公里数
-	 * @param wxPayWay 		支付方式：CASH_PAY-现金；JZ_PAY-记账；
-	 * @param wxStation 	维修站名称
-	 * @param wxMoney 		维修金额
-	 * @param wxDate 		维修日期
-	 * @param wxRemark 		维修备注
-	 * @param imgIds		图片id数组字符串
-	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
-	 */
-	public Map<String, Object> updRepair(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		MultipartHttpServletRequest multReq, String teamNo, String luname, String uid, String currKm, String wxPayWay,
-		String wxStation, String wxMoney, String wxDate, String wxRemark, String imgIds);
-	
 	
 	/*********************************新旧代码分割*******************end**************/
 	
@@ -166,17 +117,83 @@ public interface CarRepairListService extends BaseService<CarRepairList, Long> {
 	public Map<String,Object> getCarRepairList(ReqSrc reqsrc,HttpServletRequest request, HttpServletResponse response,JSONObject jsonObject,String unitNum);
 	
 	/**
-	 * 
-	 * @Description:新增维修记录
-	 * @param reqSrc
-	 * @param request
-	 * @param response
-	 * @param unitNum
-	 * @param jsonObject
-	 * @return
-	 * @author :zh
-	 * @version 2020年5月29日
+	 * 添加-维修记账
+	 * @param reqsrc 		请求来源
+	 * @param request 		request
+	 * @param response 		response
+	 * @param flen 			上传文件个数
+	 * @param lunitNum		登录单位编号
+	 * @param luname		登录用户名
+	 * @param plateNum 		车牌号
+	 * @param currKm 		当前公里数
+	 * @param wxPayWay 		加油方式 
+	 * @param wxStation 	加油站名称
+	 * @param wxMoney 		加油金额
+	 * @param wxDate 		加油日期
+	 * @param wxRemark 		加油备注
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
-	public Map<String, Object> addCarRepair(ReqSrc reqSrc, HttpServletRequest request, HttpServletResponse response,
-			String unitNum, JSONObject jsonObject);
+	public Map<String, Object> addWxjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String lunitNum, String luname, String flen, String plateNum, String currKm, String wxPayWay, String wxStation, 
+		String wxMoney, String wxDate, String wxRemark);
+	
+	/**
+	 * 修改-维修记账
+	 * @param reqsrc 		请求来源
+	 * @param request 		request
+	 * @param response 		response
+	 * @param uid			维修记账id
+	 * @param flen 			上传文件个数
+	 * @param lunitNum		登录单位编号
+	 * @param luname		登录用户名
+	 * @param currKm 		当前公里数
+	 * @param wxPayWay 		加油方式 
+	 * @param wxStation 	加油站名称
+	 * @param wxMoney 		加油金额
+	 * @param wxDate 		加油日期
+	 * @param wxRemark 		加油备注
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
+	 */
+	public Map<String, Object> updWxjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String lunitNum, String luname, String uid, String flen, String currKm, String wxPayWay, String wxStation, 
+		String wxMoney, String wxDate, String wxRemark);
+	
+	/**
+	 * 获取-维修记账-分页列表
+	 * @param reqsrc 	数据来源
+	 * @param request 	request
+	 * @param response 	response
+	 * @param page 		页码
+	 * @param rows 		页大小
+	 * @param stime 	开始时间
+	 * @param etime 	结束时间
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
+	 */
+	public Map<String, Object> findWxjzList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String page, String rows, String stime, String etime);
+
+	/**
+	 * 删除-维修记账
+	 * @param reqsrc 		请求来源
+	 * @param request 		request
+	 * @param response 		response
+	 * @param lunitNum		登录单位编号
+	 * @param lname			登录用户名
+	 * @param did			维修记录id
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 */
+	public Map<String, Object> delWxjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String lunitNum, String luname, String did);
+
+	/**
+	 * 获取-维修记账详情
+	 * @param request 	request
+	 * @param response 	response
+	 * @param lname		登录用户名
+	 * @param id		维修记录id
+	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据}
+	 */
+	public Map<String, Object> findWxjzDetail(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String luname, String id);
+	
 }

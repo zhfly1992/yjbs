@@ -78,7 +78,7 @@ public class DriverCusController {
 		@ApiResponse(code=-1, message="msg")
 	})
 	@RequestMapping(value = "passLogin", method = RequestMethod.POST)
-	public void subLogin(HttpServletResponse response, HttpServletRequest request,
+	public void passLogin(HttpServletResponse response, HttpServletRequest request,
 		@RequestBody JSONObject jsonObject) {
 		Map<String, Object> map = new HashMap<String, Object>();
 		

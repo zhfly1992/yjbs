@@ -2,6 +2,7 @@ package com.fx.commons.utils.tools;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -17,6 +18,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -198,6 +200,23 @@ public class U {
 	}
 	
 	/**
+	 * 获取-json对象中的参数值
+	 * @param json json对象
+	 * @param name 参数名
+	 */
+	public static String P(JSONObject json, String name) {
+		String str = "";
+		
+		try {
+			str = json.getString(name);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		return str;
+	}
+	
+	/**
 	 * 将JsonNode转字符串并去掉字符中的"引号
 	 * @param str 字符串
 	 */
@@ -258,6 +277,16 @@ public class U {
 	public static void setPageData(Map<String, Object> map, List<Object> list){
 		map.put("count", list.size());
 		map.put("data", list);
+	}
+	
+	/**
+	 * 自定义列表-设置分页数据count, data(一般列表数据所需参数)
+	 * @param map map对象
+	 * @param maps 分页设置数据
+	 */
+	public static void setPageDataMaps(Map<String, Object> map, List<Map<String, Object>> maps){
+		map.put("count", maps.size());
+		map.put("data", maps);
 	}
 	/**
 	 * 设置分页数据total, rows(easyui前端UI框架列表数据所需参数)
@@ -660,9 +689,37 @@ public class U {
 		return "/"+_year+"/"+_month;
 	}
 	
-	public static void main(String[] args) {
-		
-	}
+	/**
+     * 得到类的路径，例如E:/workspace/JavaGUI/bin/com/util
+     * @return 所在盘符，eg：E
+     */
+    public String getClassPath() {
+        try {
+            String strClassName = getClass().getName();
+            String strPackageName = "";
+            if (getClass().getPackage() != null) {
+                strPackageName = getClass().getPackage().getName();
+            }
+            String strClassFileName = "";
+            if (!"".equals(strPackageName)) {
+                strClassFileName = strClassName.substring(strPackageName.length() + 1, strClassName.length());
+            } else {
+                strClassFileName = strClassName;
+            }
+            URL url = null;
+            url = getClass().getResource(strClassFileName + ".class");
+            String strURL = url.toString();
+            strURL = strURL.substring(strURL.indexOf('/') + 1, strURL.lastIndexOf('/'));
+            //返回当前类的路径，并且处理路径中的空格，因为在路径中出现的空格如果不处理的话，
+            //在访问时就会从空格处断开，那么也就取不到完整的信息了，这个问题在web开发中尤其要注意
+            return strURL.replaceAll("%20", " ").split(":")[0];
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            throw ex;
+        }
+    }
+	
+	
 	/**
 	 * 根据座位数获取是几类车
 	 * @param i 座位数
@@ -701,6 +758,13 @@ public class U {
 		}
 		
 		return mr;
+	}
+	
+	public static void main(String[] args) {
+		U u = new U();
+		String pf = u.getClassPath();
+		System.out.println(pf);
+		
 	}
 	
 }

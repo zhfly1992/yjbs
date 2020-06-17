@@ -89,6 +89,10 @@ public class DisCarInfo implements Serializable {
 		super();
 		this.id = id;
 	}
+	public DisCarInfo(String orderNum) {
+		super();
+		this.orderNum = orderNum;
+	}
 
 	/**  
 	 * 获取 id  

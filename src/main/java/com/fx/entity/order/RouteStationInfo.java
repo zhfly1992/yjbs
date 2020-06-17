@@ -17,7 +17,7 @@ import javax.persistence.TemporalType;
  */
 @Entity
 @Table(name="route_station_info")
-public class RouteStationInfo implements Serializable {
+public class RouteStationInfo implements Serializable,Cloneable {
 	private static final long serialVersionUID = -2687187264852346994L;
 
 	/** id */
@@ -208,5 +208,16 @@ public class RouteStationInfo implements Serializable {
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
+	
+	@Override  
+    public Object clone() {  
+		RouteStationInfo stu = null;  
+        try{  
+            stu = (RouteStationInfo)super.clone();  
+        }catch(CloneNotSupportedException e) {  
+            e.printStackTrace();  
+        }  
+        return stu;  
+    } 
 	
 }

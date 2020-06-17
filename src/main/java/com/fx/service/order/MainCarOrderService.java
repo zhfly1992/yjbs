@@ -123,4 +123,21 @@ public interface MainCarOrderService extends BaseService<MainCarOrder, Long> {
 	 */
 	public Map<String, Object> confirmCollection(ReqSrc reqsrc, HttpServletResponse response,
 			HttpServletRequest request, JSONObject jsonObject,Customer customer);
+
+	/**
+	 * 获取-行程记账-主订单列表（未出行、已出行的行程）
+	 * @param reqsrc  	请求来源
+	 * @param request 	request
+	 * @param response 	respons
+	 * @param lunitNum 	登录车队编号
+	 * @param luname 	登录用户名
+	 * @param page 		页码
+	 * @param rows 		页大小
+	 * @param stime 	出发开始时间
+	 * @param etime 	出发结束时间
+	 * @param datType 	查询数据类型 0-未完团订单；1-已完团订单；2-行程收支订单；
+	 * @return map{code: 结果状态码, msg: 结果状态码说明, count: 数据总条数, data: 数据列表}
+	 */
+	public Map<String, Object> findXcjzMainOrderList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+		String lunitNum, String luname, String page, String rows, String stime, String etime, String datType);
 }

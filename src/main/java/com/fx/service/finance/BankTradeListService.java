@@ -70,7 +70,6 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param request
 	 * @param reqsrc 请求来源
 	 * @param btlId  下账记录id
-	 * @param feeCourseId 科目id
 	 * @param money 下账金额
 	 * @param companyCusId 客户id
 	 * @param remak 摘要
@@ -79,20 +78,32 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param orderNum 下账订单号
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> downBtlMoney(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,String btlId,String feeCourseId,
+	public Map<String, Object> downBtlMoney(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,String btlId,
 			String money,String companyCusId,String remark,String notice_uname,String notice_note,String orderNum);
 	
 	/**
-	 * @Description：审核下账记录
+	 * @Description：审核下账记录：通过
 	 * @author xx
 	 * @date 20200523
 	 * @param request
 	 * @param reqsrc 请求来源
 	 * @param btlId  审核记录id
-	 * @param isPass 0不通过 1通过
+	 * @param feeCourseId 科目id
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> checkDownBtlMoney(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,String btlId,String isPass);
+	public Map<String, Object> checkYesBtl(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,
+			String btlId,String feeCourseId);
+	/**
+	 * @Description：审核下账记录：不通过
+	 * @author xx
+	 * @date 20200615
+	 * @param request
+	 * @param reqsrc 请求来源
+	 * @param btlId  审核记录id
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 */
+	public Map<String, Object> checkNoBtl(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,
+			String btlId);
 	/**
 	 * 银行互转
 	 * @author xx

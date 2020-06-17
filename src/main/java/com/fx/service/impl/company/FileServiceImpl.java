@@ -226,7 +226,7 @@ public class FileServiceImpl extends BaseServiceImpl<FileManage, Long> implement
 						}
 						urlist.add(voucherInfo.split(",")[1]);
 						// 这里不必处理IO流关闭的问题，因为FileUtils.copyInputStreamToFile()方法内部会自动把用到的IO流关掉
-						FileUtils.copyInputStreamToFile(imgFile.getInputStream(), new File(path, fRelName + fileT));
+//						FileUtils.copyInputStreamToFile(imgFile.getInputStream(), new File(path, fRelName + fileT));
 					}
 				}
 				map.put("urls", urlist.toArray());
@@ -282,7 +282,7 @@ public class FileServiceImpl extends BaseServiceImpl<FileManage, Long> implement
 		            	fileDao.save(fm);// 保存图片信息
 		            	
 		            	// 这里不必处理IO流关闭的问题，因为FileUtils.copyInputStreamToFile()方法内部会自动把用到的IO流关掉，我是看它的源码才知道的  
-	                    FileUtils.copyInputStreamToFile(imgfile.getInputStream(), new File(uploadFileUrl, fname));
+//	                    FileUtils.copyInputStreamToFile(imgfile.getInputStream(), new File(uploadFileUrl, fname));
 			        }  
 			    }
 			    

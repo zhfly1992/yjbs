@@ -20,6 +20,25 @@ public class Page<T> {
 	private List<Compositor> compositors;
 	private List<Filtration> filtrations;//过滤条件
 	
+	private List<String> alias;//别名
+	
+	
+	/**  
+	 * 获取 别名 
+	 * @return 别名
+	 */
+	public List<String> getAlias() {
+		return alias;
+	}
+	
+	/**  
+	 * 设置 别名  
+	 * @param 别名 
+	 */
+	public void setAlias(List<String> alias) {
+		this.alias = alias;
+	}
+	
 	public String getGroupName() {
 		return groupName;
 	}

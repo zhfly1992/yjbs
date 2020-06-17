@@ -2,6 +2,7 @@ package com.fx.commons.utils.tools;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -453,6 +454,19 @@ public class UT {
         }
 		long time = System.currentTimeMillis();
         return "M"+orderType+time;
+	}
+	/**
+	 * 自动生成【文件编号】 F+时间（精确到毫秒）
+	 * @param date 时间
+	 */
+	public static String creatFileNum(Date date){
+		try {
+            Thread.sleep(2);// 让程序等待2毫秒
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+		
+        return "F"+DateUtils.DateToStr("yyyyMMddHHmmssSSS", date);
 	}
 	/**
 	 * 系统自动生成【订单编号】 O+订单类型+时间（精确到毫秒）
@@ -1040,4 +1054,33 @@ public class UT {
 		U.log(log, "保存-[行程线路信息]数据-完成，并未保存至数据库");
 		
 	}
+	
+	/**
+	 * 判断文件夹是否存在，不存在创建
+	 * @param path 文件夹路径 D:/a/b/c/d
+	 * @return 返回false（true）表示文件夹不存在（存在）；如果不存在，文件夹会被创建
+	 */
+	public static boolean creatFolder(String path) {
+		File file = new File(path);
+		if (!file.isDirectory()) {
+			file.mkdirs();
+			return false;
+		} else {
+			return true;
+		}
+	}
+	
+	/**
+	 * 获取指定时间年月文件夹
+	 * @return eg:/2018/10
+	 */
+	public static String getYearMonthFolder(Date date){
+		Calendar cl = Calendar.getInstance();
+		cl.setTime(date);// 设置指定时间
+		int _year = cl.get(Calendar.YEAR);
+		int _month = cl.get(Calendar.MONTH)+1;
+		
+		return "/"+_year+"/"+_month;
+	}
+	
 }

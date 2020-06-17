@@ -26,7 +26,7 @@ import com.fx.commons.hiberantedao.pagingcom.Filtration;
  */
 public class UtilFile {
 	/**
-	 * 文件存放根目录
+	 * 文件存放根目录 /yjbsFile
 	 */
 	public static String MFILEROOT = "/yjbsFile";
 	/**
@@ -58,7 +58,11 @@ public class UtilFile {
 	/**
 	 * 景点说明图片-存储目录
 	 */
-	public static String JD_FILE_ROOT_DIR = "/kcbFile/jd_imgs";
+	public static String JD_FILE_ROOT_DIR = MFILEROOT+"/jd_imgs";
+	
+	/** 记账报销-文件-路径：/yjbsFile/jzbx */
+	public static String JZBX_FILE_PATH = MFILEROOT+"/jzbx";
+	
 	/**
 	 * 上传文件消息变量
 	 */

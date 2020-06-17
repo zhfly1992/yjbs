@@ -589,7 +589,17 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 					U.log(log, "[记住账号] remberMe="+remberMe);
 				}
 			}
-			
+			CompanyUser cu=null;
+			if(fg) {
+				 cu = cuDao.findByField("baseUserId.uname", luser.getUname());
+		            if(cu==null) {
+		            	String hql="from CompanyUser where unitNum=(select unitNum from staff where baseUseId.uname=?0)";
+		            	cu = cuDao.findObj(hql, luser.getUname());
+		            	if(cu==null) {
+		            		fg = U.setPutFalse(map, "[登录账号]非单位账号也不是员工账号，不能登录");
+		            	}
+		            }
+			}
 			if(fg) {
 				// 清除session中保存的验证码（在此处清除最合适）
 	    		//request.getSession().removeAttribute(QC.IMG_CODE);
@@ -610,22 +620,13 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	            
 	            // 保存uuid给前端
 	            map.put(QC.UUID, uuid);
-	            
-	            Map<String, Object> mapUser = new HashMap<String, Object>();//缓存登录用户信息map
-	            
-	            CompanyUser cu = cuDao.findByField("baseUserId.uname", luser.getUname());
-	            if(cu != null){
-	            	map.put("company", cu);
-	            	// 字段过滤
-					Map<String, Object> fmap = new HashMap<String, Object>();
-					fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
-					fmap.put(U.getAtJsonFilter(CompanyUser.class), new String[]{});
-					map.put(QC.FIT_FIELDS, fmap);
-					
-					mapUser.put(QC.L_COMPANY, cu);
-	            }else {
-	            	map.put("company", "");
-	            }
+	            //保存单位信息给前端
+	            map.put("company", cu);
+            	// 字段过滤
+				Map<String, Object> fmap = new HashMap<String, Object>();
+				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(CompanyUser.class), new String[]{});
+				map.put(QC.FIT_FIELDS, fmap);
 	            
 	            // 记录登录日志
 	            LoginLog llog = new LoginLog();
@@ -641,6 +642,7 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	            //map.put("goUrl", "/page/company/goMain");
 	            
 	            // 缓存登录用户信息
+	            Map<String, Object> mapUser = new HashMap<String, Object>();//缓存登录用户信息map
 	            Customer lcus = customerDao.findByField("baseUserId.uname", luser.getUname());
 				mapUser.put(QC.L_USER, lcus);
 				mapUser.put(QC.L_TIME, DateUtils.DateToStr(new Date()));

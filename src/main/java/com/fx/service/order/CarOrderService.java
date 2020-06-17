@@ -381,16 +381,15 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 *            优先顺序 1自营优先 2挂靠优先
 	 * @param seats
 	 *            座位数
-	 * @param isCancel
-	 *            1继续派单
 	 * @param notContainPn
 	 *            不包含的车牌号
 	 * @param sendPlate
 	 *            选中的车牌号
+	 * @param sendModel 0淡季模式 1旺季模式
 	 * @return map
 	 */
 	public Map<String, Object> smartSendOrder(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			String sendOrderNum, String firstCar, String seats, String notContainPn, String sendPlate);
+			String sendOrderNum, String firstCar, String seats, String notContainPn, String sendPlate,String sendModel);
 
 
 
@@ -509,7 +508,7 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 * @param reason 		拒绝理由，100中文字符
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> updCofmOrder(ReqSrc reqsrc, CusRole role, HttpServletRequest request, 
+	public Map<String, Object> driverCofmOrder(ReqSrc reqsrc, CusRole role, HttpServletRequest request, 
 		HttpServletResponse response, String orderNum, String isAgree, String reason);
 
 	/**
@@ -523,7 +522,17 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 * @param isArr				是否到达出行地点
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> updCofmDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+	public Map<String, Object> driverCofmDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
 		String orderNum,String dayId, String lnglat, String isArr);
+	
+	/**
+	 * 获取-子订单列表
+	 * @param reqsrc 	请求来源
+	 * @param lunitNum	登录单位编号
+	 * @param luname 	登录用户名
+	 * @param mid 		主订单id
+	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据}
+	 */
+	public Map<String, Object> findXcjzOrderList(ReqSrc reqsrc, String lunitNum, String luname, String mid);
 	
 }
