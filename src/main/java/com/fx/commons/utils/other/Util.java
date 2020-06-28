@@ -24,6 +24,7 @@ import com.fx.commons.utils.enums.ServiceType;
 import com.fx.commons.utils.tools.FV;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
+import com.fx.entity.order.MapPoint;
 import com.fx.entity.order.RouteMapPoint;
 
 /** 
@@ -838,14 +839,14 @@ public class Util {
 		
 		try {
 			if(role == CusRole.PT_CUS) {
-				url += "/yjbs-cus";
+				url += QC.MOBILE_CUS_URL;
 				if(t == 1) {// 主页
 					url += "/main/1/0";
 				}else {// 登录页面
 					url += "/pass-login";
 				}
 			}else if(role == CusRole.TEAM_DRIVER) {
-				url += "/yjbs-driver";
+				url += QC.MOBILE_DRIVER_URL;
 				if(t == 1) {// 主页
 					url += "/main/1/0";
 				}else {// 登录页面
@@ -991,29 +992,17 @@ public class Util {
 	
 	/**
 	 * 获取订单起点/终点距离指定地点的直线范围距离
-	 * @param lonAndLat 订单起止点坐标
-	 * @param lnglat 指定点坐标
-	 * @param type 地点类型[1-起点；2-终点；]
+	 * @param point 	订单起点/终点坐标
+	 * @param lnglat 	指定点坐标
 	 * @return 直线范围距离
 	 */
-	public static int getDist(String lonAndLat, String lnglat, int type){
+	public static int getDist(MapPoint point, String lnglat){
 		int distance = 0;
 		
 		try {
-			double slng = 0d, slat = 0d, elng = 0d, elat = 0d;
-			
-			if(type == 1){// 起点
-				// 确认出行地点与订单起点的直线距离
-				slng = Double.parseDouble(lonAndLat.split("/")[0].split("\\|")[0]);
-				slat = Double.parseDouble(lonAndLat.split("/")[0].split("\\|")[1]);
-			}else{// 终点
-				// 确认出行地点与订单起点的直线距离
-				slng = Double.parseDouble(lonAndLat.split("/")[1].split("\\|")[0]);
-				slat = Double.parseDouble(lonAndLat.split("/")[1].split("\\|")[1]);
-			}
-			
-			elng = Double.parseDouble(lnglat.split("\\|")[0]);
-			elat = Double.parseDouble(lnglat.split("\\|")[1]);
+			double slng = point.getLng(), slat = point.getLng();
+			double elng = Double.parseDouble(lnglat.split(",")[0]);
+			double elat = Double.parseDouble(lnglat.split(",")[1]);
 			
 			distance = (int)Util.getDistance(slng, slat, elng, elat);
 		} catch (Exception e) {

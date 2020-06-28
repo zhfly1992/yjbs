@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,9 +58,16 @@ import com.fx.web.util.RedisUtil;
 public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Long> implements StaffReimburseService {
 	/** 日志记录 */
 	private Logger log = LogManager.getLogger(this.getClass());
+	@Autowired
+    private RedisUtil redis;
 	
 	@Autowired
 	private StaffReimburseDao srDao;
+	@Override
+	public ZBaseDaoImpl<StaffReimburse, Long> getDao() {
+		return srDao;
+	}
+
 	
 	/** 单位客户-服务 */
 	@Autowired
@@ -77,13 +85,6 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	@Autowired
 	private ReimburseListDao reimDao;
 	
-	@Autowired
-    private RedisUtil redis;
-	@Override
-	public ZBaseDaoImpl<StaffReimburse, Long> getDao() {
-		return srDao;
-	}
-
 	/** 用户基类-服务 */
 	@Autowired
 	private BaseUserDao baseUserDao;
@@ -111,7 +112,13 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				Page<StaffReimburse> pd =srDao.findStaffReimburse(reqsrc, page, rows, LU.getLUnitNum(request, redis), 
 						uname, deptId, remark, money, isCheck, addMark, sTime, eTime);
 				U.setPageData(map, pd);
-				
+				for (StaffReimburse sr :pd.getResult()) {
+					if(sr.getCarOrderReim()!=null) {
+						Hibernate.initialize(sr.getCarOrderReim().getRouteMps());
+						Hibernate.initialize(sr.getCarOrderReim().getTrades());
+					}
+					if(sr.getMainOrderReim()!=null)Hibernate.initialize(sr.getMainOrderReim().getMainCars());
+				}
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
 				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
@@ -212,7 +219,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 						obj.setAddTime(new Date());
 						obj.setReqsrc(reqsrc);
 						if(StringUtils.isNotBlank(staffInfo[3]))obj.setReimVoucherUrl(staffInfo[3]);
-						obj.setOperNote(LU.getLUSER(request, redis).getBaseUserId().getRealName()+"[添加]");
+						obj.setOperNote(LU.getLRealName(request, redis)+"[添加]");
 						obj.setOperMark(operMark);
 						srDao.save(obj);
 					}
@@ -318,7 +325,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					obj.setAddTime(new Date());
 					obj.setReqsrc(reqsrc);
 					if(StringUtils.isNotBlank(voucherUrl))obj.setReimVoucherUrl(voucherUrl);
-					obj.setOperNote(obj.getOperNote()+Util.getOperInfo(LU.getLUSER(request, redis).getBaseUserId().getRealName(), "修改"));
+					obj.setOperNote(obj.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "修改"));
 					obj.setOperMark(obj.getOperMark()+","+operMark);
 					srDao.update(obj);
 					U.setPut(map, 1, "修改成功");
@@ -400,9 +407,9 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 						sr = srDao.findByField("id", Long.valueOf(id[i]));
 						sr.setIsCheck(1);
 						if (StringUtils.isNotEmpty(sr.getOperNote())) {
-							sr.setOperNote(sr.getOperNote()+","+note+Util.getOperInfo(LU.getLUSER(request, redis).getBaseUserId().getRealName(), "审核"));
+							sr.setOperNote(sr.getOperNote()+","+note+Util.getOperInfo(LU.getLRealName(request, redis), "审核"));
 						} else {
-							sr.setOperNote(note+Util.getOperInfo(LU.getLUSER(request, redis).getBaseUserId().getRealName(), "审核"));
+							sr.setOperNote(note+Util.getOperInfo(LU.getLRealName(request, redis), "审核"));
 						}
 						srDao.update(sr);
 						if(notice.length>0){
@@ -580,8 +587,8 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					for (int i = 0; i < infos.length; i++) {
 						ids=infos[i].split("=");
 						sr=srDao.findByField("id", Long.valueOf(ids[0]));
-						if(sr.getIsCheck()==2) {
-							fg = U.setPutFalse(map, "有报账记录已生成凭证，本次生成凭证失败");
+						if(sr.getIsCheck()!=1) {
+							fg = U.setPutFalse(map, "有报账记录状态非【已审核】状态，本次生成凭证失败");
 							break;
 						}
 						srlist.add(sr);
@@ -596,7 +603,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				double tradeMoney=0;//凭证交易金额
 				//添加员工报账科目交易记录
 				for (StaffReimburse eachsr:srlist) {
-					tradeMoney=MathUtils.add(tradeMoney, MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2);
+					tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2);
 					fc=(FeeCourse)fcmap.get(eachsr.getId());
 					FeeCourseTrade fct=new FeeCourseTrade();
 					fct.setUnitNum(eachsr.getUnitNum());
@@ -605,11 +612,13 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					fct.setGathMoney(eachsr.getGathMoney());
 					fct.setPayMoney(eachsr.getPayMoney());
 					fct.setAddTime(new Date());
+					fct.setStaffReimId(eachsr);
 					fctlist.add(fct);
 					//更新对应科目余额
 					fc.setBalance(MathUtils.add(fc.getBalance(), MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2));
 					fcDao.update(fc);
 					//更新员工报账状态
+					eachsr.setFeeCourseId(fc);
 					eachsr.setIsCheck(2);
 					srDao.update(eachsr);
 				}
@@ -640,7 +649,6 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				obj.setUnitNum(LU.getLUnitNum(request, redis));
 				String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
 				Object sortNum=reimDao.findObj(hql, LU.getLUnitNum(request, redis),DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
-				obj.setStaffReims(srlist);
 				obj.setCourseTrades(fctlist);
 				obj.setGainTime(_gainTime);
 				obj.setVoucherNum(UT.creatReimVoucher(LU.getLUName(request, redis),Integer.parseInt(sortNum.toString())));
@@ -648,7 +656,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				obj.setIsCheck(0);
 				obj.setAddTime(new Date());
 				obj.setReqsrc(reqsrc);
-				obj.setOperNote(LU.getLUSER(request, redis).getBaseUserId().getRealName()+"[添加]");
+				obj.setOperNote(LU.getLRealName(request, redis)+"[添加]");
 				reimDao.save(obj);
 				U.setPut(map, 1, "凭证生成成功");
 			}
@@ -661,7 +669,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	
 	@Override
 	public Map<String, Object> addQtjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		String lunitNum, String luname, String flen, String plateNum, String jzDate, String jzType, String jzStatus,
+		String lunitNum, String luname, String flen, String plateNum, String jzDate, String jzFeeCourseId, 
 		String jzMoney, String jzRemark) {
 		String logtxt = U.log(log, "添加-其他记账", reqsrc);
 
@@ -711,25 +719,6 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				}
 			}
 			
-//			String repairVoucherUrl = "";// 维修清单图片url数组字符串
-//			List<FileMan> fms = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fids)) {
-//					fg = U.setPutFalse(map, "[至少需要上传一张维修清单图片]");
-//				}else {
-//					fids = fids.trim();
-//					fms = fileManDao.findFileManList(fids);
-//					
-//					List<String> imgurls = new ArrayList<String>();
-//					for (FileMan fm : fms) {
-//						imgurls.add(fm.getFolderName()+"/"+fm.getFname());
-//					}
-//					if(imgurls.size() > 0) repairVoucherUrl = StringUtils.join(imgurls.toArray(), ",");
-//					
-//					U.log(log, "[维修清单图片id数组字符串] fids="+fids);
-//				}
-//			}
-			
 			if(fg){
 				if(StringUtils.isEmpty(plateNum)){
 					fg = U.setPutFalse(map, "[车牌号]不能为空");
@@ -756,31 +745,24 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				}
 			}
 			
+			FeeCourse jzFeeCourse = null;
 			if(fg){
-				if(StringUtils.isEmpty(jzType)){
+				if(StringUtils.isEmpty(jzFeeCourseId)){
 					fg = U.setPutFalse(map, "[记账类型]不能为空");
 				}else{
-					jzType = jzType.trim();
+					jzFeeCourseId = jzFeeCourseId.trim();
+					if(!FV.isLong(jzFeeCourseId)) {
+						fg = U.setPutFalse(map, "[记账类型]格式错误");
+					}else {
+						jzFeeCourse = fcDao.findByField("id", Long.parseLong(jzFeeCourseId));
+						if(jzFeeCourse == null) {
+							fg = U.setPutFalse(map, "该记账类型不存在");
+						}
+					}
 					
-					U.log(log, "[记账类型] jzType="+jzType);
+					U.log(log, "[记账类型] jzFeeCourseId="+jzFeeCourseId);
 				}
 			}
-			
-//			int _jzStatus = -1;
-//			if(fg){
-//				if(StringUtils.isEmpty(jzStatus)){
-//					fg = U.setPutFalse(map, "[收支状态]不能为空");
-//				}else{
-//					jzStatus = jzStatus.trim();
-//					if(!FV.isInteger(jzStatus)){
-//						fg = U.setPutFalse(map, "[收支状态]格式错误，应为整数");
-//					}else {
-//						_jzStatus = Integer.parseInt(jzStatus);
-//					}
-//					
-//					U.log(log, "[收支状态] jzStatus="+jzStatus);
-//				}
-//			}
 			
 			double _jzMoney = 0d;
 			if(fg){
@@ -817,24 +799,17 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				sr.setReimUserId(lbuser);
 				sr.setDeptId(driver.getDeptId());
 				sr.setJzDate(_jzDate);
+				sr.setFeeCourseId(jzFeeCourse);
 				sr.setRemark(jzRemark);
 				sr.setPayMoney(_jzMoney);
 				sr.setIsCheck(0);
 				sr.setJzType(JzType.QTJZ);
-//				sr.setReimVoucherUrl(repairVoucherUrl);
 				sr.setReqsrc(reqsrc);
 				sr.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 				sr.setAddTime(new Date());
 				sr.setDat(plateNum);
 				srDao.save(sr);
 				U.log(log, "添加-员工报账记录-完成");
-				
-//				// 修改对应的维修记账清单图片记录数据
-//				for (FileMan fm : fms) {
-//					fm.setFdat(lunitNum+"="+luname+"="+sr.getId());
-//					fileManDao.update(fm);
-//					U.log(log, "修改-其他记账对应凭证图片记录-完成");
-//				}
 				
 				// 前端需要此id，保存图片
 				map.put("uid", sr.getId());
@@ -851,7 +826,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	
 	@Override
 	public Map<String, Object> updQtjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		String lunitNum, String luname, String uid, String flen, String jzDate, String jzType, String jzStatus,
+		String lunitNum, String luname, String uid, String flen, String jzDate, String jzFeeCourseId, 
 		String jzMoney, String jzRemark) {
 		String logtxt = U.log(log, "修改-其他记账", reqsrc);
 
@@ -917,25 +892,6 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				}
 			}
 			
-//			String repairVoucherUrl = "";// 维修清单图片url数组字符串
-//			List<FileMan> fms = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fids)) {
-//					fg = U.setPutFalse(map, "[至少需要上传一张维修清单图片]");
-//				}else {
-//					fids = fids.trim();
-//					fms = fileManDao.findFileManList(fids);
-//					
-//					List<String> imgurls = new ArrayList<String>();
-//					for (FileMan fm : fms) {
-//						imgurls.add(fm.getFolderName()+"/"+fm.getFname());
-//					}
-//					if(imgurls.size() > 0) repairVoucherUrl = StringUtils.join(imgurls.toArray(), ",");
-//					
-//					U.log(log, "[维修清单图片id数组字符串] fids="+fids);
-//				}
-//			}
-			
 			if(fg){
 				if(StringUtils.isEmpty(jzDate)){
 					fg = U.setPutFalse(map, "[记账日期]不能为空");
@@ -949,26 +905,22 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				}
 			}
 			
+			FeeCourse jzFeeCourse = null;
 			if(fg){
-				if(StringUtils.isEmpty(jzType)){
+				if(StringUtils.isEmpty(jzFeeCourseId)){
 					fg = U.setPutFalse(map, "[记账类型]不能为空");
 				}else{
-					jzType = jzType.trim();
-					
-					U.log(log, "[记账类型] jzType="+jzType);
-				}
-			}
-			
-			if(fg){
-				if(StringUtils.isEmpty(jzStatus)){
-					fg = U.setPutFalse(map, "[收支状态]不能为空");
-				}else{
-					jzStatus = jzStatus.trim();
-					if(!FV.isInteger(jzStatus)){
-						fg = U.setPutFalse(map, "[收支状态]格式错误，应为整数");
+					jzFeeCourseId = jzFeeCourseId.trim();
+					if(!FV.isLong(jzFeeCourseId)) {
+						fg = U.setPutFalse(map, "[记账类型]格式错误");
+					}else {
+						jzFeeCourse = fcDao.findByField("id", Long.parseLong(jzFeeCourseId));
+						if(jzFeeCourse == null) {
+							fg = U.setPutFalse(map, "该记账类型不存在");
+						}
 					}
 					
-					U.log(log, "[收支状态] jzStatus="+jzStatus);
+					U.log(log, "[记账类型] jzFeeCourseId="+jzFeeCourseId);
 				}
 			}
 			
@@ -1003,20 +955,13 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			
 			if(fg) {
 				sr.setRemark(jzRemark);
+				sr.setFeeCourseId(jzFeeCourse);
 				sr.setPayMoney(_jzMoney);
 				sr.setIsCheck(0);
-//				sr.setReimVoucherUrl(repairVoucherUrl);
 				sr.setOperNote(sr.getOperNote()+Util.getOperInfo(lbuser.getRealName(), "修改"));
 				sr.setAddTime(new Date());
 				srDao.update(sr);
 				U.log(log, "修改-员工报账记录-完成");
-				
-//				// 修改对应的维修记账清单图片记录数据
-//				for (FileMan fm : fms) {
-//					fm.setFdat(lunitNum+"="+luname+"="+sr.getId());
-//					fileManDao.update(fm);
-//					U.log(log, "修改-其他记账对应凭证图片记录-完成");
-//				}
 				
 				// 前端需要此id，保存图片
 				map.put("uid", sr.getId());
@@ -1153,6 +1098,12 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			if(fg) {
 				map.put("data", sr);
 				
+				// 字段过滤
+				Map<String, Object> fmap = new HashMap<String, Object>();
+				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
+				map.put(QC.FIT_FIELDS, fmap);
+				
 				U.setPut(map, 1, "获取成功");
 			}
 		} catch (Exception e) {
@@ -1165,24 +1116,52 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	
 	@Override
 	public Map<String, Object> findXcjzList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		String page, String rows, String stime, String etime) {
+		String orderNum, String page, String rows, String stime, String etime) {
 		String logtxt = U.log(log, "获取-行程记账-列表", reqsrc);
 
 		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
 		boolean fg = true;
 		
 		try {
-			fg = U.valPageNo(map, page, rows, "行程记账");
-			fg = U.valSEtime(map, stime, etime, "行程时间");
+			String lunitNum = LU.getLUnitNum(request, redis);
+			String luname = LU.getLUName(request, redis);
 			
-			if(fg) {
-				String unitNum = LU.getLUnitNum(request, redis);
-				String luname = LU.getLUName(request, redis);
-				Page<StaffReimburse> pd = srDao.findPageXcjzList(reqsrc, page, rows, stime, etime, unitNum, luname);
+			if(StringUtils.isBlank(orderNum)) {
+				U.log(log, "查询用户所有行程记账列表");
 				
-				/****处理数据--begin******/
+				fg = U.valPageNo(map, page, rows, "行程记账");
+				fg = U.valSEtime(map, stime, etime, "行程时间");
+				
+				if(fg) {
+					Page<StaffReimburse> pd = srDao.findPageXcjzList(reqsrc, page, rows, stime, etime, lunitNum, luname);
+					
+					/****处理数据--begin******/
+					List<Object> result = new ArrayList<Object>();
+					List<StaffReimburse> list = pd.getResult();
+					for (StaffReimburse sr : list) {
+						Map<String, Object> m = new HashMap<String, Object>();
+						m.put("id", sr.getId()); 											// 员工记账id
+						m.put("isCheck", sr.getIsCheck());									// 审核状态
+						m.put("plateNum", sr.getCarOrderReim().getDisCar().getPlateNum());	// 车牌号
+						m.put("orderNum", sr.getCarOrderReim().getOrderNum());				// 子订单编号
+						m.put("mainOrderNum", sr.getMainOrderReim().getOrderNum());			// 主订单编号
+						m.put("routeIncome", sr.getGathMoney());							// 团上现收
+						m.put("routePay", sr.getPayMoney());								// 总开支
+						m.put("atime", sr.getAddTime());									// 添加日期
+						result.add(m);
+					}
+					/****处理数据--end********/
+					U.setPageData(map, result);
+					
+					U.setPut(map, 1, "获取成功");
+				}
+			}else {
+				U.log(log, "查询用户指定子订单行程记账列表");
+				
+				hql = "from StaffReimburse where unitNum = ?0 and reimUserId.uname = ?1 and carOrderReim.orderNum = ?2 order by id desc";
+				List<StaffReimburse> list = srDao.findhqlList(hql, lunitNum, luname, orderNum);
 				List<Object> result = new ArrayList<Object>();
-				List<StaffReimburse> list = pd.getResult();
 				for (StaffReimburse sr : list) {
 					Map<String, Object> m = new HashMap<String, Object>();
 					m.put("id", sr.getId()); 											// 员工记账id
@@ -1195,15 +1174,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					m.put("atime", sr.getAddTime());									// 添加日期
 					result.add(m);
 				}
-				/****处理数据--end********/
-				U.setPageData(map, result);
-//					U.setPageData(map, pd);
-				
-				// 字段过滤
-//					Map<String, Object> fmap = new HashMap<String, Object>();
-//					fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
-//					fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
-//					map.put(QC.FIT_FIELDS, fmap);
+				map.put("data", result);
 				
 				U.setPut(map, 1, "获取成功");
 			}

@@ -136,6 +136,41 @@ public class FileManDao extends ZBaseDaoImpl<FileMan, Long> {
 			U.log(log, logtxt);
 			e.printStackTrace();
 		}
+	}
+	
+	/**
+	 * 删除-记账报销记录及文件
+	 * @param fids 		文件数据id数组
+	 */
+	public void delJzbxFiles(Object[] fids) {
+		String logtxt = U.log(log, "删除-指定文件数据及文件");
+		
+		boolean fg = true;
+		String hql = "";
+		
+		try {
+			if(fg) {
+				U u = new U();
+				String pf = u.getClassPath();// 获取盘符
+				
+				hql = "from FileMan where id in(:v0)";
+				List<FileMan> fms = findListIns(hql, fids);
+				for (FileMan fm : fms) {
+					// 先删除图片
+					File file = new File(pf+":"+fm.getFolderName().replace("/jzbx", UtilFile.JZBX_FILE_PATH)+"/"+fm.getFname());
+					if(file.exists()) {
+						file.delete();
+						U.log(log, "已删除"+fm.getFname()+"文件");
+					}
+					// 再删除数据
+					delete(fm);
+					U.log(log, "删除数据完成");
+				}
+			}
+		} catch (Exception e) {
+			U.log(log, logtxt);
+			e.printStackTrace();
+		}
 		
 	}
 	

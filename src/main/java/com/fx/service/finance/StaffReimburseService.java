@@ -153,33 +153,31 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @param plateNum 	车牌号
 	 * @param jzDate	记账日期
 	 * @param jzType	记账类型
-	 * @param jzStatus	记账状态
 	 * @param jzMoney	记账金额
 	 * @param jzRemark	记账备注
 	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
 	public Map<String, Object> addQtjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		String lunitNum, String luname, String flen, String plateNum, String jzDate, String jzType, String jzStatus,
-		String jzMoney, String jzRemark);
+		String lunitNum, String luname, String flen, String plateNum, String jzDate, String jzType, String jzMoney, 
+		String jzRemark);
 	
 	/**
 	 * 修改-其他记账
-	 * @param reqsrc 	请求来源
-	 * @param request 	request
-	 * @param response 	response
-	 * @param uid 		其他记账id
-	 * @param flen 		上传文件个数
-	 * @param lunitNum	登录单位编号
-	 * @param luname	登录用户名
-	 * @param jzDate	记账日期
-	 * @param jzType	记账类型
-	 * @param jzStatus	记账状态
-	 * @param jzMoney	记账金额
-	 * @param jzRemark	记账备注
+	 * @param reqsrc 		请求来源
+	 * @param request 		request
+	 * @param response 		response
+	 * @param uid 			其他记账id
+	 * @param flen 			上传文件个数
+	 * @param lunitNum		登录单位编号
+	 * @param luname		登录用户名
+	 * @param jzDate		记账日期
+	 * @param jzFeeCourseId	记账科目id（记账类型）
+	 * @param jzMoney		记账金额
+	 * @param jzRemark		记账备注
 	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
 	public Map<String, Object> updQtjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		String lunitNum, String luname, String uid, String flen, String jzDate, String jzType, String jzStatus,
+		String lunitNum, String luname, String uid, String flen, String jzDate, String jzFeeCourseId, 
 		String jzMoney, String jzRemark);
 	
 	/**
@@ -237,6 +235,7 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @param reqsrc 	请求来源
 	 * @param request 	request
 	 * @param response 	response
+	 * @param orderNum 	子订单编号
 	 * @param page 		页码
 	 * @param rows 		页大小
 	 * @param stime 	开始时间
@@ -244,7 +243,7 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
 	public Map<String, Object> findXcjzList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-		String page, String rows, String stime, String etime);
+		String orderNum, String page, String rows, String stime, String etime);
 	
 }
 

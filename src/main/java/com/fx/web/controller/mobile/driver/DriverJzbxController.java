@@ -118,8 +118,7 @@ public class DriverJzbxController {
 	 * @param type 查询类型：1-加油记账；2-维修记账；
 	 */
 	@RequestMapping(value="getPrevkmAndMaxkm", method=RequestMethod.POST)
-	public void getPrevkmAndMaxkm(HttpServletRequest request, HttpServletResponse response, 
-		@RequestBody JSONObject json){
+	public void getPrevkmAndMaxkm(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
 		String plateNum = U.P(json, "plateNum");
 		String uid = U.P(json, "uid");
 		String type = U.P(json, "type");
@@ -128,8 +127,7 @@ public class DriverJzbxController {
 		
 		String luname = LU.getLUName(request, redis);
 		String teamNo = LU.getLUnitNum(request, redis);
-		map = jyjzSer.findPrevkmAndMaxkm(ReqSrc.WX, request, response, teamNo, luname, 
-			plateNum, uid, type);
+		map = jyjzSer.findPrevkmAndMaxkm(ReqSrc.WX, request, response, teamNo, luname, plateNum, uid, type);
 		
 		Message.print(response, map);
 	}
@@ -154,19 +152,20 @@ public class DriverJzbxController {
 	/**
 	 * 添加-记账报销-文件
 	 * 请求接口（post）：/mb/driver/jzbx/addJzbxFile
-	 * @param files 文件数组
-	 * @param ftype 文件所属类型 JYJZ_IMG=加油记账凭证；WXJZ_IMG=维修记账凭证;QTJZ_IMG=其他记账凭证;XCSZ_IMG=行程收支凭证;
-	 * @param uid 	修改对象id
+	 * @param files 	文件数组
+	 * @param ftype 	文件所属类型 JYJZ_IMG=加油记账凭证；WXJZ_IMG=维修记账凭证;QTJZ_IMG=其他记账凭证;XCSZ_IMG=行程收支凭证;
+	 * @param uid 		修改对象id
+	 * @param fnames 	未修改的文件名数组字符串
 	 */
 	@RequestMapping(value="addJzbxFile", method=RequestMethod.POST)
 	public void addJzbxFile(HttpServletResponse response, HttpServletRequest request, 
-		@RequestParam("files")MultipartFile[] files, String ftype, String uid){
+		@RequestParam("files")MultipartFile[] files, String ftype, String uid, String fnames){
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		
 		String luname = LU.getLUName(request, redis);
 		String lteamNo = LU.getLUnitNum(request, redis);
-		map = commonSer.addJzbxFile(ReqSrc.WX, ftype, lteamNo, luname, files, uid);
+		map = commonSer.addJzbxFile(ReqSrc.WX, ftype, lteamNo, luname, files, uid, fnames);
 		
 		Message.print(response, map);
 	}
@@ -438,8 +437,7 @@ public class DriverJzbxController {
 	 * @param flen  		上传文件的个数
 	 * @param plateNum 		车牌号
 	 * @param jzDate 		记账日期
-	 * @param jzType		记账类型
-	 * @param jzStatus		记账状态
+	 * @param jzFeeCourseId	记账科目id（记账类型）
 	 * @param jzMoney 		记账金额
 	 * @param jzRemark 		记账备注
 	 */
@@ -448,8 +446,7 @@ public class DriverJzbxController {
 		String flen = U.P(json, "flen");
 		String plateNum = U.P(json, "plateNum");
 		String jzDate = U.P(json, "jzDate");
-		String jzType = U.P(json, "jzType");
-		String jzStatus = U.P(json, "jzStatus");
+		String jzFeeCourseId = U.P(json, "jzFeeCourseId");
 		String jzMoney = U.P(json, "jzMoney");
 		String jzRemark = U.P(json, "jzRemark");
 		
@@ -457,30 +454,28 @@ public class DriverJzbxController {
 		
 		String luname = LU.getLUName(request, redis);
 		String lunitNum = LU.getLUnitNum(request, redis);
-		map = staffReimburseSer.addQtjz(ReqSrc.WX, request, response, lunitNum, luname, flen, plateNum, jzDate, jzType, 
-			jzStatus, jzMoney, jzRemark);
+		map = staffReimburseSer.addQtjz(ReqSrc.WX, request, response, lunitNum, luname, flen, plateNum, jzDate, 
+			jzFeeCourseId, jzMoney, jzRemark);
 		
 		Message.print(response, map);
 	}
 	
 	/**
 	 * 修改-其他记账
-	 * 请求接口（post）：/mb/driver/jzbx/updOtherjz
+	 * 请求接口（post）：/mb/driver/jzbx/updQtjz
 	 * @param uid  			其他记账id
 	 * @param flen  		上传文件个数
 	 * @param jzDate 		记账日期
-	 * @param jzType		记账类型
-	 * @param jzStatus		记账状态
+	 * @param jzFeeCourseId	记账科目id（记账类型）
 	 * @param jzMoney 		记账金额
 	 * @param jzRemark 		记账备注
 	 */
-	@RequestMapping(value="updOtherjz", method=RequestMethod.POST)
+	@RequestMapping(value="updQtjz", method=RequestMethod.POST)
 	public void updOtherjz(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
 		String uid = U.P(json, "uid");
 		String flen = U.P(json, "flen");
 		String jzDate = U.P(json, "jzDate");
-		String jzType = U.P(json, "jzType");
-		String jzStatus = U.P(json, "jzStatus");
+		String jzFeeCourseId = U.P(json, "jzFeeCourseId");
 		String jzMoney = U.P(json, "jzMoney");
 		String jzRemark = U.P(json, "jzRemark");
 		
@@ -488,8 +483,8 @@ public class DriverJzbxController {
 		
 		String luname = LU.getLUName(request, redis);
 		String lunitNum = LU.getLUnitNum(request, redis);
-		map = staffReimburseSer.updQtjz(ReqSrc.WX, request, response, lunitNum, luname, uid, flen, jzDate, jzType, 
-			jzStatus, jzMoney, jzRemark);
+		map = staffReimburseSer.updQtjz(ReqSrc.WX, request, response, lunitNum, luname, uid, flen, jzDate, 
+			jzFeeCourseId, jzMoney, jzRemark);
 		
 		Message.print(response, map);
 	}
@@ -704,6 +699,7 @@ public class DriverJzbxController {
 	/**
      * 获取-车队驾驶员-行程记账-列表
      * 请求接口（post）：/mb/driver/jzbx/getXcjzList
+	 * @param orderNum 	 子订单编号
 	 * @param page 		  页码
 	 * @param rows 		  页大小
 	 * @param stime 	  记账日期-开始
@@ -711,6 +707,7 @@ public class DriverJzbxController {
      */
 	@RequestMapping(value="getXcjzList", method=RequestMethod.POST)
   	public void getXcjzList(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
+		String orderNum = U.P(json, "orderNum");
 		String page = U.P(json, "page");
 		String rows = U.P(json, "rows");
   		String stime = U.P(json, "stime");
@@ -718,7 +715,7 @@ public class DriverJzbxController {
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		
-  		map = staffReimburseSer.findXcjzList(ReqSrc.WX, request, response, page, rows, stime, etime);
+  		map = staffReimburseSer.findXcjzList(ReqSrc.WX, request, response, orderNum, page, rows, stime, etime);
 		
 		Message.print(response, map);
   	}

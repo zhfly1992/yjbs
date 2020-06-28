@@ -25,12 +25,14 @@ import com.fx.commons.utils.tools.FV;
 import com.fx.commons.utils.tools.U;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.BaseUserDao;
+import com.fx.dao.cus.WalletListDao;
 import com.fx.dao.finance.StaffReimburseDao;
 import com.fx.dao.order.CarOrderDao;
 import com.fx.dao.order.MainCarOrderDao;
 import com.fx.dao.order.RouteTradeListDao;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
+import com.fx.entity.cus.WalletList;
 import com.fx.entity.finance.StaffReimburse;
 import com.fx.entity.order.CarOrder;
 import com.fx.entity.order.MainCarOrder;
@@ -66,6 +68,9 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 	/** 主订单-服务 */
 	@Autowired
 	private MainCarOrderDao mainOrderDao;
+	/** 交易记录-服务 */
+	@Autowired
+	private WalletListDao walletListDao;
 	
 	@Override
 	public Map<String, Object> addXcjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
@@ -75,7 +80,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 		String logtxt = U.log(log, "添加-行程记账", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
-//		String hql = "";
+		String hql = "";
 		boolean fg = true;
 		
 		try {
@@ -120,25 +125,6 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 					U.log(log, "[上传文件个数] flen="+flen);
 				}
 			}
-			
-//			String jzVoucherUrl = "";// 费用清单图片url数组字符串
-//			List<FileMan> fms = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fids)) {
-//					fg = U.setPutFalse(map, "[至少需要上传一张费用清单图片]");
-//				}else {
-//					fids = fids.trim();
-//					fms = fileManDao.findFileManList(fids);
-//					
-//					List<String> imgurls = new ArrayList<String>();
-//					for (FileMan fm : fms) {
-//						imgurls.add(fm.getFolderName()+"/"+fm.getFname());
-//					}
-//					if(imgurls.size() > 0) jzVoucherUrl = StringUtils.join(imgurls.toArray(), ",");
-//					
-//					U.log(log, "[费用清单图片id数组字符串] fids="+fids);
-//				}
-//			}
 			
 			List<RouteTradeList> rtls = new ArrayList<RouteTradeList>();
 			CarOrder order = null;
@@ -357,12 +343,26 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 			
 			// 团上收入, 团上支出
 			double routeIncome = 0d, routePay = 0d;
-			String payNote = "";// 团上支出记录
+			// 团上现收记录, 团上支出记录
+			String incomeNote = "", payNote = "";
 			if(fg) {
 				U.log(log, "验证：现收项或者支出项必须有一个有金额");
 				
 				routeIncome = _groupCash + _groupRebate + _routeRebate;
 				U.log(log, "收入金额："+routeIncome);
+				
+				if(_groupCash > 0) {
+					incomeNote += "团上现收:"+_groupCash+"元,";
+				}
+				if(_groupRebate > 0) {
+					incomeNote += "团上返点:"+_groupRebate+"元,";
+				}
+				if(_routeRebate > 0) {
+					incomeNote += "行程加点:"+_routeRebate+"元,";
+				}
+				if(StringUtils.isNotBlank(incomeNote)) {
+					incomeNote = incomeNote.substring(0, incomeNote.length() - 1) + ";";
+				}
 				
 				routePay = _singleFee + _washingFee + _parkingFee + _roadFee + _livingFee + _otherFee + _waterFee + _stayFee;
 				U.log(log, "支出金额："+routePay);
@@ -412,6 +412,36 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 			
 			
 			if(fg){
+				// 存在现收，则添加现收记录至用户交易记录
+				WalletList wl = null;
+				if(routeIncome > 0) {
+					// 获取已有记录
+					hql = "from WalletList where cName = ?0 and assist = ?1 and type = ?2 and atype = ?3 and status = ?4";
+					wl = walletListDao.findObj(hql, luname, orderNum, 27, 1, 0);
+					if(wl == null) {
+						wl = new WalletList();
+						wl.setcName(luname);
+						wl.setAssist(orderNum);
+						wl.setType(27);
+						wl.setAtype(1);
+						wl.setAmoney(routeIncome);
+						wl.setStatus(0);
+						wl.setCashBalance(0);
+						wl.setNote(incomeNote);
+						wl.setAtime(new Date());
+						wl.setWdcNote(_groupCash +","+ _groupRebate +","+ _routeRebate);
+						walletListDao.save(wl);
+						U.log(log, "保存-驾驶员现收-完成");
+					}else {
+						wl.setAmoney(routeIncome);
+						wl.setNote(incomeNote);
+						wl.setAtime(new Date());
+						wl.setWdcNote(_groupCash +","+ _groupRebate +","+ _routeRebate);
+						walletListDao.update(wl);
+						U.log(log, "更新-驾驶员现收-完成");
+					}
+				}
+				
 				// 存在团上支出，则添加行程收支记录
 				RouteTradeList rtl = null;
 				if(routePay > 0) {
@@ -427,9 +457,8 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 					rtl.setOtherFee(_otherFee);
 					rtl.setWaterFee(_waterFee);
 					rtl.setStayFee(_stayFee);
-					rtl.setRemark(payNote+remark);
+					rtl.setRemark(remark);
 					rtl.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
-	//				rtl.setRouteVoucherUrl(jzVoucherUrl);
 					rtl.setReqsrc(reqsrc);
 					rtl.setIsCheck(0);
 					rtl.setAddTime(new Date());
@@ -449,7 +478,6 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 				sr.setReimUserId(lbuser);
 				sr.setDeptId(driver.getDeptId());
 				sr.setRemark(rtl == null ? remark : rtl.getRemark());
-				sr.setGathMoney(routeIncome);
 				sr.setPayMoney(routePay);
 				sr.setIsCheck(0);
 				sr.setJzType(JzType.XCSZ);
@@ -483,6 +511,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 		String logtxt = U.log(log, "修改-行程收支记录", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
 		boolean fg = true;
 		
 		try {
@@ -553,25 +582,6 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 					U.log(log, "[上传文件个数] flen="+flen);
 				}
 			}
-			
-//			String jzVoucherUrl = "";// 费用清单图片url数组字符串
-//			List<FileMan> fms = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fids)) {
-//					fg = U.setPutFalse(map, "[至少需要上传一张费用清单图片]");
-//				}else {
-//					fids = fids.trim();
-//					fms = fileManDao.findFileManList(fids);
-//					
-//					List<String> imgurls = new ArrayList<String>();
-//					for (FileMan fm : fms) {
-//						imgurls.add(fm.getFolderName()+"/"+fm.getFname());
-//					}
-//					if(imgurls.size() > 0) jzVoucherUrl = StringUtils.join(imgurls.toArray(), ",");
-//					
-//					U.log(log, "[费用清单图片id数组字符串] fids="+fids);
-//				}
-//			}
 			
 			double _groupCash = 0d;
 			if(fg){
@@ -763,12 +773,25 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 			
 			// 团上收入, 团上支出
 			double routeIncome = 0d, routePay = 0d;
-			String payNote = "";// 团上支出记录
+			// 团上现收记录, 团上支出记录
+			String incomeNote = "", payNote = "";
 			if(fg) {
 				U.log(log, "验证：现收项或者支出项必须有一个有金额");
 				
 				routeIncome = _groupCash + _groupRebate + _routeRebate;
 				U.log(log, "收入金额："+routeIncome);
+				if(_groupCash > 0) {
+					incomeNote += "团上现收:"+_groupCash+"元,";
+				}
+				if(_groupRebate > 0) {
+					incomeNote += "团上返点:"+_groupRebate+"元,";
+				}
+				if(_routeRebate > 0) {
+					incomeNote += "行程加点:"+_routeRebate+"元,";
+				}
+				if(StringUtils.isNotBlank(incomeNote)) {
+					incomeNote = incomeNote.substring(0, incomeNote.length() - 1) + ";";
+				}
 				
 				routePay = _singleFee + _washingFee + _parkingFee + _roadFee + _livingFee + _otherFee + _waterFee + _stayFee;
 				U.log(log, "支出金额："+routePay);
@@ -807,6 +830,36 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 			}
 			
 			if(fg){
+				// 存在现收，则添加现收记录至用户交易记录
+				WalletList wl = null;
+				if(routeIncome > 0) {
+					// 获取已有记录
+					hql = "from WalletList where cName = ?0 and assist = ?1 and type = ?2 and atype = ?3 and status = ?4";
+					wl = walletListDao.findObj(hql, luname, order.getOrderNum(), 27, 1, 0);
+					if(wl == null) {
+						wl = new WalletList();
+						wl.setcName(luname);
+						wl.setAssist(order.getOrderNum());
+						wl.setType(27);
+						wl.setAtype(1);
+						wl.setAmoney(routeIncome);
+						wl.setStatus(0);
+						wl.setCashBalance(0);
+						wl.setNote(incomeNote);
+						wl.setAtime(new Date());
+						wl.setWdcNote(_groupCash +","+ _groupRebate +","+ _routeRebate);
+						walletListDao.save(wl);
+						U.log(log, "保存-驾驶员现收-完成");
+					}else {
+						wl.setAmoney(routeIncome);
+						wl.setNote(incomeNote);
+						wl.setAtime(new Date());
+						wl.setWdcNote(_groupCash +","+ _groupRebate +","+ _routeRebate);
+						walletListDao.update(wl);
+						U.log(log, "更新-驾驶员现收-完成");
+					}
+				}
+				
 				// 存在团上支出，则添加行程收支记录
 				RouteTradeList rtl = sr.getOrderTrade();
 				if(rtl == null) {
@@ -823,7 +876,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 						rtl.setOtherFee(_otherFee);
 						rtl.setWaterFee(_waterFee);
 						rtl.setStayFee(_stayFee);
-						rtl.setRemark(payNote+remark);
+						rtl.setRemark(remark);
 						rtl.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 						rtl.setReqsrc(reqsrc);
 						rtl.setIsCheck(0);
@@ -846,7 +899,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 					rtl.setOtherFee(_otherFee);
 					rtl.setWaterFee(_waterFee);
 					rtl.setStayFee(_stayFee);
-					rtl.setRemark(payNote+remark);
+					rtl.setRemark(remark);
 					rtl.setOperNote(rtl.getOperNote()+Util.getOperInfo(lbuser.getRealName(), "修改"));
 					rtl.setIsCheck(0);
 					rtl.setAddTime(new Date());
@@ -883,6 +936,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 		String logtxt = U.log(log, "获取-行程记账-详情", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
 		boolean fg = true;
 		
 		try {
@@ -906,16 +960,61 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 			}
 			
 			if(fg) {
-				RouteTradeList rtl = null;
-				
-				if(sr.getOrderTrade() != null) {
-					U.log(log, "存在行程收支数据");
+				// 获取-行程现收
+				double groupCash = 0d, groupRebate = 0d, routeRebate = 0d;
+				hql = "from WalletList where cName = ?0 and assist = ?1 and type = ?2 and atype = ?3 and status = ?4";
+				WalletList wl = walletListDao.findObj(hql, luname, sr.getCarOrderReim().getOrderNum(), 27, 1, 0);
+				if(wl != null) {
+					U.log(log, "存在行程现收数据");
+					String incomMoney[] = wl.getWdcNote().split(",");
 					
-					rtl = sr.getOrderTrade();
+					groupCash = Double.parseDouble(incomMoney[0]);
+					groupRebate = Double.parseDouble(incomMoney[1]);
+					routeRebate = Double.parseDouble(incomMoney[2]);
 				}
 				
-				map.put("sr", sr);
-				map.put("rtl", rtl);
+				// 获取-行程开支
+				double singleFee = 0d, washingFee = 0d, parkingFee = 0d, roadFee = 0d, 
+					livingFee = 0d, otherFee = 0d, waterFee = 0d, stayFee = 0d;
+				String imgUrls = "", remark = "";
+				RouteTradeList rtl = sr.getOrderTrade();
+				if(rtl != null) {
+					U.log(log, "存在行程收支数据");
+					
+					singleFee = rtl.getSingleFee();
+					washingFee = rtl.getWashingFee();
+					parkingFee = rtl.getParkingFee();
+					roadFee = rtl.getRoadFee();
+					livingFee = rtl.getLivingFee();
+					otherFee = rtl.getOtherFee();
+					waterFee = rtl.getWaterFee();
+					stayFee = rtl.getStayFee();
+					imgUrls = rtl.getRouteVoucherUrl();
+					remark = rtl.getRemark();
+				}
+				
+				// 处理结果
+				Map<String, Object> r = new HashMap<String, Object>();
+				r.put("id", sr.getId());
+				r.put("orderNum", sr.getCarOrderReim().getOrderNum());
+				r.put("isCheck", sr.getIsCheck());
+				/*********行程现收**************/
+				r.put("groupCash", groupCash);
+				r.put("groupRebate", groupRebate);
+				r.put("routeRebate", routeRebate);
+				/*********行程开支**************/
+				r.put("singleFee", singleFee);
+				r.put("washingFee", washingFee);
+				r.put("parkingFee", parkingFee);
+				r.put("roadFee", roadFee);
+				r.put("livingFee", livingFee);
+				r.put("otherFee", otherFee);
+				r.put("waterFee", waterFee);
+				r.put("stayFee", stayFee);
+				r.put("routeVoucherUrl", imgUrls);
+				r.put("remark", remark);
+				
+				map.put("data", r);
 				
 				U.setPut(map, 1, "获取数据成功");
 			}

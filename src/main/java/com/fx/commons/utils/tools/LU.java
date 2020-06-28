@@ -11,6 +11,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import com.fx.commons.utils.other.CookieUtil;
+import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
 import com.fx.entity.cus.Customer;
@@ -61,6 +62,28 @@ public class LU extends BaseController {
 		Customer cus = getLUSER(request, redis);
 		if (cus != null) {
 			return cus.getBaseUserId().getUname();
+		}else {
+			Staff staff=getLStaff(request, redis);
+			if(staff!=null) return staff.getBaseUserId().getUname();
+		}
+		return null;
+	}
+	
+	/**
+	 * 获取-登录用户姓名
+	 * 
+	 * @param request
+	 *            request
+	 * @param redis
+	 *            redis
+	 */
+	public static String getLRealName(HttpServletRequest request, RedisUtil redis) {
+		Customer cus = getLUSER(request, redis);
+		if (cus != null) {
+			return cus.getBaseUserId().getRealName();
+		}else {
+			Staff staff=getLStaff(request, redis);
+			if(staff!=null) return staff.getBaseUserId().getRealName();
 		}
 		return null;
 	}
@@ -114,7 +137,23 @@ public class LU extends BaseController {
 		return null;
 	}
 
+	/**
+	 * 获取-登录员工信息
+	 * 
+	 * @param request
+	 *            request
+	 * @param redis
+	 *            redis
+	 */
+	public static Staff getLStaff(HttpServletRequest request, RedisUtil redis) {
+		LU lu = new LU();
+		Map<String, Object> loginKey = lu.getLMap(request, redis);
+		if (loginKey != null) {
+			return (Staff) loginKey.get(QC.L_STAFF);
+		}
 
+		return null;
+	}
 
 	/**
 	 * 获取-登录单位编号

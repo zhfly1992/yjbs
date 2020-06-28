@@ -8,22 +8,32 @@ package com.fx.commons.utils.tools;
 public class QC {
 
 	/**
-	 * 正式-项目域名 http://51ekc.com
+	 * 正式-项目域名 http://51ekc.cn
 	 */
-	public static String PRO_URL = "http://51ekc.com";
+	public static String PRO_URL = "http://51ekc.cn";
 //	public static String PRO_URL = "http://192.168.1.4";
 	/**
 	 * 正式-项目数据库连接ip 121.37.161.108
 	 */
 	public final static String SQL_IP = "121.37.161.108";
 	/**
-	 * 正式-cookie保存domain .51ekc.com
+	 * 正式-cookie保存domain .51ekc.cn
 	 */
-	public static String COOKIE_DOMAIN = ".51ekc.com";
+	public static String COOKIE_DOMAIN = ".51ekc.cn";
 	/**
 	 * 正式-网站备案号
 	 */
 	public static String RECORD_NUMBER = "蜀ICP备16026496号";
+	
+	/**
+	 * 移动端-公众号-客户-访问项目名 /yjbs-cus
+	 */
+	public static String MOBILE_CUS_URL = "/yjbs-cus";
+	
+	/**
+	 * 移动端-公众号-驾驶员-访问项目名 /yjbs-driver
+	 */
+	public static String MOBILE_DRIVER_URL = "/yjbs-driver";
 	
 	
 	/**
@@ -49,6 +59,8 @@ public class QC {
 	public static final String UUID = "uuid";
 	/** 登录用户 L_USER */
 	public static final String L_USER = "L_USER";
+	/** 登录员工 L_STAFF */
+	public static final String L_STAFF = "L_STAFF";
 	/** 登录用户角色 L_ROLE */
 	public static final String L_ROLE = "L_ROLE";
 	/** 用户登录时间 L_TIME */
@@ -78,6 +90,10 @@ public class QC {
 	 */
 	public static double DRIVER_GET_MONEY_PROP = 1 - 0.15;
     
+	/**
+	 * 地点范围：2000米
+	 */
+	public static int POINT_RANGE = 2 * 1000;
 	
 	/**
 	 * 过滤字段数组：fit_fields
@@ -85,7 +101,7 @@ public class QC {
 	public static final String FIT_FIELDS = "fit_fields";
 	
 	/** 默认[单位编号-飞翔车队] */
-    public static final String DEF_COMPANY_NUM = "11111111";
+    public static final String DEF_COMPANY_NUM = "8112010001";
     
     
     /** 默认飞翔公众号 appid */
@@ -117,6 +133,11 @@ public class QC {
 	 */
 	public static final String SEND_TEMPLATE_MESSAGE = "https://api.weixin.qq.com/cgi-bin/message/template/send"; 
 	
+	
+	/**
+	 * 请求来源不存在错误消息：请求来源不存在
+	 */
+	public static String ERROR_REQ_SRC_MSG = "请求来源不存在";
 	
 	/**
 	 * 发生异常出错提示消息：抱歉，出错了，请刷新再试

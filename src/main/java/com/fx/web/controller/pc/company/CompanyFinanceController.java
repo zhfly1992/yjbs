@@ -1024,23 +1024,23 @@ public class CompanyFinanceController extends BaseController {
     	Message.print(response, map);
 	}
 	/**
-	 *  银行账审核通过下账记录 API（post）/company/finance/checkYesBtl
+	 *  银行账审核下账：通过 API（post）/company/finance/checkYesBtl
 	 * @author xx
-	 * @date 20200523
+	 * @date 20200617
 	 */
-	@ApiOperation(value="银行账审核通过下账记录 ",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiOperation(value="银行账审核下账：通过  ",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
 	@ApiImplicitParams({
 		@ApiImplicitParam(
 				required=true, 
-				name="btlId", 
+				name="createInfo", 
 				dataType="String",
-				value="记录id"
+				value="参数格式：银行账记录id=科目id@银行账记录id=科目id"
 			),
-		@ApiImplicitParam(
-				required=true, 
-				name="feeCourseId", 
+			@ApiImplicitParam(
+					required=true,
+				name="faceCourseInfo", 
 				dataType="String",
-				value="科目id"
+				value="参数格式：对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额@对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额"
 			),
 	})
 	@ApiResponses({
@@ -1050,18 +1050,18 @@ public class CompanyFinanceController extends BaseController {
 	})
 	 @RequestMapping(value="checkYesBtl", method=RequestMethod.POST) 
 	 public void checkYesBtl(HttpServletRequest request,HttpServletResponse response,@RequestBody JSONObject jsonObject){
-		String btlId = jsonObject.getString("btlId");
-		String feeCourseId = jsonObject.getString("feeCourseId");
+		String createInfo = jsonObject.getString("createInfo");
+		String faceCourseInfo = jsonObject.getString("faceCourseInfo");
 		Map<String, Object> map = new HashMap<String, Object>();
-    	map=btlSer.checkYesBtl(ReqSrc.PC_COMPANY, response, request, btlId, feeCourseId);
+    	map=btlSer.checkYesBtl(ReqSrc.PC_COMPANY, response, request, createInfo, faceCourseInfo);
     	Message.print(response, map);
 	}
 	/**
-	 *  银行账审核不通过下账记录 API（post）/company/finance/checkNoBtl
+	 *  银行账审核下账：不通过 API（post）/company/finance/checkNoBtl
 	 * @author xx
 	 * @date 20200615
 	 */
-	@ApiOperation(value="银行账审核不通过下账记录 ",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiOperation(value="银行账审核下账：不通过 ",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
 	@ApiImplicitParams({
 		@ApiImplicitParam(
 				required=true, 
@@ -1711,49 +1711,28 @@ public class CompanyFinanceController extends BaseController {
 		Message.print(response, map);
 	}
 	/**
-	 *  添加/修改财务记账凭证 API（post）/company/finance/adupReimburse
+	 *  修改财务记账凭证 API（post）/company/finance/modifyReim
 	 * @author xx
 	 * @date 20200521
 	 */
-	@ApiOperation(value="添加/修改凭证记录",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiOperation(value="修改凭证记录",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
 	@ApiImplicitParams({
 		@ApiImplicitParam(
 			name="updId", 
 			dataType="String",
-			value="修改记录id，修改时才有值"
+			value="修改记录id"
 		),
 		@ApiImplicitParam(
 				required=true, 
-				name="uname", 
+				name="modifyFeeCourse", 
 				dataType="String",
-				value="报销人账号，从客户列表中选择"
+				value="参数格式：修改科目交易记录id=修改科目id@修改科目交易记录id=修改科目id"
 			),
 		@ApiImplicitParam(
 				required=true, 
-				name="feeCourseId", 
-				dataType="String",
-				value="科目id"
-			),
-		@ApiImplicitParam(
-				required=true, 
-				name="totalMoney", 
-				dataType="String",
-				value="金额"
-			),
-		@ApiImplicitParam(
-				name="remark", 
-				dataType="String",
-				value="摘要"
-			),
-		@ApiImplicitParam(
 				name="gainTime", 
 				dataType="String",
 				value="记账时间"
-			),
-		@ApiImplicitParam(
-				name="voucherUrl", 
-				dataType="String",
-				value="图片url,多张图片逗号拼接"
 			),
 	})
 	@ApiResponses({
@@ -1761,18 +1740,13 @@ public class CompanyFinanceController extends BaseController {
 		@ApiResponse(code=0, message="msg"),
 		@ApiResponse(code=-1, message="msg")
 	})
-	@RequestMapping(value = "adupReimburse", method = RequestMethod.POST)
-	public void adupReimburse(HttpServletRequest request,HttpServletResponse response,@RequestBody JSONObject jsonObject) {
+	@RequestMapping(value = "modifyReim", method = RequestMethod.POST)
+	public void modifyReim(HttpServletRequest request,HttpServletResponse response,@RequestBody JSONObject jsonObject) {
 		Map<String, Object> map = new HashMap<String, Object>();
 		String updId = jsonObject.getString("updId");
-		String uname = jsonObject.getString("uname");
-		String feeCourseId = jsonObject.getString("feeCourseId");
-		String totalMoney = jsonObject.getString("totalMoney");
-		String remark = jsonObject.getString("remark");
+		String modifyFeeCourse = jsonObject.getString("modifyFeeCourse");
 		String gainTime = jsonObject.getString("gainTime");
-		String voucherUrl = jsonObject.getString("voucherUrl");
-		map=reimSer.adupReimburse(ReqSrc.PC_COMPANY, request, response, updId, LU.getLUnitNum(request, redis), uname, feeCourseId, 
-				 totalMoney, remark, gainTime, voucherUrl);
+		map=reimSer.modifyReim(ReqSrc.PC_COMPANY, request, response, updId, modifyFeeCourse, gainTime);
 		Message.print(response, map);
 	}
 	/**
@@ -1903,6 +1877,12 @@ public class CompanyFinanceController extends BaseController {
 	@ApiImplicitParams({
 		@ApiImplicitParam(
 			required=true, 
+			name="courseCategory", 
+			dataType="String",
+			value="科目类别 eg: 资产类[PROPERTY] 负债类[DEBT] 权益类[LEGAL] 成本类[COST] 损益类[LOSSES]"
+		),
+		@ApiImplicitParam(
+			required=true, 
 			name="courseName", 
 			dataType="String",
 			value="科目名称 eg:名称"
@@ -1986,7 +1966,7 @@ public class CompanyFinanceController extends BaseController {
 	 * @author zh
 	 * @date 20200522
 	 */
-	@ApiOperation(value="新增凭证科目",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiOperation(value="编辑凭证科目",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
 	@ApiImplicitParams({
 		@ApiImplicitParam(
 			required=true, 
@@ -2047,7 +2027,13 @@ public class CompanyFinanceController extends BaseController {
 			name="unitNum", 
 			dataType="String",
 			value="单位编号 eg：Uxxxx"
-			)
+			),
+		@ApiImplicitParam(
+				required=true, 
+				name="courseCategory", 
+				dataType="String",
+				value="科目类别 eg: 资产类[PROPERTY] 负债类[DEBT] 权益类[LEGAL] 成本类[COST] 损益类[LOSSES]"
+			),
 	})
 	@ApiResponses({
 		@ApiResponse(code=1, message="msg"),
@@ -2612,7 +2598,7 @@ public class CompanyFinanceController extends BaseController {
 		String ids = jsonObject.getString("ids");
 		String payMoney = jsonObject.getString("payMoney");
 		String payRemark = jsonObject.getString("payRemark");
-		map =carOrderService.servicePay(ReqSrc.PC_COMPANY, request, LU.getLUnitNum(request, redis), LU.getLUName(request, redis), ids, payMoney, payRemark);
+		map =carOrderService.servicePay(ReqSrc.PC_COMPANY, request, LU.getLUnitNum(request, redis), LU.getLStaff(request, redis), ids, payMoney, payRemark);
 		Message.print(response, map);
 	}
 	
@@ -2789,7 +2775,7 @@ public class CompanyFinanceController extends BaseController {
 	 * @author xx
 	 * @date 20200602
 	 */
-	@ApiOperation(value="单位业务收款",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiOperation(value="单位业务收款（多条收款必须是同一客户）",notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
 	@ApiImplicitParams({
 		@ApiImplicitParam(
 			required=true, 
@@ -2798,22 +2784,22 @@ public class CompanyFinanceController extends BaseController {
 			value="收款类型：0师傅团上现收 1业务员交车款 2客户自己付尾款"
 		),
 		@ApiImplicitParam(
-				required=true, 
-				name="ids", 
-				dataType="String",
-				value="订单id,多个逗号拼接"
-			),
+			required=true, 
+			name="createInfo", 
+			dataType="String",
+			value="参数格式：订单记录id=科目id@订单记录id=科目id"
+		),
+		@ApiImplicitParam(
+				required=true,
+			name="faceCourseInfo", 
+			dataType="String",
+			value="参数格式：对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额@对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额"
+		),
 		@ApiImplicitParam(
 				required=true, 
 				name="gathMoney", 
 				dataType="String",
-				value="收款金额 eg:500"
-			),
-		@ApiImplicitParam(
-				required=true, 
-				name="gathRemark", 
-				dataType="String",
-				value="收款摘要"
+				value="收款金额，单条订单收款时必传，默认为0 eg:500"
 			),
 		@ApiImplicitParam(
 				name="routeDriver", 
@@ -2825,11 +2811,6 @@ public class CompanyFinanceController extends BaseController {
 				dataType="String",
 				value="客户id:gathType=2时此参数必有值，默认为空"
 			),
-		@ApiImplicitParam(
-				name="preMoney", 
-				dataType="String",
-				value="客户预存款：gathType!=2时此参数才能填写，默认为空"
-			),
 	})
 	@ApiResponses({
 		@ApiResponse(code=1, message="msg"),
@@ -2840,14 +2821,13 @@ public class CompanyFinanceController extends BaseController {
 	public void serviceGath(HttpServletResponse response, HttpServletRequest request,@RequestBody JSONObject jsonObject){
 		Map<String, Object> map = new HashMap<String, Object>();
 		String gathType = jsonObject.getString("gathType");
-		String ids = jsonObject.getString("ids");
+		String createInfo = jsonObject.getString("createInfo");
 		String gathMoney = jsonObject.getString("gathMoney");
-		String gathRemark = jsonObject.getString("gathRemark");
 		String routeDriver = jsonObject.getString("routeDriver");
+		String faceCourseInfo = jsonObject.getString("faceCourseInfo");
 		String cusId = jsonObject.getString("cusId");
-		String preMoney = jsonObject.getString("preMoney");
-		map =mainCarOrderService.serviceGath(ReqSrc.PC_COMPANY, request, response, LU.getLUnitNum(request, redis), LU.getLUName(request, redis), 
-				gathType, ids, gathMoney, gathRemark, routeDriver, cusId, preMoney);
+		map =mainCarOrderService.serviceGath(ReqSrc.PC_COMPANY, request, response, LU.getLUnitNum(request, redis), gathType, routeDriver, cusId, 
+				gathMoney, createInfo, faceCourseInfo, LU.getLUName(request, redis), LU.getLRealName(request, redis));
 		Message.print(response, map);
 	}
 }

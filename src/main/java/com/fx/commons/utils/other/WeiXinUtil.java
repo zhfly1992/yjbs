@@ -26,7 +26,7 @@ public class WeiXinUtil {
 	public static final Logger log = LogManager.getLogger(WeiXinUtil.class.getName());
 	
 	//微信支付回调地址
-	public static String REDIRECT_PAY_URI = "http://51ekc.com/rentalcar/wallet/payOpenId";
+	public static String REDIRECT_PAY_URI = "http://51ekc.cn/rentalcar/wallet/payOpenId";
 	//获取access_token
 	public static String GET_ACCESS_TOKEN="https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=APPID&secret=APPSECRET";
 	//获取code网页授权

@@ -16,6 +16,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.annotation.Log;
 import com.fx.commons.utils.clazz.Message;
 import com.fx.commons.utils.enums.ReqSrc;
+import com.fx.commons.utils.other.towcode.EncoderHandler;
 import com.fx.service.CommonService;
 import com.fx.service.back.CarBrandService;
 import com.fx.service.back.CityListService;
@@ -68,6 +69,17 @@ public class CommonController extends BaseController {
     public void unauthorized(HttpServletResponse response) {
     	Message.print(response, new Message(400, "用户无权限"));
     }
+    
+    /**
+	* 生成二维码
+	 * 请求接口（get）：/common/getTwoCode
+	*/
+	@ApiOperation(value="获取-字符串二维码图片", notes="返回一个文件流")
+	@RequestMapping(value = "getTwoCode", method = RequestMethod.GET)
+	public void getQRCoder(HttpServletResponse response){
+		String content = "http://121.36.52.250/yjbs-driver";
+		EncoderHandler.createCode(content, response);
+	}
 	
 	@ApiOperation(value="获取-图片验证码", notes="返回一个文件流")
 	@RequestMapping(value="getImgCode", method=RequestMethod.GET)

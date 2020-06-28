@@ -509,11 +509,14 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 					//conflictCar.add(each);
 				}else{
 					for (CarOrder eachco:colist) {
-						if(eachco.getStatus()!=OrderStatus.JL_NOT_CONFIRM || !(ot.getStime().before(eachco.getStime()) && 
-								ot.getEtime().after(eachco.getStime()))) {//已确认的订单或者已有开始时间不在当前行程时间内排除
+						if(eachco.getStatus()!=OrderStatus.JL_NOT_CONFIRM) {//已确认的订单
+							conflictPn.add(eachco.getDisCar().getPlateNum());
+						}else if(RouteType.ONE_WAY==ot.getRouteType() && !(ot.getStime().before(eachco.getStime()) && 
+								ot.getEtime().after(eachco.getStime()))){//单程接送并且已有开始时间不在当前行程时间内排除
 							conflictPn.add(eachco.getDisCar().getPlateNum());
 						}
 					}
+					
 				}
 			}
 			Iterator<String> it = conflictPn.iterator();
@@ -648,7 +651,7 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 			fcar=getBestCar(noneNextBest,noneNextMap, fcar);
 		}
 		if(haveNextMap.size()>0){
-			fcar=getBestCar(haveNextBest,noneNextMap, fcar);
+			fcar=getBestCar(haveNextBest,haveNextMap, fcar);
 		}
 		return fcar;
 	}
@@ -759,12 +762,12 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 		  			}
 	  			}
 	  			if(least!=-1){//能接到下个订单
-	  				least+=DateUtils.getSecondsOfTowDiffDate(uetime, beforeJcNext.getStime());
-					least+=Long.valueOf(distance);
 		  			//当前订单结束时间和下个行程开始时间在3小时内或者在同一天或者接不到下个行程代表有下一程，否则都不算有下一程
 					if(DateUtils.getHoursOfTowDiffDate(uetime, beforeJcNext.getStime())<=3 ||
 					org.apache.commons.lang3.time.DateUtils.isSameDay(uetime, beforeJcNext.getStime()) ||
 					!"0".equals(cancelNum)){
+						least+=DateUtils.getSecondsOfTowDiffDate(uetime, beforeJcNext.getStime());
+						least+=Long.valueOf(distance);
 						haveNext=1;//有下个行程
 						tips+="并且当前行程距离下个行程"+MathUtils.div(Double.valueOf(distance), 1000, 2)+"公里，"+
 						MathUtils.div(Double.valueOf(endSecs), 60, 0)+"分钟";

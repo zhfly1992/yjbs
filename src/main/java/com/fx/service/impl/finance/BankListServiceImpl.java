@@ -92,10 +92,18 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 		
 		try {
 			if(ReqSrc.PC_COMPANY == reqsrc){
-				String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
-				BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
-				if (isExit != null) { // 已设置
-					fg = U.setPutFalse(map, "该银行已存在，请修改");
+				if(StringUtils.isBlank(updId)) {//添加
+					String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
+					BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
+					if (isExit != null) { // 已设置
+						fg = U.setPutFalse(map, "该银行信息已存在，请修改");
+					}
+				}else {//修改
+					String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
+					BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
+					if (isExit != null && isExit.getId()!=Long.valueOf(updId)) { // 已设置
+						fg = U.setPutFalse(map, "该银行信息已存在，请修改");
+					}
 				}
 				BankList bank=null;
 				if(fg){
@@ -104,7 +112,7 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 						if(bank==null) {
 							fg = U.setPutFalse(map, "[银行数据]不存在");
 						}else {
-							hql="from BankTradeList where myBankNum = ?0 and unitNum = ?1 order by id asc";
+							String hql="from BankTradeList where myBankNum = ?0 and unitNum = ?1 order by id asc";
 							BankTradeList btl=btlSer.findObj(hql, bank.getCardNo(),LU.getLUnitNum(request, redis),"LIMIT 1");
 							if(btl!=null){
 								fg = U.setPutFalse(map, "该银行已有交易记录存在，不能修改");
@@ -121,9 +129,9 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 					bank.setCardNo(cardNo);
 					bank.setCardName(cardName);
 					if(StringUtils.isNotBlank(updId)){
-						bank.setOperNote(bank.getOperNote() +Util.getOperInfo(LU.getLUSER(request, redis).getBaseUserId().getRealName(), "修改"));
+						bank.setOperNote(bank.getOperNote() +Util.getOperInfo(LU.getLRealName(request, redis), "修改"));
 					}else {
-						bank.setOperNote(LU.getLUSER(request, redis).getBaseUserId().getRealName()+"[添加]");
+						bank.setOperNote(LU.getLRealName(request, redis)+"[添加]");
 					}
 					if(StringUtils.isNotBlank(updId)) {
 						blDao.update(bank);

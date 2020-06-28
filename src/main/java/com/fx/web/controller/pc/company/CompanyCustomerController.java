@@ -516,7 +516,7 @@ public class CompanyCustomerController extends BaseController {
 	
 	/**
 	 * 
-	 * @Description:获取驾驶员信息，用于下拉框（post）/company/cus/getDriverList
+	 * @Description:获取驾驶员信息，用于下拉框, 排除已绑定车辆的驾驶员（post）/company/cus/getDriverList
 	 * @param response
 	 * @param request
 	 * @param jsonObject
@@ -546,6 +546,25 @@ public class CompanyCustomerController extends BaseController {
 		Map<String, Object> map = new HashMap<String, Object>();
 		String phone = jsonObject.getString("phone");
 		map = ccSer.checkPhoneExists(ReqSrc.PC_COMPANY, response, request, phone, LU.getLUnitNum(request, redis));
+		Message.print(response, map);
+	}
+	
+	
+	/**
+	 * 
+	 * @Description:新增员工检验手机号 （post）/company/cus/checkStaffPhone
+	 * @param response
+	 * @param request
+	 * @param jsonObject {"phone":""}
+	 * @author :zh
+	 * @version 2020年6月18日
+	 */
+	@RequestMapping(value = "checkStaffPhone", method = RequestMethod.POST)
+	public void checkPhoneBeforeAddStaff(HttpServletResponse response, HttpServletRequest request,
+			@RequestBody JSONObject jsonObject){
+		Map<String, Object> map = new HashMap<String, Object>();
+		String phone = jsonObject.getString("phone");
+		map = staSer.checkPhoneBeforeAdd(ReqSrc.PC_COMPANY, response, request, phone);
 		Message.print(response, map);
 	}
 	
@@ -621,7 +640,40 @@ public class CompanyCustomerController extends BaseController {
 		Message.print(response, map);
 	}
 
-
+	
+	/**
+ 	 * 员工离职（post）/company/cus/staffLeave
+ 	 * @author zh
+ 	 * @date 20200627
+ 	 */
+ 	@ApiOperation(value="后台操作员工离职", notes="后台操作员工离职")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="id", 
+			dataType="String", 
+			value="员工id eg：1"
+		),
+		@ApiImplicitParam(
+			required=true, 
+			name="leaveInfo", 
+			dataType="String", 
+			value="离职信息 eg：'2020-06-27,备注'"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+ 	@RequestMapping(value="staffLeave",method=RequestMethod.POST)
+	public void staffLeave(HttpServletResponse response, HttpServletRequest request,@RequestBody JSONObject jsonObject){
+ 		Map<String, Object> map = new HashMap<String, Object>();
+		String id = jsonObject.getString("id");
+		String leaveInfo =jsonObject.getString("leaveInfo");
+		map = staSer.staffLeave(ReqSrc.PC_COMPANY, response, request, id,leaveInfo);
+		Message.print(response, map);
+	}
 
 	/**
 	 * 登出-系统 API（post）/company/cus/logout

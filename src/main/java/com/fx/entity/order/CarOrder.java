@@ -196,15 +196,28 @@ public class CarOrder implements Serializable,Cloneable{
 	@Column(name="is_high_speed", nullable=false, columnDefinition="int(11) default 0 COMMENT '是否走高速'")
 	private int isHighSpeed;
 	
-	/** 确认出行地点 */
-	@OneToOne(targetEntity = MapPoint.class)
-	@JoinColumn(name="confm_start", referencedColumnName="id", columnDefinition="bigint COMMENT  '确认出行地点'")
-	private MapPoint confmStart;
+	/** 确认出行地点坐标 103.123456,30.123456 */
+	@Column(name="confm_slnglat", columnDefinition="varchar(30) COMMENT '确认出行地点坐标'")
+	private String confmSlnglat;
 	
-	/** 确认完团地点 */
-	@OneToOne(targetEntity = MapPoint.class)
-	@JoinColumn(name="confm_end", referencedColumnName="id", columnDefinition="bigint COMMENT  '确认完团地点'")
-	private MapPoint confmEnd;
+	/** 确认出行时间 */
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="confm_stime", columnDefinition="datetime COMMENT '确认出行时间'")
+	private Date confmStime;
+	
+	/** 确认完团地点坐标 103.123456,30.123456 */
+	@Column(name="confm_elnglat", columnDefinition="varchar(30) COMMENT '确认完团地点坐标'")
+	private String confmElnglat;
+	
+	/** 确认完团时间 */
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="confm_etime", columnDefinition="datetime COMMENT '确认完团时间'")
+	private Date confmEtime;
+	
+	/** 最后一次修改时间 */
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="last_modify_time", columnDefinition="datetime COMMENT '最后一次修改时间'")
+	private Date lastModifyTime;
 	
 	
 	public CarOrder() {}
@@ -843,42 +856,90 @@ public class CarOrder implements Serializable,Cloneable{
 	public void setIsHighSpeed(int isHighSpeed) {
 		this.isHighSpeed = isHighSpeed;
 	}
-	
-	/**  
-	 * 获取 确认出行地点  
-	 * @return confmStart
-	 */
-	public MapPoint getConfmStart() {
-		return confmStart;
-	}
-	
-	/**  
-	 * 设置 确认出行地点  
-	 * @param confmStart
-	 */
-	public void setConfmStart(MapPoint confmStart) {
-		this.confmStart = confmStart;
-	}
-	
-	/**  
-	 * 获取 确认完团地点  
-	 * @return confmEnd
-	 */
-	public MapPoint getConfmEnd() {
-		return confmEnd;
-	}
-	
-	/**  
-	 * 设置 确认完团地点  
-	 * @param confmEnd
-	 */
-	public void setConfmEnd(MapPoint confmEnd) {
-		this.confmEnd = confmEnd;
-	}
 
-@Override  
-public Object clone() throws CloneNotSupportedException {
-	return super.clone();
-}
+	/**  
+	 * 获取 确认出行地点坐标103.12345630.123456  
+	 * @return confmSlnglat
+	 */
+	public String getConfmSlnglat() {
+		return confmSlnglat;
+	}
+	
+	/**  
+	 * 设置 确认出行地点坐标103.12345630.123456  
+	 * @param confmSlnglat
+	 */
+	public void setConfmSlnglat(String confmSlnglat) {
+		this.confmSlnglat = confmSlnglat;
+	}
+	
+	/**  
+	 * 获取 确认完团地点坐标103.12345630.123456  
+	 * @return confmElnglat
+	 */
+	public String getConfmElnglat() {
+		return confmElnglat;
+	}
+	
+	/**  
+	 * 设置 确认完团地点坐标103.12345630.123456  
+	 * @param confmElnglat
+	 */
+	public void setConfmElnglat(String confmElnglat) {
+		this.confmElnglat = confmElnglat;
+	}
+	
+	/**  
+	 * 获取 确认出行时间  
+	 * @return confmStime
+	 */
+	public Date getConfmStime() {
+		return confmStime;
+	}
+	
+	/**  
+	 * 设置 确认出行时间  
+	 * @param confmStime
+	 */
+	public void setConfmStime(Date confmStime) {
+		this.confmStime = confmStime;
+	}
+	
+	/**  
+	 * 获取 确认完团时间  
+	 * @return confmEtime
+	 */
+	public Date getConfmEtime() {
+		return confmEtime;
+	}
+	
+	/**  
+	 * 设置 确认完团时间  
+	 * @param confmEtime
+	 */
+	public void setConfmEtime(Date confmEtime) {
+		this.confmEtime = confmEtime;
+	}
+	
+	/**  
+	 * 获取 最后一次修改时间  
+	 * @return lastModifyTime
+	 */
+	public Date getLastModifyTime() {
+		return lastModifyTime;
+	}
+	
+	/**  
+	 * 设置 最后一次修改时间  
+	 * @param lastModifyTime 
+	 */
+	public void setLastModifyTime(Date lastModifyTime) {
+		this.lastModifyTime = lastModifyTime;
+	}
+	
+	@Override  
+	public Object clone() throws CloneNotSupportedException {
+		return super.clone();
+	}
 	
 }

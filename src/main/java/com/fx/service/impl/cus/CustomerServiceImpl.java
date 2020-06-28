@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
@@ -42,12 +41,14 @@ import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
+import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.BaseUserDao;
 import com.fx.dao.cus.CompanyUserDao;
 import com.fx.dao.cus.CustomerDao;
 import com.fx.dao.cus.WxBaseUserDao;
 import com.fx.dao.log.LoginLogDao;
 import com.fx.dao.wxdat.WxPublicDataDao;
+import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
 import com.fx.entity.cus.Customer;
@@ -79,6 +80,10 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	@Autowired
 	private CompanyUserDao cuDao;
 	
+	/** 单位员工-数据源 */
+	@Autowired
+	private StaffDao staffDao;
+	
 	@Autowired
     private RedisUtil redis;
 	
@@ -109,14 +114,12 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     		
     		String code = request.getParameter("code");		// 获取微信id所需code字符串
     		String state = request.getParameter("state");	// 跳转地址状态码
-    		String ps = request.getParameter("ps");			// 参数map字符串
     		
     		U.log(log, "参数code:"+code);
-    		U.log(log, "参数state="+state+", ps="+ps);
+    		U.log(log, "参数state="+state);
     		
-    		String redirectUrl = QC.PRO_URL;// 跳转地址
+    		
     		List<String> plist = new ArrayList<String>();
-    		
     		if(fg){
     			if(StringUtils.isEmpty(code)){
     				fg = U.setPutFalse(map, 401, "微信网页授权失败：未获取code");
@@ -137,21 +140,9 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     			}
     		}
     		
-    		JsonNode jps = null;
-    		if(fg) {
-    			if(StringUtils.isEmpty(ps)) {
-    				U.log(log, "没有传入参数");
-    			}else {
-    				ObjectMapper mapper = new ObjectMapper();
-    				jps = mapper.readTree(ps);
-    				
-    				U.log(log, "所有参数 jps="+jps.toString());
-    			}
-    		}
-    		
     		String teamNo = "";
     		if(fg){
-    			teamNo = U.Cq(jps, "teamNo");
+    			teamNo = request.getParameter("teamNo");
     			if(StringUtils.isEmpty(teamNo)){
     				fg = U.setPutFalse(map, "微信网页授权失败：未获取[车队编号]");
     			}else{
@@ -166,8 +157,7 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     		
     		CusRole _wrole = null;
     		if(fg){
-    			String wrole = U.Cq(jps, "lrole");
-    			
+    			String wrole = request.getParameter("lrole");
     			if(StringUtils.isEmpty(wrole)){
     				fg = U.setPutFalse(map, "微信网页授权失败：未获取[用户角色]");
     			}else{
@@ -212,6 +202,7 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
         		}
     		}
     		
+    		String redirectUrl = "";// 跳转地址
     		WxBaseUser lwxuser = null;
     		if(fg) {
     			lwxuser = wxBaseUserDao.findWxUser2(teamNo, openId);
@@ -591,14 +582,14 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 			}
 			CompanyUser cu=null;
 			if(fg) {
-				 cu = cuDao.findByField("baseUserId.uname", luser.getUname());
-		            if(cu==null) {
-		            	String hql="from CompanyUser where unitNum=(select unitNum from staff where baseUseId.uname=?0)";
-		            	cu = cuDao.findObj(hql, luser.getUname());
-		            	if(cu==null) {
-		            		fg = U.setPutFalse(map, "[登录账号]非单位账号也不是员工账号，不能登录");
-		            	}
-		            }
+				cu = cuDao.findByField("baseUserId.uname", luser.getUname());
+	            if(cu==null) {
+	            	String hql="from CompanyUser where unitNum=(select unitNum from Staff where baseUserId.uname=?0 and isDel=0)";
+	            	cu = cuDao.findObj(hql, luser.getUname());
+	            	if(cu==null) {
+	            		fg = U.setPutFalse(map, "[登录账号]非单位账号也不是员工账号，不能登录");
+	            	}
+	            }
 			}
 			if(fg) {
 				// 清除session中保存的验证码（在此处清除最合适）
@@ -641,11 +632,12 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	            // 跳转-主页
 	            //map.put("goUrl", "/page/company/goMain");
 	            
-	            // 缓存登录用户信息
+	            // 缓存登录员工信息
 	            Map<String, Object> mapUser = new HashMap<String, Object>();//缓存登录用户信息map
-	            Customer lcus = customerDao.findByField("baseUserId.uname", luser.getUname());
-				mapUser.put(QC.L_USER, lcus);
+	            Staff lcus = staffDao.findByField("baseUserId.uname", luser.getUname());
+				mapUser.put(QC.L_STAFF, lcus);
 				mapUser.put(QC.L_TIME, DateUtils.DateToStr(new Date()));
+				mapUser.put(QC.L_COMPANY, cu);
 				redis.set(uuid, mapUser);
 				
 				U.setPut(map, 1, "登录单位成功");
@@ -705,9 +697,9 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	}
 	
 	@Override
-	public Map<String, Object> subDriverPassLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request, 
+	public Map<String, Object> subPassLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request, 
 		CusRole role, String wxid, String teamNo, String lphone, String lpass, String remberMe) {
-		String logtxt = U.log(log, "驾驶员用户-手机号密码登录", reqsrc);
+		String logtxt = U.log(log, "用户-手机号密码登录", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -721,14 +713,14 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     			}
     		}
 			
-			CompanyUser cu = null;
+			CompanyUser compUser = null;
 			if(fg){
 				if(StringUtils.isEmpty(teamNo)){
 					fg = U.setPutFalse(map, "[车队编号]不能为空");
 				}else{
 					teamNo = teamNo.trim();
-					cu = cuDao.findByField("unitNum", teamNo);
-    				if(cu == null){
+					compUser = cuDao.findByField("unitNum", teamNo);
+    				if(compUser == null){
     					fg = U.setPutFalse(map, "当前车队不存在，请通过微信公众号菜单访问");
     				}
 					
@@ -802,21 +794,23 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 				}
 			}
 			
-			Customer lcus = null;
-			if(fg) {
-				lcus = customerDao.findByField("baseUserId.uname", luser.getUname());
-				if(lcus == null) {
-					fg = U.setPutFalse(map, "[登录用户信息]不存在，请联系管理员");
-				}
-			}
-			
 			if(fg) {
 				MapRes mr = customerDao.valUserRole(role, teamNo, luser.getUname());
 				if(mr.getCode() <= 0) fg = U.setPutFalse(map, mr.getMsg());
 			}
 			
+			Object lstaff = null;
 			if(fg) {
-				map = customerDao.saveWxLoginDat(map, request, _remberMe, lcus, luser, cu, wxid, role);
+				if(role == CusRole.TEAM_DRIVER) {
+					lstaff = staffDao.getTeamDriver(teamNo, luser.getUname());
+					if(lstaff == null) {
+						fg = U.setPutFalse(map, "[驾驶员信息]不存在，请联系管理员");
+					}
+				}
+			}
+			
+			if(fg) {
+				map = customerDao.saveWxLoginDat(map, request, _remberMe, lstaff, compUser, wxid, role);
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);

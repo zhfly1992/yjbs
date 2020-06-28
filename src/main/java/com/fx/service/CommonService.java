@@ -94,18 +94,10 @@ public interface CommonService {
 	 * @param luname 	登录用户名
 	 * @param files 	文件数组
 	 * @param uid 		更新记账记录
+	 * @param fnames	未删除的文件名数组字符串
 	 * @return map{code: 结果状态码, msg: 结果状态码说明, ids: 文件上传成功后数据id数组}
 	 */
 	public Map<String, Object> addJzbxFile(ReqSrc reqsrc, String ftype, String lteamNo, String luname, 
-		MultipartFile[] files, String uid);
-	
-	/**
-	 * 修改-记账报销-文件
-	 * @param reqsrc 	请求来源
-	 * @param fid 		文件数据对象自定义id
-	 * @param files 	文件数组
-	 * @return map{code: 结果状态码, msg: 结果状态码说明, ids: 文件上传成功后数据id数组}
-	 */
-	public Map<String, Object> updJzbxFile(ReqSrc reqsrc, String fid, MultipartFile[] files);
+		MultipartFile[] files, String uid, String fnames);
 	
 }

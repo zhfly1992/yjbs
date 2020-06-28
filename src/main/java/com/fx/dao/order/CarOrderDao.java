@@ -114,14 +114,22 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
 					comps.add(new Compositor("stime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					}				
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
 					comps.add(new Compositor("atime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					}				
 				}
 
 				if (orderPayStatus != null) {
@@ -382,14 +390,22 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
 					comps.add(new Compositor("stime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					}				
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
 					comps.add(new Compositor("atime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					}				
 				}
 
 				if (orderPayStatus != null) {
@@ -490,10 +506,10 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 				}else if(type == 2){
 					U.log(log, "根据[确认出行地点坐标]重新计算");
 					
-					if(jco.getConfmStart() == null){
+					if(StringUtils.isBlank(jco.getConfmSlnglat())){
 						fg = U.setPutFalse(map, "[确认出行地点坐标]不能为空");
 					}else{
-						spoint = jco.getConfmStart().getLngLat();
+						spoint = jco.getConfmSlnglat();
 					}
 				}else{
 					fg = U.setPutFalse(map, "[计算起点类型]不存在");

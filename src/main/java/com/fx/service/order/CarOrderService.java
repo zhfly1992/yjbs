@@ -13,6 +13,7 @@ import com.fx.commons.utils.enums.CusRole;
 import com.fx.commons.utils.enums.OrderSource;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.entity.company.CompanyVehicle;
+import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
 import com.fx.entity.cus.Customer;
@@ -309,7 +310,7 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 * @version 2020年5月13日
 	 */
 	public Map<String, Object> confirmPayment(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			JSONObject jsonObject,Customer customer);
+			JSONObject jsonObject,Staff staff);
 	
 	/**
 	 * 业务付款
@@ -318,14 +319,14 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 * @param reqsrc 			请求来源
 	 * @param request 			request
 	 * @param unitNum 		单位编号
-	 * @param uname			当前账号
+	 * @param staff			当前员工
 	 * @param ids 付款订单id,多个逗号拼接
 	 * @param payMoney 付款金额
 	 * @param payRemark 摘要
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> servicePay(ReqSrc reqsrc, HttpServletRequest request,
-			String unitNum,String uname, String ids,String payMoney, String payRemark);
+			String unitNum, Staff staff, String ids,String payMoney, String payRemark);
 
 
 
@@ -512,6 +513,23 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 		HttpServletResponse response, String orderNum, String isAgree, String reason);
 
 	/**
+	 * 驾驶员-确认订单出行
+	 * @param reqsrc 			请求来源
+	 * @param request 			request
+	 * @param response 			response
+	 * @param orderNum 			派车-订单编号
+	 * @param lnglat 			驾驶员确认出行-坐标：103.123456|30.123456
+	 * @param isArr				是否到达[1-已到达出行地点；2-已到达完团地点；3-未到达；]
+	 * @param isUpCar			乘客是否上车：1-已上车；0-未上车；（点击时使用）
+	 * @param isToDP			是否到下车点：1-已到下车点；0-还在走行程；（点击时使用）
+	 * @param okBack			确认直接回程完团：1-确认；否则-点错了；（点击时使用）
+	 * 
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 */
+	public Map<String, Object> updCofmOrderGo(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String orderNum, String lnglat, String isArr, String isUpCar, String isToDP, String okBack);
+	
+	/**
 	 * 驾驶员-确认-完团（乘客下车）
 	 * @param reqsrc 			请求来源
 	 * @param request 			request
@@ -534,5 +552,17 @@ public interface CarOrderService extends BaseService<CarOrder, Long> {
 	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据}
 	 */
 	public Map<String, Object> findXcjzOrderList(ReqSrc reqsrc, String lunitNum, String luname, String mid);
+
+	/**
+	 * 验证-驾驶员位置是否是订单出发点/完团地点
+	 * @param reqsrc 			请求来源
+	 * @param request 			request
+	 * @param response 			response
+	 * @param orderNum 			派车-订单编号
+	 * @param lnglat 			驾驶员确认出行-坐标：103.123456|30.123456
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
+	 */
+	public Map<String, Object> valCofmGoOrDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String orderNum, String lnglat);
 	
 }

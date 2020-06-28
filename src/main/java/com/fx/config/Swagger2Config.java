@@ -69,8 +69,8 @@ public class Swagger2Config {
         return new ApiInfoBuilder()
                 .title("遇见巴士（yjbs）接口文档")
                 .description("描述：电脑端/移动端服务")
-                .termsOfServiceUrl("访问地址：http://121.36.207.140/")
-                .contact(new Contact("遇见巴士", "http://121.36.207.140/", ""))
+                .termsOfServiceUrl("访问地址：http://121.36.52.250/fx")
+                .contact(new Contact("遇见巴士", "http://121.36.52.250/fx", ""))
                 .version("版本号: v1.0")
                 .build();
     }

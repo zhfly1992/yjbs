@@ -168,32 +168,48 @@ public class FV {
 	 * @param str 传入字符串
 	 * @return true-是数字；false-不是数字；
 	 */
-	public static boolean isDouble(String str) { 
-		return myMatch("^([1-9]([0-9]?)+[\\.]?[0-9]+)|[0-9]|([0]\\.[0-9]*)$", str);
+	public static boolean isDouble(String str) {
+		if(str.trim().length() > 11) {
+			return false;
+		}else {
+			return myMatch("^([1-9]([0-9]?)+[\\.]?[0-9]+)|[0-9]|([0]\\.[0-9]*)$", str);
+		}
 	}
 	/**
 	 * 判断是否为-整数（正整数、负整数、0）
 	 * @param str 传入的字符串
 	 * @return true-是整数；false-不是整数；
 	 */
-	public static boolean isInteger(String str) {  
-        return myMatch("^[-\\+]?[\\d]*$", str);
+	public static boolean isInteger(String str) {
+		if(str.trim().length() > 11) {
+			return false;
+		}else {
+			return myMatch("^[-\\+]?[\\d]*$", str);
+		}
 	}
 	/**
 	 * 判断是否为-正整数（不含0）
 	 * @param str 传入的字符串
 	 * @return true-是正整数；false-不是正整数；
 	 */
-	public static boolean isPosInteger(String str) {  
-        return myMatch("^[0-9]*[1-9][0-9]*$", str);
+	public static boolean isPosInteger(String str) {
+		if(str.trim().length() > 11) {
+			return false;
+		}else {
+			return myMatch("^[0-9]*[1-9][0-9]*$", str);
+		}
 	}
 	/**
 	 * 判断是否为-负整数
 	 * @param str 传入的字符串
 	 * @return true-是负整数；false-不是负整数；
 	 */
-	public static boolean isNegInteger(String str) {  
-        return myMatch("^-[0-9]*[1-9][0-9]*$", str);
+	public static boolean isNegInteger(String str) {
+		if(str.trim().length() > 11) {
+			return false;
+		}else {
+			return myMatch("^-[0-9]*[1-9][0-9]*$", str);
+		}
 	}
 	
 	/**

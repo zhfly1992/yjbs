@@ -211,8 +211,8 @@ public class CarOilListDao extends ZBaseDaoImpl<CarOilList, Long> {
 		  
 				List<Item> its = new ArrayList<Item>();
 				for(CompanyCustom o : comCuss){
-					if(StringUtils.isNotBlank(o.getUnitSimple())) {// 存在名称
-						its.add(new Item(o.getId()+"", o.getUnitSimple(), o.getAddress())); 
+					if(StringUtils.isNotBlank(o.getUnitName())) {// 存在名称
+						its.add(new Item(o.getId()+"", o.getUnitName(), o.getAddress())); 
 					}
 				}
 			  
@@ -225,8 +225,8 @@ public class CarOilListDao extends ZBaseDaoImpl<CarOilList, Long> {
 		  
 				List<Item> its = new ArrayList<Item>();
 				for(CompanyCustom o : comCuss){ 
-					if(StringUtils.isNotBlank(o.getUnitSimple())) {// 存在名称
-						its.add(new Item(o.getId()+"", o.getUnitSimple(), o.getAddress()));
+					if(StringUtils.isNotBlank(o.getUnitName())) {// 存在名称
+						its.add(new Item(o.getId()+"", o.getUnitName(), o.getAddress()));
 					}
 				}
 		  

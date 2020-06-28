@@ -5,12 +5,16 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
+
+import com.fx.commons.utils.enums.CourseCategory;
 
 
 
@@ -33,6 +37,11 @@ public class FeeCourse implements Serializable {
 	/** 单位编号 eg：Uxxxx */
 	@Column(name="unit_num",nullable=false, columnDefinition="varchar(20) COMMENT '单位编号'")
 	private String unitNum;
+	
+	/** 科目类别 */
+	@Enumerated(EnumType.STRING)
+	@Column(name="course_category", columnDefinition="varchar(20) COMMENT '科目类别'")
+	private CourseCategory courseCategory;
 	
 	/** 科目编码 */
 	@Column(name="course_num", nullable=false, columnDefinition="varchar(100) COMMENT '科目编码'")
@@ -110,6 +119,24 @@ public class FeeCourse implements Serializable {
 	 */
 	public void setUnitNum(String unitNum) {
 		this.unitNum = unitNum;
+	}
+	
+
+	/**  
+	 * 获取 科目类别  
+	 * @return courseCategory
+	 */
+	public CourseCategory getCourseCategory() {
+		return courseCategory;
+	}
+	
+
+	/**  
+	 * 设置 科目类别  
+	 * @param courseCategory 
+	 */
+	public void setCourseCategory(CourseCategory courseCategory) {
+		this.courseCategory = courseCategory;
 	}
 	
 

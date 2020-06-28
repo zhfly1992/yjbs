@@ -45,7 +45,7 @@ public class ReimburseList implements Serializable{
 	
 	/** 科目交易列表 */
 	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
-	@JoinColumn(name="course_trade_id")
+	@JoinColumn(name="reim_course_id")
 	private List<FeeCourseTrade> courseTrades;
 	
 	/** 记账时间 */
@@ -57,13 +57,8 @@ public class ReimburseList implements Serializable{
 	@Column(name="plate_num", columnDefinition="text COMMENT '车牌号'")
 	private String plateNum;
 	
-	/** 员工报账列表 */
-	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
-	@JoinColumn(name="staff_reim_id")
-	private List<StaffReimburse> staffReims;
-	
-	/** 0未关联 1已核销 2已关联 */
-	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '0未关联 1已核销 2已关联'")
+	/** 0未核销 1已核销 2已关联 */
+	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '0未核销 1已核销 2已关联'")
 	private int isCheck;
 	
 	/** 总金额:元 */
@@ -151,7 +146,6 @@ public class ReimburseList implements Serializable{
 		this.voucherNum = voucherNum;
 	}
 	
-
 	/**  
 	 * 获取 科目交易列表  
 	 * @return courseTrades
@@ -209,25 +203,7 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 获取 员工报账列表  
-	 * @return staffReims
-	 */
-	public List<StaffReimburse> getStaffReims() {
-		return staffReims;
-	}
-	
-
-	/**  
-	 * 设置 员工报账列表  
-	 * @param staffReims 
-	 */
-	public void setStaffReims(List<StaffReimburse> staffReims) {
-		this.staffReims = staffReims;
-	}
-	
-
-	/**  
-	 * 获取 0未关联1已核销2已关联  
+	 * 获取 0未核销1已核销2已关联  
 	 * @return isCheck
 	 */
 	public int getIsCheck() {
@@ -236,7 +212,7 @@ public class ReimburseList implements Serializable{
 	
 
 	/**  
-	 * 设置 0未关联1已核销2已关联  
+	 * 设置 0未核销1已核销2已关联  
 	 * @param isCheck 
 	 */
 	public void setIsCheck(int isCheck) {

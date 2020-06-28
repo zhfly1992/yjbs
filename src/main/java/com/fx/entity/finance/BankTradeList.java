@@ -2,17 +2,13 @@ package com.fx.entity.finance;
 
 import java.io.Serializable;
 import java.util.Date;
-import java.util.List;
 
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -100,9 +96,9 @@ public class BankTradeList implements Serializable{
 	private int isCheck;
 	
 	/** 关联凭证列表 */
-	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
+	/*@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
 	@JoinColumn(name="bank_trade_id")
-	private List<ReimburseList> bankTradeId;
+	private List<ReimburseList> bankTradeId;*/
 	
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -141,6 +137,10 @@ public class BankTradeList implements Serializable{
 	/** 下账订单号 */
 	@Column(name="order_num", columnDefinition="text COMMENT '下账订单号'")
 	private String orderNum;
+	
+	/** 客户id */
+	@Column(name="company_cus_id", columnDefinition="varchar(20) COMMENT '客户id'")
+	private String companyCusId;
 	
 	/** 每次操作标识号 */
 	@Column(name="oper_mark", columnDefinition="text COMMENT '每次操作标识号'")
@@ -418,28 +418,6 @@ public class BankTradeList implements Serializable{
 		this.isCheck = isCheck;
 	}
 	
-
-
-	/**  
-	 * 获取 关联凭证列表  
-	 * @return bankTradeId
-	 */
-	public List<ReimburseList> getBankTradeId() {
-		return bankTradeId;
-	}
-	
-
-
-	/**  
-	 * 设置 关联凭证列表  
-	 * @param bankTradeId 
-	 */
-	public void setBankTradeId(List<ReimburseList> bankTradeId) {
-		this.bankTradeId = bankTradeId;
-	}
-	
-
-
 	/**  
 	 * 获取 添加时间  
 	 * @return addTime
@@ -603,6 +581,26 @@ public class BankTradeList implements Serializable{
 		this.orderNum = orderNum;
 	}
 	
+
+	/**  
+	 * 获取 客户id  
+	 * @return companyCusId
+	 */
+	public String getCompanyCusId() {
+		return companyCusId;
+	}
+	
+
+
+	/**  
+	 * 设置 客户id  
+	 * @param companyCusId 
+	 */
+	public void setCompanyCusId(String companyCusId) {
+		this.companyCusId = companyCusId;
+	}
+	
+
 
 	/**  
 	 * 获取 每次操作标识号  

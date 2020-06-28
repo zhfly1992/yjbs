@@ -83,7 +83,7 @@ public interface CustomerService extends BaseService<Customer, Long> {
 	public Map<String, Object> findCusDetail(ReqSrc reqsrc, String idOrUnameOrPhone);
 
 	/**
-	 * 驾驶员用户-手机号密码登录
+	 * 用户-手机号密码登录
 	 * @param reqsrc 	请求来源
 	 * @param response 	response
 	 * @param request 	request
@@ -95,7 +95,7 @@ public interface CustomerService extends BaseService<Customer, Long> {
 	 * @param remberMe 	是否记住账号 true-记住；false-不记住；
 	 * @return map{ code: 结果状态码, msg: 结果状态码说明, token: 登录token }
 	 */
-	public Map<String, Object> subDriverPassLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+	public Map<String, Object> subPassLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 		CusRole role, String wxid, String teamNo, String lphone, String lpass, String remberMe);
 	
 	/**

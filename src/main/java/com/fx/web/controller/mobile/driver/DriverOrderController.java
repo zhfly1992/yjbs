@@ -105,6 +105,24 @@ public class DriverOrderController {
   	}
 	
 	/**
+	 * 验证-驾驶员位置是否是订单出发点/完团地点
+	 * 请求API（post）/mb/driver/order/valCofmGoOrDownCar
+	 * @param orderNum 	派车-订单编号
+	 * @param lnglat 	驾驶员确认出行-坐标：103.123456|30.123456
+	 */
+	@RequestMapping(value="valCofmGoOrDownCar", method=RequestMethod.POST)
+	public void valCofmGoOrDownCar(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
+		String orderNum = U.P(json, "orderNum");
+		String lnglat = U.P(json, "lnglat");
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		map = carOrderSer.valCofmGoOrDownCar(ReqSrc.WX, request, response, orderNum, lnglat);
+		
+		Message.print(response, map);
+	}
+	
+	/**
 	 * 车队驾驶员-确认订单
 	 * 请求API（post）/mb/driver/order/driverCofmOrder
 	 * @param orderNum 	订单编号
@@ -125,6 +143,32 @@ public class DriverOrderController {
 	}
 	
 	/**
+	 * 车队驾驶员-确认订单出行
+	 * 请求API（post）/mb/driver/order/driverCofmOrderGo
+	 * @param orderNum  派车-订单编号
+	 * @param lnglat 	驾驶员确认出行-坐标：103.123456|30.123456
+	 * @param isArr		是否到达[1-已到达出行地点；2-已到达完团地点；3-未到达；]
+	 * @param isUpCar	乘客是否上车：1-已上车；0-未上车；（点击时使用）
+	 * @param isToDP	是否到下车点：1-已到下车点；0-还在走行程；（点击时使用）
+	 * @param okBack	确认直接回程完团：1-确认；否则-点错了；（点击时使用）
+	 */
+	@RequestMapping(value="driverCofmOrderGo", method=RequestMethod.POST)
+	public void driverCofmOrderGo(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
+		String orderNum = U.P(json, "orderNum");
+		String lnglat = U.P(json, "lnglat");
+		String isArr = U.P(json, "isArr");
+		String isUpCar = U.P(json, "isUpCar");
+		String isToDP = U.P(json, "isToDP");
+		String okBack = U.P(json, "okBack");
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		map = carOrderSer.updCofmOrderGo(ReqSrc.WX, request, response, orderNum, lnglat, isArr, isUpCar, isToDP, okBack);
+		
+		Message.print(response, map);
+	}
+	
+	/**
 	 * 车队驾驶员-确认完团
 	 * 请求API（post）/mb/driver/order/driverCofmDownCar
 	 * @param orderNum 派车-订单编号
@@ -133,12 +177,15 @@ public class DriverOrderController {
 	 * @param isArr		是否到达出行地点[1-已到达；3-未到达；]
 	 */
 	@RequestMapping(value="driverCofmDownCar", method=RequestMethod.POST)
-	public void driverCofmDownCar(HttpServletRequest request, HttpServletResponse response,
-		String orderNum, String dayId, String lnglat, String isArr){
+	public void driverCofmDownCar(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
+		String orderNum = U.P(json, "orderNum");
+		String dayId = U.P(json, "dayId");
+		String lnglat = U.P(json, "lnglat");
+		String isArr = U.P(json, "isArr");
+		
 		Map<String, Object> map = new HashMap<String, Object>();
 		
-		map = carOrderSer.driverCofmDownCar(ReqSrc.WX, request, response, orderNum, dayId, lnglat, 
-			isArr);
+		map = carOrderSer.driverCofmDownCar(ReqSrc.WX, request, response, orderNum, dayId, lnglat, isArr);
 		
 		Message.print(response, map);
 	}

@@ -9,7 +9,7 @@ import org.springframework.web.servlet.ModelAndView;
 
 import com.fx.commons.utils.tools.ConfigPs;
 import com.fx.commons.utils.tools.LU;
-import com.fx.entity.cus.Customer;
+import com.fx.entity.company.Staff;
 import com.fx.web.controller.BaseController;
 import com.fx.web.util.RedisUtil;
 
@@ -61,7 +61,7 @@ public class PageCompanyController extends BaseController{
 	public ModelAndView index(HttpServletRequest request, ModelAndView mv) {
 		mv.addObject("title", "单位-用户首页");
 		
-		Customer lcus = LU.getLUSER(request, redis);
+		Staff lcus = LU.getLStaff(request, redis);
 		mv.addObject("lcus", lcus);
 		
 		String ip = cps.getJdbcIp();

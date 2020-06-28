@@ -72,15 +72,15 @@ public class CompanyVehicle {
     private BusinessType businessType;
 
     /** 车辆状态 eg：车辆状态 */
-    @Column(name="status",nullable=false, columnDefinition="tinyint(1) DEFAULT '0' COMMENT '车辆状态 0正常，1维修，2报停'")
+    @Column(name="status",nullable=false, columnDefinition="tinyint(1) DEFAULT '0' COMMENT '车辆状态 0正常，1维修，2报停，3下线'")
     private Integer status;
     
     /** 状态时间段 eg：2020-04-26 12:00-2020-04-26 14:00 */
 	@Column(name="status_timeslot", columnDefinition="varchar(50) COMMENT '状态时间段，若是正常则为null'")
     private String  statusTimeslot;
 
-	/** 购买日期 eg：2020 04/09 11:11 */
-    @Temporal(TemporalType.TIMESTAMP)
+	/** 购买日期 eg：2020 04/09  */
+    @Temporal(TemporalType.DATE)
     @Column(name="purchase_date",nullable=false, columnDefinition="datetime COMMENT '购买日期'")
     private Date purchaseDate;
 
@@ -110,21 +110,21 @@ public class CompanyVehicle {
     @Column(name="fuel",nullable=false, columnDefinition="float COMMENT '正常油耗'")
     private Float fuel;
 
-    /** 停靠地址全称 */
-    @Column(name="docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址全称'")
-    private String dockedAddress;
-
-    /** 停靠地址简称 */
-    @Column(name="simple_docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址简称'")
-    private String simpleDockedAddress;
-
-    /** 停靠地址纬度*/
-    @Column(name="docked_latitude",nullable=false, columnDefinition="float COMMENT '停靠地址纬度'")
-    private Double dockedLatitude;
-
-    /** 停靠地址经度*/
-    @Column(name="docked_longitude",nullable=false, columnDefinition="float COMMENT '停靠地址经度'")
-    private Double dockedLongitude;
+//    /** 停靠地址全称 */
+//    @Column(name="docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址全称'")
+//    private String dockedAddress;
+//
+//    /** 停靠地址简称 */
+//    @Column(name="simple_docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址简称'")
+//    private String simpleDockedAddress;
+//
+//    /** 停靠地址纬度*/
+//    @Column(name="docked_latitude",nullable=false, columnDefinition="float COMMENT '停靠地址纬度'")
+//    private Double dockedLatitude;
+//
+//    /** 停靠地址经度*/
+//    @Column(name="docked_longitude",nullable=false, columnDefinition="float COMMENT '停靠地址经度'")
+//    private Double dockedLongitude;
 
     /** 行驶证照 eg：Uxxxx */
     @Column(name="travel_license_photo_url",nullable=false, columnDefinition="varchar(512) COMMENT '行驶证照url'")
@@ -161,7 +161,13 @@ public class CompanyVehicle {
      */
     @Column(name="running_area",nullable=false, columnDefinition="tinyint(1) COMMENT '可跑区域'")
     private Integer runningArea;
-
+    
+    
+    /** 每百公里油耗价格 eg： */
+    @Column(name="fuel_price",nullable=false, columnDefinition="float COMMENT '百公里油耗'")
+    private Float fuelPrice;
+    
+    
 
 	/**
 	 * @return the belongCompanyName
@@ -394,61 +400,7 @@ public class CompanyVehicle {
 		this.fuel = fuel;
 	}
 
-	/**
-	 * @return the dockedAddress
-	 */
-	public String getDockedAddress() {
-		return dockedAddress;
-	}
 
-	/**
-	 * @param dockedAddress the dockedAddress to set
-	 */
-	public void setDockedAddress(String dockedAddress) {
-		this.dockedAddress = dockedAddress;
-	}
-
-	/**
-	 * @return the simpleDockedAddress
-	 */
-	public String getSimpleDockedAddress() {
-		return simpleDockedAddress;
-	}
-
-	/**
-	 * @param simpleDockedAddress the simpleDockedAddress to set
-	 */
-	public void setSimpleDockedAddress(String simpleDockedAddress) {
-		this.simpleDockedAddress = simpleDockedAddress;
-	}
-
-	/**
-	 * @return the dockedLatitude
-	 */
-	public Double getDockedLatitude() {
-		return dockedLatitude;
-	}
-
-	/**
-	 * @param dockedLatitude the dockedLatitude to set
-	 */
-	public void setDockedLatitude(Double dockedLatitude) {
-		this.dockedLatitude = dockedLatitude;
-	}
-
-	/**
-	 * @return the dockedLongitude
-	 */
-	public Double getDockedLongitude() {
-		return dockedLongitude;
-	}
-
-	/**
-	 * @param dockedLongitude the dockedLongitude to set
-	 */
-	public void setDockedLongitude(Double dockedLongitude) {
-		this.dockedLongitude = dockedLongitude;
-	}
 
 	/**
 	 * @return the travelLicensePhotoURL
@@ -526,5 +478,18 @@ public class CompanyVehicle {
 	public void setRunningArea(Integer runningArea) {
 		this.runningArea = runningArea;
 	}
+	/**
+	 * @return the fuelPrice
+	 */
+	public Float getFuelPrice() {
+		return fuelPrice;
+	}
+	/**
+	 * @param fuelPrice the fuelPrice to set
+	 */
+	public void setFuelPrice(Float fuelPrice) {
+		this.fuelPrice = fuelPrice;
+	}
+	
 	
 }

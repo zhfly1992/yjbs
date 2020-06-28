@@ -8,7 +8,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
@@ -44,7 +44,6 @@ import com.fx.dao.finance.StaffReimburseDao;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CusWallet;
-import com.fx.entity.cus.Customer;
 import com.fx.entity.cus.WalletList;
 import com.fx.entity.cus.WxBaseUser;
 import com.fx.entity.finance.CarRepairList;
@@ -143,7 +142,7 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 		List<Filtration> filts = new ArrayList<Filtration>();
 		try{
 			if(ReqSrc.WX == reqsrc){// 移动端
-				Customer cus = LU.getLUSER(request, redis);
+				Staff cus = LU.getLStaff(request, redis);
 				WxBaseUser wx = LU.getLWx(request, redis);
 				String unitNum = LU.getLUnitNum(request, redis);
 				
@@ -285,7 +284,7 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 					}
 					if(fg){
 						String unitNum = LU.getLUnitNum(request, redis);
-						Customer lcus = LU.getLUSER(request, redis);
+						Staff lcus = LU.getLStaff(request, redis);
 						if(!obj.getRepairDriver().getUname().contains(lname) && !obj.getRepairDriver().getPhone().contains(lcus.getBaseUserId().getPhone())){
 							fg = U.setPutFalse(map, "删除失败，该[维修记录]不是您添加的");
 						}else if(!obj.getUnitNum().equals(unitNum)){
@@ -551,25 +550,6 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				}
 			}
 			
-//			String repairVoucherUrl = "";// 维修清单图片url数组字符串
-//			List<FileMan> fms = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fids)) {
-//					fg = U.setPutFalse(map, "[至少需要上传一张维修清单图片]");
-//				}else {
-//					fids = fids.trim();
-//					fms = fileManDao.findFileManList(fids);
-//					
-//					List<String> imgurls = new ArrayList<String>();
-//					for (FileMan fm : fms) {
-//						imgurls.add(fm.getFolderName()+"/"+fm.getFname());
-//					}
-//					if(imgurls.size() > 0) repairVoucherUrl = StringUtils.join(imgurls.toArray(), ",");
-//					
-//					U.log(log, "[维修清单图片id数组字符串] fids="+fids);
-//				}
-//			}
-			
 			if(fg){
 				if(StringUtils.isEmpty(plateNum)){
 					fg = U.setPutFalse(map, "[车牌号]不能为空");
@@ -583,7 +563,6 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 			double _currKm = 0d;
 			if(fg){
 				if(StringUtils.isEmpty(currKm)){
-//					fg = U.setPutFalse(map, "[当前公里数]不能为空");
 					U.log(log, "[当前公里数]为空");
 				}else{
 					currKm = currKm.trim();
@@ -701,7 +680,6 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				crl.setRepairName(wxStation);
 				crl.setRepairMoney(_wxMoney);
 				crl.setRepairPayWay(_wxPayWay);
-//				crl.setRepairVoucherUrl(repairVoucherUrl);
 				crl.setRepairRemark(wxRemark);
 				crl.setIsCheck(0);
 				crl.setAddTime(new Date());
@@ -711,13 +689,6 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				crl.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 				cpaiDao.save(crl);
 				U.log(log, "添加-维修记账-完成");
-				
-//				// 修改对应的维修记账清单图片记录数据
-//				for (FileMan fm : fms) {
-//					fm.setFdat(lunitNum+"="+luname+"="+crl.getId());
-//					fileManDao.update(fm);
-//					U.log(log, "修改-维修记账对应凭证图片记录-完成");
-//				}
 				
 				// 维修支付方式为非记账，则添加员工记账记录
 				if(crl.getRepairPayWay() != 0) {
@@ -815,29 +786,9 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				}
 			}
 			
-//			String repairVoucherUrl = "";// 维修清单图片url数组字符串
-//			List<FileMan> fms = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fids)) {
-//					fg = U.setPutFalse(map, "[至少需要上传一张维修清单图片]");
-//				}else {
-//					fids = fids.trim();
-//					fms = fileManDao.findFileManList(fids);
-//					
-//					List<String> imgurls = new ArrayList<String>();
-//					for (FileMan fm : fms) {
-//						imgurls.add(fm.getFolderName()+"/"+fm.getFname());
-//					}
-//					if(imgurls.size() > 0) repairVoucherUrl = StringUtils.join(imgurls.toArray(), ",");
-//					
-//					U.log(log, "[维修清单图片id数组字符串] fids="+fids);
-//				}
-//			}
-			
 			double _currKm = 0d;
 			if(fg){
 				if(StringUtils.isEmpty(currKm)){
-//					fg = U.setPutFalse(map, "[当前公里数]不能为空");
 					U.log(log, "[当前公里数]为空");
 				}else{
 					currKm = currKm.trim();
@@ -940,32 +891,10 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				}
 			}
 			
-			// 此次维修公里数，必须大于上一次的维修公里数
-			double prevkm = 0d;
-			if(fg){
-				if(StringUtils.isNotBlank(currKm)){// 存在公里数才判断（注：此处实际上应该按照加油记录来判断，因为维修记录可以不填写）
-					List<CarRepairList> cpais = new ArrayList<CarRepairList>();
-					hql = "from CarRepairList where plateNum = ?0 and unitNum = ?1 order by id desc";
-					cpais = cpaiDao.hqlListFirstMax(hql, 0, 1, obj.getPlateNum(), lunitNum);
-					
-					if(cpais.size() > 0){// 存在上一条-加油记账
-						prevkm = cpais.get(0).getCurrentKilo();
-					}else{
-						U.log(log, "["+obj.getPlateNum()+"]不存在维修记录");
-					}
-					
-					// 非第一次添加才验证
-					if(cpais.size() > 0 && _currKm <= prevkm){
-						fg = U.setPutFalse(map, "当前公里数必须大于上次公里数，上次为"+ prevkm + "公里");
-					}
-				}
-			}
-			
 			if(fg) {
 				obj.setRepairName(wxStation);
 				obj.setRepairMoney(_wxMoney);
 				obj.setRepairPayWay(_wxPayWay);
-//				obj.setRepairVoucherUrl(repairVoucherUrl);
 				obj.setRepairRemark(wxRemark);
 				obj.setIsCheck(0);
 				obj.setAddTime(new Date());
@@ -975,16 +904,9 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				cpaiDao.update(obj);
 				U.log(log, "修改-维修记账-完成");
 				
-//				// 修改对应的维修记账清单图片记录数据
-//				for (FileMan fm : fms) {
-//					fm.setFdat(lunitNum+"="+luname+"="+obj.getId());
-//					fileManDao.update(fm);
-//					U.log(log, "修改-维修记账对应凭证图片记录-完成");
-//				}
-				
 				// 修改/添加-对应的员工记账记录
-				hql = "from StaffReimburse where unitNum = ?0 and reimUserId.uname = ?1 and dat = ?2";
-				StaffReimburse sr = staffReimburseDao.findObj(hql, lunitNum, luname, obj.getId()+"");
+				hql = "from StaffReimburse where unitNum = ?0 and reimUserId.uname = ?1 and dat = ?2 and jzType = ?3";
+				StaffReimburse sr = staffReimburseDao.findObj(hql, lunitNum, luname, obj.getId()+"", JzType.JYJZ);
 				if(sr != null) {// 存在即修改
 					// 维修支付方式为非记账，则添加员工记账记录
 					if(obj.getRepairPayWay() != 0) {
@@ -1160,6 +1082,11 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 			
 			if(fg) {
 				map.put("data", crl);
+				
+				// 字段过滤
+				Map<String, Object> fmap = new HashMap<String, Object>();
+				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
+				map.put(QC.FIT_FIELDS, fmap);
 				
 				U.setPut(map, 1, "获取[维修记账记录]成功");
 			}

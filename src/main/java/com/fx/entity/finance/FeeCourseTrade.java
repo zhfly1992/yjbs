@@ -14,6 +14,9 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import com.fx.entity.order.CarOrder;
+import com.fx.entity.order.MainCarOrder;
+
 
 
 /**
@@ -35,9 +38,9 @@ public class FeeCourseTrade implements Serializable {
 	@Column(name="unit_num",nullable=false, columnDefinition="varchar(20) COMMENT '单位编号'")
 	private String unitNum;
 	
-	/** 科目名称 */
+	/** 报账科目名称 */
 	@OneToOne(targetEntity = FeeCourse.class)
-	@JoinColumn(name="fee_course_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目id'")
+	@JoinColumn(name="fee_course_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '报账科目id'")
 	private FeeCourse feeCourseId;
 	
 	/** 摘要 */
@@ -56,6 +59,26 @@ public class FeeCourseTrade implements Serializable {
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="add_time", nullable=false, columnDefinition="datetime COMMENT '添加时间'")
 	private Date addTime;
+	
+	/** 银行账引用 */
+	@OneToOne(targetEntity = BankTradeList.class)
+	@JoinColumn(name="bank_trade_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '银行账引用'")
+	private BankTradeList bankTradeId;
+	
+	/** 主订单引用 */
+	@OneToOne(targetEntity = BankTradeList.class)
+	@JoinColumn(name="main_order_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '主订单引用'")
+	private MainCarOrder mainOrderId;
+	
+	/** 子订单引用 */
+	@OneToOne(targetEntity = BankTradeList.class)
+	@JoinColumn(name="car_order_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '子订单引用'")
+	private CarOrder carOrderId;
+	
+	/** 员工报账引用 */
+	@OneToOne(targetEntity = BankTradeList.class)
+	@JoinColumn(name="staff_reim_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '员工报账引用'")
+	private StaffReimburse staffReimId;
 
 	/**  
 	 * 获取 唯一id自增长主键  
@@ -194,6 +217,86 @@ public class FeeCourseTrade implements Serializable {
 	public static long getSerialversionuid() {
 		return serialVersionUID;
 	}
+
+
+	/**  
+	 * 获取 银行账引用  
+	 * @return bankTradeId
+	 */
+	public BankTradeList getBankTradeId() {
+		return bankTradeId;
+	}
+	
+
+
+	/**  
+	 * 设置 银行账引用  
+	 * @param bankTradeId 
+	 */
+	public void setBankTradeId(BankTradeList bankTradeId) {
+		this.bankTradeId = bankTradeId;
+	}
+	
+
+
+	/**  
+	 * 获取 主订单引用  
+	 * @return mainOrderId
+	 */
+	public MainCarOrder getMainOrderId() {
+		return mainOrderId;
+	}
+	
+
+
+	/**  
+	 * 设置 主订单引用  
+	 * @param mainOrderId 
+	 */
+	public void setMainOrderId(MainCarOrder mainOrderId) {
+		this.mainOrderId = mainOrderId;
+	}
+	
+
+
+	/**  
+	 * 获取 子订单引用  
+	 * @return carOrderId
+	 */
+	public CarOrder getCarOrderId() {
+		return carOrderId;
+	}
+	
+
+
+	/**  
+	 * 设置 子订单引用  
+	 * @param carOrderId 
+	 */
+	public void setCarOrderId(CarOrder carOrderId) {
+		this.carOrderId = carOrderId;
+	}
+
+
+	/**  
+	 * 获取 员工报账引用  
+	 * @return staffReimId
+	 */
+	public StaffReimburse getStaffReimId() {
+		return staffReimId;
+	}
+	
+
+
+	/**  
+	 * 设置 员工报账引用  
+	 * @param staffReimId 
+	 */
+	public void setStaffReimId(StaffReimburse staffReimId) {
+		this.staffReimId = staffReimId;
+	}
+	
+	
 	
 	
 

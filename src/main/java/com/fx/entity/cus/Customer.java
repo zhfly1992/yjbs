@@ -43,8 +43,8 @@ public class Customer implements Serializable {
 	@Column(name="rec_id", nullable=false, columnDefinition="text COMMENT '推荐用户标志'")
 	private String recId;
 	
-	/** 用户名支付密码 */
-	@Column(name="pay_pass", nullable=false, columnDefinition="varchar(32) COMMENT '用户名支付密码'")
+	/** 用户支付密码 */
+	@Column(name="pay_pass", nullable=false, columnDefinition="varchar(32) COMMENT '用户支付密码'")
 	private String payPass;
 	
 	

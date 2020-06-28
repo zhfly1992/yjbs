@@ -82,6 +82,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 	 *            公车方负责人
 	 * @param plateNum
 	 *            车牌号
+	 * @param isExternal 是否外调
 	 * @return
 	 * @author :zh
 	 * @version 2020年5月21日
@@ -89,7 +90,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 	public Map<String, Object> findMainCarOrderList(ReqSrc reqsrc, String page, String rows, String find,
 			OrderPayStatus orderPayStatus, OrderSource orderSource, MainOrderStatus orderStatus, String startTime,
 			String endTime, CompositorType compositorType, String timeType, String driver, Integer seat, String dutyMan,
-			String suppMan, String plateNum, RouteType routeType, ServiceType serviceType, String companyNum) {
+			String suppMan, String plateNum, RouteType routeType, ServiceType serviceType, String companyNum,String isExternal) {
 
 		String logtxt = U.log(log, "获取-后台订单-分页列表", reqsrc);
 		Page<MainCarOrder> pd = new Page<MainCarOrder>();
@@ -113,24 +114,37 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 		
 				// 未删除
 				filts.add(new Filtration(MatchType.EQ, 0, "isDel"));
-
+				
+				
+				comps.add(new Compositor("mainOrderBase.status",CompositorType.ASC));
+				
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
-					comps.add(new Compositor("stime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+			
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					}					
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
 				
-					comps.add(new Compositor("addTime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					}				
 				}
 				if (orderStatus != null) {
 					filts.add(new Filtration(MatchType.EQ, orderStatus, "mainOrderBase.status"));
 				} else {
+					//默认不查出已完成派车和已取消的订单
 					filts.add(new Filtration(MatchType.NE, MainOrderStatus.CANCELED, "mainOrderBase.status"));
+					filts.add(new Filtration(MatchType.NE, MainOrderStatus.FINISHED_DIS_CAR, "mainOrderBase.status"));
 				}
 				if (orderPayStatus != null) {
 					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
@@ -186,9 +200,13 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 						filts.add(new Filtration(MatchType.IN, mainCarOrderIdByPlateNum.toArray(), "id"));
 					}
 				}
+				
+				if (isExternal != null) {
+					filts.add(new Filtration(MatchType.EQ, Integer.parseInt(isExternal), "isExternal"));
+				}
 
-
-				comps.add(new Compositor("orderNum", CompositorType.ASC));
+				comps.add(new Compositor("stime", compositorType));
+				
 				/////////////////// --分页设置--////////////////////////////
 				pd.setPageNo(1); // 页码
 				pd.getPagination().setPageSize(1000000); // 页大小
@@ -332,14 +350,22 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
 					comps.add(new Compositor("stime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					}				
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
 					comps.add(new Compositor("addTime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					}	
 				}
 
 				if (orderPayStatus != null) {
@@ -450,14 +476,22 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 				// 搜索时间为用车时间
 				if (timeType.equals("1")) {
 					comps.add(new Compositor("stime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "stime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "etime"));
+					}				
 				}
 				// 搜索时间为下单时间
 				else if (timeType.equals("2")) {
-					comps.add(new Compositor("atime", compositorType));
-					filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
-					filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					comps.add(new Compositor("addTime", compositorType));
+					if (StringUtils.isNotBlank(startTime)) {
+						filts.add(new Filtration(MatchType.GE, DateUtils.strToDate(startTime), "addTime"));
+					}
+					if (StringUtils.isNotBlank(endTime)) {
+						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
+					}	
 				}
 
 				if (orderPayStatus != null) {

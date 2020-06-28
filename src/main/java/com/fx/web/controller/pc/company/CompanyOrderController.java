@@ -388,7 +388,7 @@ public class CompanyOrderController extends BaseController {
  	@RequestMapping(value="lockExternal",method=RequestMethod.POST)
  	public void lockOrderExternal(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
- 		map = carOrderService.lockExternal(ReqSrc.PC_COMPANY, response, request,jsonObject,LU.getLCompany(request, redis).getBaseUserId().getRealName());
+ 		map = carOrderService.lockExternal(ReqSrc.PC_COMPANY, response, request,jsonObject,LU.getLRealName(request, redis));
  		Message.print(response, map);
  	}
  	/**
@@ -399,7 +399,7 @@ public class CompanyOrderController extends BaseController {
  	@RequestMapping(value="unlockExternal",method=RequestMethod.POST)
  	public void unlockOrderExternal(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
- 		map = carOrderService.unlockExternal(ReqSrc.PC_COMPANY, response, request,jsonObject,LU.getLCompany(request, redis).getBaseUserId().getRealName());
+ 		map = carOrderService.unlockExternal(ReqSrc.PC_COMPANY, response, request,jsonObject,LU.getLRealName(request, redis));
  		Message.print(response, map);
  	}
  	
@@ -919,7 +919,7 @@ public class CompanyOrderController extends BaseController {
  	@RequestMapping(value="confirmCollection",method=RequestMethod.POST)
  	public void confirmCollection(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
- 		map = mainCarOrderService.confirmCollection(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLUSER(request, redis));
+ 		map = mainCarOrderService.confirmCollection(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLStaff(request, redis));
  		Message.print(response, map);
  	}
  	
@@ -953,7 +953,7 @@ public class CompanyOrderController extends BaseController {
  	@RequestMapping(value="confirmPayment",method=RequestMethod.POST)
  	public void confirmPayment(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
- 		map = carOrderService.confirmPayment(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLUSER(request, redis));
+ 		map = carOrderService.confirmPayment(ReqSrc.PC_COMPANY, response, request, jsonObject,LU.getLStaff(request, redis));
  		Message.print(response, map);
  	}
  	

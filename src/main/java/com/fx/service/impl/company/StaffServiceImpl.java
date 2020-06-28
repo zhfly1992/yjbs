@@ -1,10 +1,14 @@
 package com.fx.service.impl.company;
 
+
+
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -32,11 +36,11 @@ import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.CompanyCustomDao;
-
+import com.fx.dao.company.CompanyVehicleDao;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.BaseUserDao;
 import com.fx.entity.company.CompanyCustom;
-
+import com.fx.entity.company.CompanyVehicle;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
@@ -56,6 +60,9 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 	
 	@Autowired
 	private CompanyCustomDao companyCustomDao;
+	
+	@Autowired
+	private CompanyVehicleDao companyVehicleDao;
 
 
 
@@ -168,6 +175,7 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 					fg = U.setPutFalse(map, 0, "unintNum为空");
 				}
 			}
+
 
 			String phone = staff.getBaseUserId().getPhone();
 			String unitNum = staff.getUnitNum();
@@ -513,6 +521,12 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 				U.setPutFalse(map, 0, "获取unitNum出错");
 				return map;
 			}
+			//获取已经被设置为驾驶员的uname
+			List<CompanyVehicle> companyVehicles = companyVehicleDao.findhqlList("from CompanyVehicle where unitNum = ?0 and baseUserId is not null", unitNum);
+			Set<String> unameSet = new HashSet<>();
+			for(CompanyVehicle cv:companyVehicles){
+				unameSet.add(cv.getBaseUserId().getUname());
+			}
 			
 			List<BaseUser> findhqlList = staffDao.findhqlList(
 					"select BU from Staff S left join S.baseUserId as BU with S.unitNum = ?0 and S.isDriver = 1 and S.isDel = 0",
@@ -520,7 +534,8 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 			List<BaseUser> result = new ArrayList<BaseUser>();
 			if (findhqlList.size() > 0) {
 				for (BaseUser baseUser : findhqlList) {
-					if (baseUser != null) {
+					 //排除已绑定车辆的驾驶员
+					if (baseUser != null && !unameSet.contains(baseUser.getUname())) {
 						result.add(baseUser);
 					}
 				}
@@ -538,6 +553,91 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 			e.printStackTrace();
 		}
 
+		return map;
+	}
+
+
+
+	@Override
+	public Map<String, Object> checkPhoneBeforeAdd(ReqSrc reqsrc, HttpServletResponse response,
+			HttpServletRequest request, String phone) {
+		String logtxt = U.log(log, "查询-手机号是否存在基础用户", reqsrc);
+
+		Map<String, Object> map = new HashMap<String, Object>();
+		try {
+			
+			if (StringUtils.isBlank(phone)) {
+				U.log(log, "查询-手机号是否存在基础用户-传入手机号为空");
+				U.setPutFalse(map, 0, "传入手机号为空");
+			}
+			else{
+				BaseUser baseUser = baseUserdao.findByField("phone", phone);
+				if (baseUser == null) {
+					U.log(log, "查询-手机号是否存在基础用户-不存在该手机号");
+					U.setPut(map, 1, "手机号不存在");
+				}
+				else{
+					U.log(log, "查询-手机号是否存在基础用户-手机号存在");
+					U.setPutFalse(map, 0, "该用户已存在");
+					map.put("data", baseUser);
+					Map<String, Object> fmap = new HashMap<String, Object>();
+					fmap.put(U.getAtJsonFilter(BaseUser.class), new String[] {});
+					map.put(QC.FIT_FIELDS, fmap);
+				}
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		return map;
+	}
+
+
+
+	@Override
+	public Map<String, Object> staffLeave(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String id, String leaveInfo) {
+		String logtxt = U.log(log, "后台-员工-离职", reqsrc);
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		Staff staff = null;
+		try {
+			if (fg) {
+				if (StringUtils.isBlank(id)) {
+					U.log(log, "后台-员工-离职-传入员工id为空");
+					fg = U.setPutFalse(map, 0, "传入id为空");
+				}
+			}
+			if (fg) {
+				if (StringUtils.isBlank(leaveInfo)) {
+					U.log(log, "后台-员工-离职-传入离职信息为空");
+					fg = U.setPutFalse(map, 0, "传入离职信息为空");
+				}
+			}
+			if (fg) {
+				staff = staffDao.findByField("id", Long.parseLong(id));
+				if (staff == null) {
+					U.log(log, "后台-员工-离职-查询不到员工信息，id:" + id);
+					fg = U.setPutFalse(map, 0, "查询员工信息错误，检查传入id");
+				}
+			}
+			if (fg) {
+				if (staff.getStaffState() == StaffState.LEAVE) {
+					U.log(log, "后台-员工-离职-该员工已离职");
+					fg = U.setPutFalse(map, 0, "该员工已离职");
+				}
+			}
+			if (fg) {
+				staff.setLeaveInfo(leaveInfo);
+				staff.setStaffState(StaffState.LEAVE);
+				staffDao.update(staff);
+				U.log(log, "后台-员工-离职-操作成功");
+				U.setPut(map, 1, "离职成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
 		return map;
 	}
 

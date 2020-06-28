@@ -541,10 +541,11 @@ public class CommonServiceImpl implements CommonService {
 	
 	@Override
 	public Map<String, Object> addJzbxFile(ReqSrc reqsrc, String ftype, String lteamNo, String luname, 
-		MultipartFile[] files, String uid) {
+		MultipartFile[] files, String uid, String fnames) {
 		String logtxt = U.log(log, "添加-记账报销-文件", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
+		String hql = "";
 		boolean fg = true;
 		
 		try {
@@ -584,9 +585,47 @@ public class CommonServiceImpl implements CommonService {
 				}
 			}
 			
+			// 保存-需要删除的文件id列表
+			List<Object> delfids = new ArrayList<Object>();
+			String oldJzImgUrls = "";
+			if(fg && StringUtils.isNoneBlank(uid)) {// 修改才处理
+				if(StringUtils.isBlank(fnames)) {
+					U.log(log, "用户欲删除所有旧文件");
+					
+					// 获取需要删除的文件数据id数组字符串
+					hql = "from FileMan where fdat = ?0 and ftype = ?1 order by id asc";
+					List<FileMan> delfiles = fileManDao.findhqlList(hql, lteamNo+"="+luname+"="+uid, _ftype);
+					for (FileMan fm : delfiles) {
+						delfids.add(fm.getId());
+					}
+					
+					U.log(log, "[需要删除"+delfiles.size()+"个"+_ftype.getKey()+"文件]");
+				}else {
+					U.log(log, "用户保留了一部分旧文件或者未删除旧文件");
+					
+					// 存储-未删除的文件url
+					List<String> saveFmUrls = new ArrayList<String>();
+					hql = "from FileMan where fname in(:v0) order by id asc";
+					List<FileMan> savefiles = fileManDao.findListIns(hql, (Object[])fnames.split(","));
+					for (FileMan fm : savefiles) {
+						saveFmUrls.add(fm.getFolderName()+"/"+fm.getFname());
+					}
+					oldJzImgUrls = StringUtils.join(saveFmUrls.toArray(), ",");
+					
+					// 获取需要删除的文件数据id数组字符串
+					hql = "from FileMan where fname not in(:v0) and fdat = :v1 and ftype = :v2 order by id asc";
+					List<FileMan> delfiles = fileManDao.findListIns(hql, fnames.split(","), lteamNo+"="+luname+"="+uid, _ftype);
+					for (FileMan fm : delfiles) {
+						delfids.add(fm.getId());
+					}
+					
+					U.log(log, "[需要删除"+delfiles.size()+"个"+_ftype.getKey()+"文件]");
+				}
+			}
+			
 			String jzImgUrls = "";
 			if(fg) {
-				if(files.length == 0) {
+				if(StringUtils.isBlank(fnames) && files.length == 0) {
 					fg = U.setPutFalse(map, "文件为空，请选择文件");
 				}else {
 					U u = new U();
@@ -629,6 +668,7 @@ public class CommonServiceImpl implements CommonService {
 						
 						U.log(log, "上传文件完成");
 					}
+					jzImgUrls = StringUtils.join(urls.toArray(), ",");
 					
 					// 将新添加的文件数据id传给前端
 					map.put("fids", fids.size() > 0 ? StringUtils.join(fids.toArray(), ",") : "");
@@ -644,28 +684,44 @@ public class CommonServiceImpl implements CommonService {
 					if(!FV.isLong(uid)) {
 						fg = U.setPutFalse(map, "[修改对象id]格斯错误");
 					}else {
+						// 处理最终保留的文件名数组字符串
+						if(StringUtils.isBlank(jzImgUrls)) {
+							// 不存在新添加的文件名数组字符串，则说明未新添加文件，即文件名数组字符串与原来一样
+							jzImgUrls = oldJzImgUrls;
+						}else {
+							// 存在新添加的文件名数组字符串，则说明新添加了文件，即文件名数组字符串为原来的+新的
+							if(StringUtils.isNotBlank(oldJzImgUrls)) {
+								// 未全部删除旧文件，保留了一部分
+								jzImgUrls = oldJzImgUrls+","+jzImgUrls;
+							}
+						}
+						
 						String dat = "";
 						if(_ftype == FileType.JYJZ_IMG) {
 							CarOilList jyjz = carOilListDao.findByField("id", Long.parseLong(uid));
 							if(jyjz == null) {
 								fg = U.logFalse(log, "[加油记账]不存在");
 							}else {
-								// 修改加油记账记录的凭证url
-								jyjz.setOilVoucherUrl(jzImgUrls);
-								carOilListDao.update(jyjz);
-								U.log(log, "更新-加油记账-凭证url-完成");
-								
-								// 对应员工记账
+								// 标识
 								dat = jyjz.getUnitNum()+"="+jyjz.getOilDriver().getUname()+"="+jyjz.getId();
-								StaffReimburse sr = staffReimburseDao.findByField("dat", dat);
-								if(sr == null) {
-									fg = U.logFalse(log, "[对应员工记账]不存在");
-								}else {
-									sr.setReimVoucherUrl(jzImgUrls);
-									staffReimburseDao.update(sr);
-									U.log(log, "更新-员工记账-凭证url-完成");
+								if(fg) {
+									// 修改加油记账记录的凭证url
+									jyjz.setOilVoucherUrl(jzImgUrls);
+									carOilListDao.update(jyjz);
+									U.log(log, "更新-加油记账-凭证url-完成");
 									
-									U.setPut(map, 1, "更新-凭证图片地址-完成");
+									
+									// 对应员工记账
+									StaffReimburse sr = staffReimburseDao.findByField("dat", dat);
+									if(sr == null) {
+										U.logFalse(log, "[对应员工记账]不存在");
+									}else {
+										sr.setReimVoucherUrl(jzImgUrls);
+										staffReimburseDao.update(sr);
+										U.log(log, "更新-员工记账-凭证url-完成");
+										
+										U.setPut(map, 1, "更新-凭证图片地址-完成");
+									}
 								}
 							}
 						}else if(_ftype == FileType.WXJZ_IMG) {
@@ -673,22 +729,25 @@ public class CommonServiceImpl implements CommonService {
 							if(wxjz == null) {
 								fg = U.logFalse(log, "[维修记账]不存在");
 							}else {
-								// 修改维修记账记录的凭证url
-								wxjz.setRepairVoucherUrl(jzImgUrls);
-								carRepairListDao.update(wxjz);
-								U.log(log, "更新-维修记账-凭证url-完成");
-								
-								// 对应员工记账
+								// 标识
 								dat = wxjz.getUnitNum()+"="+wxjz.getRepairDriver().getUname()+"="+wxjz.getId();
-								StaffReimburse sr = staffReimburseDao.findByField("dat", dat);
-								if(sr == null) {
-									fg = U.logFalse(log, "[对应员工记账]不存在");
-								}else {
-									sr.setReimVoucherUrl(jzImgUrls);
-									staffReimburseDao.update(sr);
-									U.log(log, "更新-员工记账-凭证url-完成");
+								if(fg) {
+									// 修改维修记账记录的凭证url
+									wxjz.setRepairVoucherUrl(jzImgUrls);
+									carRepairListDao.update(wxjz);
+									U.log(log, "更新-维修记账-凭证url-完成");
 									
-									U.setPut(map, 1, "更新-凭证图片地址-完成");
+									// 对应员工记账
+									StaffReimburse sr = staffReimburseDao.findByField("dat", dat);
+									if(sr == null) {
+										U.logFalse(log, "[对应员工记账]不存在");
+									}else {
+										sr.setReimVoucherUrl(jzImgUrls);
+										staffReimburseDao.update(sr);
+										U.log(log, "更新-员工记账-凭证url-完成");
+										
+										U.setPut(map, 1, "更新-凭证图片地址-完成");
+									}
 								}
 							}
 						}else if(_ftype == FileType.QTJZ_IMG) {
@@ -696,106 +755,52 @@ public class CommonServiceImpl implements CommonService {
 							if(sr == null) {
 								fg = U.logFalse(log, "[对应员工记账]不存在");
 							}else {
-								sr.setReimVoucherUrl(jzImgUrls);
-								staffReimburseDao.update(sr);
-								U.log(log, "更新-员工记账-凭证url-完成");
-								
-								U.setPut(map, 1, "更新-凭证图片地址-完成");
+								if(fg) {
+									sr.setReimVoucherUrl(jzImgUrls);
+									staffReimburseDao.update(sr);
+									U.log(log, "更新-员工记账-凭证url-完成");
+									
+									U.setPut(map, 1, "更新-凭证图片地址-完成");
+								}
 							}
 						}else if(_ftype == FileType.XCSZ_IMG) {
 							StaffReimburse sr = staffReimburseDao.findByField("id", Long.parseLong(uid));
 							if(sr == null) {
 								fg = U.logFalse(log, "[对应员工记账]不存在");
 							}else {
-								sr.setReimVoucherUrl(jzImgUrls);
-								staffReimburseDao.update(sr);
-								U.log(log, "更新-员工记账-凭证url-完成");
-								
-								// 修改对应行程收支
-								RouteTradeList xcsz = sr.getOrderTrade();
-								if(xcsz == null) {
-									fg = U.logFalse(log, "[行程收支]不存在");
-								}else {
-									// 修改加油记账记录的凭证url
-									xcsz.setRouteVoucherUrl(jzImgUrls);
-									routeTradeListDao.update(xcsz);
-									U.log(log, "更新-行程收支-凭证url-完成");
+								if(fg) {
+									sr.setReimVoucherUrl(jzImgUrls);
+									staffReimburseDao.update(sr);
+									U.log(log, "更新-员工记账-凭证url-完成");
+									
+									// 修改对应行程收支
+									RouteTradeList xcsz = sr.getOrderTrade();
+									if(xcsz == null) {
+										U.logFalse(log, "[行程收支]不存在");
+									}else {
+										// 修改加油记账记录的凭证url
+										xcsz.setRouteVoucherUrl(jzImgUrls);
+										routeTradeListDao.update(xcsz);
+										U.log(log, "更新-行程收支-凭证url-完成");
+									}
+									
+									U.setPut(map, 1, "更新-凭证图片地址-完成");
 								}
-								
-								U.setPut(map, 1, "更新-凭证图片地址-完成");
 							}
 						}
+						
+						if(fg) {
+							if(delfids.size() == 0) {
+								U.log(log, "没有需要删除的文件");
+							}else {
+								// 删除加油记账对应凭证记录及图片
+								fileManDao.delJzbxFiles(delfids.toArray());
+							}
+						}
+						
 					}
 				}
 			}
-		} catch (Exception e) {
-			U.setPutEx(map, log, e, logtxt);
-			e.printStackTrace();
-		}
-		
-		return map;
-	}
-	
-	@Override
-	public Map<String, Object> updJzbxFile(ReqSrc reqsrc, String fid, MultipartFile[] files) {
-		String logtxt = U.log(log, "修改-记账报销-文件", reqsrc);
-		
-		Map<String, Object> map = new HashMap<String, Object>();
-//		boolean fg = true;
-		
-		try {
-//			if(fg) {
-//				if(StringUtils.isBlank(lteamNo)) {
-//					fg = U.setPutFalse(map, "[登录车队编号]不能为空");
-//				}else {
-//					lteamNo = lteamNo.trim();
-//					
-//					U.log(log, "[登录车队编号] lteamNo="+lteamNo);
-//				}
-//			}
-//			
-//			if(fg) {
-//				if(StringUtils.isBlank(luname)) {
-//					fg = U.setPutFalse(map, "[登录用户名]不能为空");
-//				}else {
-//					luname = luname.trim();
-//					
-//					U.log(log, "[登录用户名] luname="+luname);
-//				}
-//			}
-//			
-//			if(fg) {
-//				if(files.length == 0) {
-//					fg = U.setPutFalse(map, "文件为空，请选择文件");
-//				}else {
-//					// 存放文件根目录
-//					String rootPath = UtilFile.JZBX_FILE_PATH+UT.getYearMonthFolder(new Date());
-//					// 判断文件夹是否存在，不存在则创建
-//				    U.creatFolder(rootPath);					
-//					
-//					for(int i = 0; i < files.length; i++) {
-//						MultipartFile file = files[i];
-//						
-//						// 创建新文件名并固定文件后缀名
-//						String fileName = U.getUUID()+".png";
-//						
-//						FileMan fm = new FileMan();
-//						fm.setAtime(new Date());
-//						fm.setFid(UT.creatFileNum(fm.getAtime()));
-//						fm.setFname(fileName);
-//						fm.setFolderName(rootPath);
-//						fm.setReqsrc(reqsrc);
-//						fm.setFtype(FileType.JYJZ_IMG);
-//						fm.setFdat(lteamNo+","+luname);// 车队编号,添加用户名
-//						fileManDao.save(fm);
-//						U.log(log, "添加-"+fm.getFtype().getKey()+"-成功");
-//						
-//						file.transferTo(new File(rootPath+"/"+fileName));
-//						
-//						U.log(log, "上传文件完成");
-//					}
-//				}
-//			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();

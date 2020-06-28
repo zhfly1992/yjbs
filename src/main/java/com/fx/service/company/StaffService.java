@@ -138,5 +138,34 @@ public interface StaffService extends BaseService<Staff, Long> {
 	 */
 	public Map<String, Object> getDriverList(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 			String unitNum);
-
+	
+	
+	/**
+	 * 
+	 * @Description:员工添加前获取手机号信息
+	 * @param reqsrc
+	 * @param response
+	 * @param request
+	 * @param unitNum 
+	 * @return
+	 * @author :zh
+	 * @version 2020年6月18日
+	 */
+	public Map<String, Object> checkPhoneBeforeAdd(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String phone);
+	
+	/**
+	 * 
+	 * @Description:员工离职功能
+	 * @param reqsrc
+	 * @param response
+	 * @param request
+	 * @param id   员工id
+	 * @param leaveInfo		离职信息，格式:"时间,备注"
+	 * @return
+	 * @author :zh
+	 * @version 2020年6月27日
+	 */
+	public Map<String, Object>	staffLeave(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String id,String leaveInfo);
 }

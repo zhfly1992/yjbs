@@ -18,6 +18,7 @@ import javax.persistence.TemporalType;
 
 import com.fx.commons.utils.enums.JzType;
 import com.fx.commons.utils.enums.ReqSrc;
+import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.permi.Dept;
 import com.fx.entity.order.CarOrder;
@@ -47,6 +48,21 @@ public class StaffReimburse implements Serializable{
 	@OneToOne(targetEntity = BaseUser.class)
 	@JoinColumn(name="reim_user_id", nullable=false, referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '报销人信息'")
 	private BaseUser reimUserId;
+	
+	/** 科目名称 */
+	@OneToOne(targetEntity = FeeCourse.class)
+	@JoinColumn(name="fee_course_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目id'")
+	private FeeCourse feeCourseId;
+	
+	/** 对方科目名称 */
+	@OneToOne(targetEntity = FeeCourse.class)
+	@JoinColumn(name="face_course_id",  referencedColumnName="id", columnDefinition="varchar(30) COMMENT '对方科目id'")
+	private FeeCourse faceCourseId;
+	
+	/** 下账/预存客户 */
+	@OneToOne(targetEntity = CompanyCustom.class)
+	@JoinColumn(name="pre_user_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '下账/预存客户'")
+	private CompanyCustom preUserId;
 	
 	/** 业务部门 */
 	@OneToOne(targetEntity = Dept.class)
@@ -84,7 +100,7 @@ public class StaffReimburse implements Serializable{
 	private String refuseReason;
 	
 	/** 报账图片下载地址 */
-	@Column(name="reim_voucher_url", columnDefinition="varchar(255) COMMENT '报账图片下载地址'")
+	@Column(name="reim_voucher_url", columnDefinition="text COMMENT '报账图片下载地址'")
 	private String reimVoucherUrl;
 	
 	/** 子订单引用 */
@@ -188,6 +204,61 @@ public class StaffReimburse implements Serializable{
 	public void setReimUserId(BaseUser reimUserId) {
 		this.reimUserId = reimUserId;
 	}
+
+	/**  
+	 * 获取 科目名称  
+	 * @return feeCourseId
+	 */
+	public FeeCourse getFeeCourseId() {
+		return feeCourseId;
+	}
+	
+
+	/**  
+	 * 设置 科目名称  
+	 * @param feeCourseId 
+	 */
+	public void setFeeCourseId(FeeCourse feeCourseId) {
+		this.feeCourseId = feeCourseId;
+	}
+	
+	
+	/**  
+	 * 获取 对方科目名称  
+	 * @return faceCourseId
+	 */
+	public FeeCourse getFaceCourseId() {
+		return faceCourseId;
+	}
+	
+
+	/**  
+	 * 设置 对方科目名称  
+	 * @param faceCourseId 
+	 */
+	public void setFaceCourseId(FeeCourse faceCourseId) {
+		this.faceCourseId = faceCourseId;
+	}
+	
+
+
+	/**  
+	 * 获取 下账预存客户  
+	 * @return preUserId
+	 */
+	public CompanyCustom getPreUserId() {
+		return preUserId;
+	}
+	
+
+	/**  
+	 * 设置 下账预存客户  
+	 * @param preUserId 
+	 */
+	public void setPreUserId(CompanyCustom preUserId) {
+		this.preUserId = preUserId;
+	}
+	
 
 	/**  
 	 * 获取 业务部门  

@@ -100,6 +100,10 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/customer/**", "anon");
         filterChainDefinitionMap.put("/company/**", "anon");
         filterChainDefinitionMap.put("/common/**", "anon");
+        
+        // 微信授权文件
+        filterChainDefinitionMap.put("/MP_verify_0K8o1Dm2b3zprV1Y.txt", "anon");
+        
 
         /**********移动端-配置--begin************/
         

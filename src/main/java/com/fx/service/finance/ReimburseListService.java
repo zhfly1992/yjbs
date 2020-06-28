@@ -51,23 +51,17 @@ public interface ReimburseListService extends BaseService<ReimburseList, Long> {
 	/**
 	 * @author xx
 	 * @date 20200520
-	 * 单位-添加/修改-凭证记录
+	 * 单位-修改-凭证记录
 	 * @param reqsrc 		请求来源
 	 * @param request 		request
 	 * @param response 		response
-	 * @param unitNum  		车队编号
 	 * @param updId  		修改记录id
-	 * @param uname			报销人账号
-	 * @param feeCourseId 	科目id
-	 * @param totalMoney 	总价
-	 * @param remark 		备注
+	 * @param modifyFeeCourse 修改科目交易记录id=修改科目id@修改科目交易记录id=修改科目id
 	 * @param gainTime	 	记账时间
-	 * @param voucherUrl    图片URL
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> adupReimburse(ReqSrc reqsrc, HttpServletRequest request, 
-			HttpServletResponse response, String updId, 
-			String unitNum,String uname, String feeCourseId,  String totalMoney, String remark,String gainTime,String voucherUrl);
+	public Map<String, Object> modifyReim(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+			String updId, String modifyFeeCourse,String gainTime);
 	
 	/**
 	 * 	单位-删除凭证记录

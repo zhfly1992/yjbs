@@ -91,7 +91,7 @@ public class FileServiceImpl extends BaseServiceImpl<FileManage, Long> implement
 				
 //				String basePath = request.getScheme() + "://" + request.getLocalAddr() + path;
 				
-				String basePath = request.getScheme() + "://" + "121.37.161.108" ;
+				String basePath = request.getScheme() + "://" + "121.36.52.250" ;
 				
 				File dest = new File(uploadFolder + '/' + fileName);
 				

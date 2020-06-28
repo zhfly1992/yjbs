@@ -6,8 +6,6 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.springframework.web.multipart.MultipartHttpServletRequest;
-
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.service.BaseService;
 import com.fx.commons.utils.enums.ReqSrc;
@@ -69,57 +67,7 @@ public interface CarOilListService extends BaseService<CarOilList, Long> {
 	 */
 	public Map<String, Object> findJyjzList(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
 		String page, String rows, String stime, String etime);
-	/**
-	 * 车队驾驶员-添加/修改-加油记录
-	 * @param reqsrc 		请求来源
-	 * @param request 		request
-	 * @param response 		response
-	 * @param fids  		上传成功图片id数组
-	 * @param lname  		登录账号
-	 * @param plateNum 		车牌号
-	 * @param currentKilo 	当前公里数
-	 * @param addOilWay 	加油方式
-	 * @param oilStation 	加油站名称
-	 * @param oilRise 		加油数量
-	 * @param oilMoney 		加油金额
-	 * @param oilCard 		加油卡号
-	 * @param jyDate 		加油日期
-	 * @param jyRemark 		加油备注
-	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
-	 */
-//	public Map<String, Object> addUpdCoi(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
-//		String fids, String lname, String plateNum, String currentKilo, String addOilWay, String oilStation, 
-//		String oilRise, String oilMoney, String oilCard, String jyDate, String jyRemark, String oilRealMoney);
-	/**
-	 * 修改-加油记录
-	 * @param reqsrc 		请求来源
-	 * @param request 		request
-	 * @param response 		response
-	 * @param teamNo  		登录车队编号
-	 * @param luname  		登录账号
-	 * @param uid  			加油记录id
-	 * @param currKm		车辆公里数
-	 * @param addOilWay 	加油方式
-	 * @param oilStation 	加油站名称
-	 * @param oilRise 		加油数量
-	 * @param oilMoney 		加油金额
-	 * @param oilCard 		加油卡号
-	 * @param jyDate 		加油日期
-	 * @param jyRemark 		加油备注
-	 * @param imgIds		图片id数组字符串
-	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
-	 */
-	public Map<String, Object> updCoi(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
-		MultipartHttpServletRequest multReq, String teamNo, String luname, String uid, String currKm, 
-		String addOilWay, String oilStation, String oilRise, String oilMoney, String oilCard, String jyDate, 
-		String jyRemark, String imgIds);
-	/**
-	 * 判断-指定记录公里数是否在其前后记录公里数之间
-	 * @param obj 		记账对象（加油、维修、其他、行程收支）
-	 * @param reimType 	报销类型：3加油报销  4维修报销
-	 * @return 数组[最小值, 最大值, 下一条记录id]
-	 */
-	public Object[] getMinMaxKm(Object obj, int reimType);
+
 	/**
 	 * 删除-加油记录
 	 * @param reqsrc 		请求来源

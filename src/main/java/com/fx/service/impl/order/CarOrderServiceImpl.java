@@ -11,6 +11,7 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -47,7 +48,6 @@ import com.fx.commons.utils.tools.UT;
 import com.fx.dao.CommonDao;
 import com.fx.dao.company.CompanyCustomDao;
 import com.fx.dao.company.CompanyDiscountDao;
-import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.CompanyUserDao;
 import com.fx.dao.cus.CusWalletDao;
 import com.fx.dao.cus.WalletListDao;
@@ -90,6 +90,7 @@ import com.fx.entity.order.OrderParam;
 import com.fx.entity.order.RouteLineInfo;
 import com.fx.entity.order.RouteMapPoint;
 import com.fx.entity.order.RouteStationInfo;
+import com.fx.entity.order.RouteTradeList;
 import com.fx.service.company.CompanyVehicleService;
 import com.fx.service.order.CarOrderService;
 import com.fx.web.util.RedisUtil;
@@ -184,10 +185,6 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 	/** 单位客户-服务 **/
 	@Autowired
 	private CompanyCustomDao		companyCustomDao;
-
-	/** 单位员工-服务 */
-	@Autowired
-	private StaffDao				staffDao;
 
 	/** 单位员工报账-服务 */
 	@Autowired
@@ -402,10 +399,18 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 							// 订单下有派车，无发删除
 							U.logFalse(log, "单位-子订单操作-删除-子订单id:" + id + "无法删除，有派车");
 							fg = U.setPutFalse(map, 0, "子订单" + carOrder.getOrderNum() + "有派车，无法删除");
+							return map;
+						}
+						if (carOrder.getPayStatus()!=OrderPayStatus.UNPAID) {
+							//订单已支付，无法删除
+							U.logFalse(log, "单位-子订单操作-删除-子订单id:" + id + "无法删除，订单已支付");
+							fg = U.setPutFalse(map, 0, "子订单" + carOrder.getOrderNum() + "已支付，无法删除");
+							return map;
 						}
 					} else {
 						U.logFalse(log, "单位-子订单操作-删除-子订单id:" + id + "无法删除，不属于主订单:" + mainOrderNum);
 						fg = U.setPutFalse(map, 0, "子订单" + carOrder.getOrderNum() + "不属于主订单，无法删除");
+						return map;
 					}
 				}
 			}
@@ -639,7 +644,8 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 							carOrder.setNeedCars(needCars);
 						}else{
 							carOrder.setNeedCars(1);
-						}						
+						}		
+						carOrder.setLastModifyTime(new Date());//xx 增加最后一次修改时间
 						carOrderDao.update(carOrder);
 						U.log(log, "单位-编辑订单-单个订单-未派车-修改相应信息");
 						if (needCars != 1 && mainCarOrder.getMainOrderBase().getStatus() != MainOrderStatus.NOT_CONFIRM) {
@@ -667,16 +673,19 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 									newRouteStationInfo.setId((long)0);
 									add.setRouteStationInfo(newRouteStationInfo);
 								}
-								if (carOrder.getConfmStart() != null) {
-									MapPoint newConfmStart = (MapPoint)carOrder.getConfmStart().clone();
-									newConfmStart.setId((long)0);
-									add.setConfmStart(newConfmStart);
-								}
-								if (carOrder.getConfmStart() != null) {
-									MapPoint newConfmEnd = (MapPoint)carOrder.getConfmEnd().clone();
-									newConfmEnd.setId((long)0);
-									add.setConfmEnd(newConfmEnd);
-								}
+								add.setConfmSlnglat(null);
+								add.setConfmStime(null);
+								
+//								if (carOrder.getConfmStart() != null) {
+//									MapPoint newConfmStart = (MapPoint)carOrder.getConfmStart().clone();
+//									newConfmStart.setId((long)0);
+//									add.setConfmStart(newConfmStart);
+//								}
+//								if (carOrder.getConfmStart() != null) {
+//									MapPoint newConfmEnd = (MapPoint)carOrder.getConfmEnd().clone();
+//									newConfmEnd.setId((long)0);
+//									add.setConfmEnd(newConfmEnd);
+//								}
 
 								
 								
@@ -1510,11 +1519,20 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 					U.log(log, "[客户id] id=" + companyCusId);
 				}
 			}
+
 			if (fg) {
 				if (StringUtils.isEmpty(serviceMan)) {
 					fg = U.setPutFalse(map, "[业务员]不能为空");
 				} else {
 					U.log(log, "[业务员] serviceMan=" + serviceMan);
+				}
+			}
+			if (fg) {
+				if (StringUtils.isNotBlank(reasonTime)) {
+					//增加时间不为空，必须检验是否为数字
+					if (!StringUtils.isNumeric(reasonTime)) {
+						fg = U.setPutFalse(map, "增加时间必须为数字");
+					}
 				}
 			}
 			if (fg) {
@@ -1970,7 +1988,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 	@Override
 	public Map<String, Object> confirmPayment(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			JSONObject jsonObject, Customer customer) {
+			JSONObject jsonObject,Staff staff) {
 		String logtxt = U.log(log, "单位订单-确认付款价格", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -1984,14 +2002,30 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				}
 			}
 			if (fg) {
-				if (null == customer) {
+				if (null == staff) {
 					U.logFalse(log, "单位订单-确认付款价格-获取账号信息失败");
 					fg = U.setPutFalse(map, 0, "获取账号信息失败");
 				}
 			}
 			if (fg) {
+				CarOrder carOrder = carOrderDao.findByField("id", Long.parseLong(id));
+				if (null == carOrder) {
+					U.logFalse(log, "单位订单-确认付款价格-查询订单信息失败");
+					fg = U.setPutFalse(map, 0, "获取订单信息失败");
+				}
+				else{
+					MainCarOrder mainCarOrder = mcarOrderDao.findByField("orderNum", carOrder.getMainOrderNum());
+					if (mainCarOrder.getMainOrderBase().getStatus() == MainOrderStatus.NOT_CONFIRM
+							|| mainCarOrder.getMainOrderBase()
+							.getStatus() == MainOrderStatus.CANCELED) {
+						U.logFalse(log, "单位订单-确认付款价格-主订单不处于未派车或者已完成派车状态");
+						fg = U.setPutFalse(map, 0, "确认失败，主订单不处于未派车或者已完成派车状态");
+					}
+				}
+			}
+			if (fg) {
 				int res = carOrderDao.batchExecute("update CarOrder set confirmPaymentName = ?0 where id = ?1",
-						customer.getBaseUserId().getRealName(), Long.parseLong(id));
+						staff.getBaseUserId().getRealName(), Long.parseLong(id));
 				if (res > 0) {
 					U.log(log, "单位订单-确认付款价格-success");
 					U.setPut(map, 1, "确认付款价格成功");
@@ -2083,12 +2117,20 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 									List<RouteMapPoint> newRouteMps = new ArrayList<RouteMapPoint>(oldRouteMps.size());
 									for (RouteMapPoint rmp : oldRouteMps) {
 										RouteMapPoint routeMapPoint = new RouteMapPoint();
-										routeMapPoint.setMapPoint(rmp.getMapPoint());
+										MapPoint newMapPoint = new MapPoint();
+										MapPoint oldmapPoint = rmp.getMapPoint();
+										newMapPoint.setAddress(oldmapPoint.getAddress());
+										newMapPoint.setCity(oldmapPoint.getCity());
+										newMapPoint.setCounty(oldmapPoint.getCounty());
+										newMapPoint.setLat(oldmapPoint.getLat());
+										newMapPoint.setLng(oldmapPoint.getLng());
+										newMapPoint.setLngLat(oldmapPoint.getLngLat());
+										
+										routeMapPoint.setMapPoint(newMapPoint);
 										routeMapPoint.setPtype(rmp.getPtype());
 										routeMapPoint.setSortNo(rmp.getSortNo());
 										newRouteMps.add(routeMapPoint);
 									}
-									carOrderForAdd.setRouteMps(newRouteMps);
 								}
 								carOrderForAdd.setRouteNo(carOrder.getRouteNo());
 								
@@ -2104,16 +2146,19 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 									newRouteStationInfo.setId((long)0);
 									carOrderForAdd.setRouteStationInfo(newRouteStationInfo);
 								}
-								if (carOrder.getConfmStart() != null) {
-									MapPoint newConfmStart = (MapPoint)carOrder.getConfmStart().clone();
-									newConfmStart.setId((long)0);
-									carOrderForAdd.setConfmStart(newConfmStart);
-								}
-								if (carOrder.getConfmStart() != null) {
-									MapPoint newConfmEnd = (MapPoint)carOrder.getConfmEnd().clone();
-									newConfmEnd.setId((long)0);
-									carOrderForAdd.setConfmEnd(newConfmEnd);
-								}
+								carOrderForAdd.setConfmSlnglat(null);
+								carOrderForAdd.setConfmStime(null);
+								
+//								if (carOrder.getConfmStart() != null) {
+//									MapPoint newConfmStart = (MapPoint)carOrder.getConfmStart().clone();
+//									newConfmStart.setId((long)0);
+//									carOrderForAdd.setConfmStart(newConfmStart);
+//								}
+//								if (carOrder.getConfmStart() != null) {
+//									MapPoint newConfmEnd = (MapPoint)carOrder.getConfmEnd().clone();
+//									newConfmEnd.setId((long)0);
+//									carOrderForAdd.setConfmEnd(newConfmEnd);
+//								}
 //								carOrderForAdd.setRouteLineInfo(carOrder.getRouteLineInfo());
 //								carOrderForAdd.setRouteStationInfo(carOrder.getRouteStationInfo());
 								carOrderForAdd.setSelfPrepayPrice(carOrder.getSelfPrepayPrice());
@@ -2303,17 +2348,17 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 						}
 					} else {
 						if (ot.getRouteType().equals(RouteType.ONE_WAY)) {// 单车接送
-							U.setPut(sendMap, 0, "操作成功，当前智能派单未找到车辆，请手动派单");
+							U.setPut(sendMap, 0, "当前智能派单未找到车辆，请手动派单");
 						} else {// 包车订单
 							hql = "select new CompanyVehicle(seats) from CompanyVehicle where unitNum=?0 and seats>?1 group by seats order by seats asc";
 							List<CompanyVehicle> seatlist = carSer.findhqlList(hql, ot.getUnitNum(),
 									Integer.parseInt(seats));
 							if (seatlist.size() > 0) {
 								sendMap.put("nextSeats", seatlist.get(0).getSeats());// 下一个座位数
-								U.setPut(sendMap, -3, "操作成功（智能派单" + seats + "座运力已饱和）是否启用" + seatlist.get(0).getSeats()
+								U.setPut(sendMap, -3, "当前（智能派单" + seats + "座运力已饱和）是否启用" + seatlist.get(0).getSeats()
 										+ "座智能派单？不启用则手动派单");
 							} else {
-								U.setPut(sendMap, 0, "操作成功（智能派单" + seats + "座运力已饱和并且没有更大车型可选，请手动派单）");
+								U.setPut(sendMap, 0, "当前（智能派单" + seats + "座运力已饱和并且没有更大车型可选，请手动派单）");
 							}
 						}
 					}
@@ -2867,7 +2912,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 
 
 	@Override
-	public Map<String, Object> servicePay(ReqSrc reqsrc, HttpServletRequest request, String unitNum, String uname,
+	public Map<String, Object> servicePay(ReqSrc reqsrc, HttpServletRequest request, String unitNum, Staff staff,
 			String ids, String payMoney, String payRemark) {
 		String logtxt = U.log(log, "单位-业务付款");
 
@@ -2906,9 +2951,9 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				}
 				FeeCourse fc = null;
 				if (fg) {
-					fc = fcDao.findByField("courseName", "业务付款");
+					fc = fcDao.findByField("courseName", "主营业务成本-外调车费");
 					if (fc == null) {
-						fg = U.setPutFalse(map, "[科目“业务付款”]不存在");
+						fg = U.setPutFalse(map, "[科目“主营业务成本-外调车费”]不存在");
 					}
 				}
 				List<CarOrder> colist=new ArrayList<CarOrder>();
@@ -2938,58 +2983,61 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 					}
 				}
 				if(fg){
-					Staff staff=staffDao.findByField("baseUserId.uname", uname);//当前员工，正常情况是出纳
 					String operMark="";
 					for (int i=0;i<colist.size();i++) {
-						co = colist.get(i);
-							operMark = DateUtils.getOrderNum(7);
+						//操作编号
+						operMark=UT.creatOperMark();
+						/*co = colist.get(i);
+						operMark = DateUtils.getOrderNum(7);
 						if (colist.size() > 1) {// 多个订单收款默认每个订单均付款完成
-								_payMoney = MathUtils.sub(Double.valueOf(co.getDisPrice()),
-										Double.valueOf(co.getAlPayPrice()), 2);
-							}
-							// 更新已付款
-							if (co.getDisPrice() <= MathUtils.add(co.getAlPayPrice(), _payMoney, 2)) { // 已付款+本次付款>=行程总价
-								co.setPayStatus(OrderPayStatus.FULL_PAID);// 全款已付
-							} else {
-								co.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已付定金
-							}
-							co.setAlPayPrice(MathUtils.add(co.getAlPayPrice(), _payMoney, 2));
-							carOrderDao.update(co);
-							// 添加付款凭证
-							/*ReimburseList reim = new ReimburseList();
-							reim.setUnitNum(unitNum);
-							reim.setReimUserId(co.getCarOrderBase().getBaseUserId());
-							reim.setDeptId(staff.getDeptId());
-							reim.setGainTime(co.getStime());
-							reim.setFeeCourseId(fc);
-							reim.setVoucherNum(UT.creatReimVoucher(staff.getBaseUserId().getUname(),
-									Integer.parseInt(sortNum.toString() + i)));
-							reim.setFeeStatus(fc.getCourseType());
-							reim.setTotalMoney(_payMoney);
-							reim.setRemark(payRemark);
-							reim.setIsCheck(0);
-							reim.setAddTime(new Date());
-							reim.setReqsrc(reqsrc);
-							reim.setOperMark(operMark);
-							reim.setCarOrderReim(co);
-							reim.setOperNote(staff.getBaseUserId().getRealName() + "[添加]");
-							reimDao.save(reim);*/
-							
-							StaffReimburse obj = new StaffReimburse();
-							obj.setUnitNum(LU.getLUnitNum(request, redis));
-							obj.setReimUserId(co.getCarOrderBase().getBaseUserId());
-							if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
-							obj.setGathMoney(0);
-							obj.setPayMoney(_payMoney);
-							obj.setRemark(payRemark);
-							obj.setIsCheck(0);
-							obj.setAddTime(new Date());
-							obj.setReqsrc(reqsrc);
-							obj.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
-							obj.setOperMark(operMark);
-							obj.setCarOrderReim(co);
-							srDao.update(obj);
+							_payMoney = MathUtils.sub(Double.valueOf(co.getDisPrice()),
+									Double.valueOf(co.getAlPayPrice()), 2);
 						}
+						// 更新已付款
+						if (co.getDisPrice() <= MathUtils.add(co.getAlPayPrice(), _payMoney, 2)) { // 已付款+本次付款>=行程总价
+							co.setPayStatus(OrderPayStatus.FULL_PAID);// 全款已付
+						} else {
+							co.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已付定金
+						}
+						co.setAlPayPrice(MathUtils.add(co.getAlPayPrice(), _payMoney, 2));
+						carOrderDao.update(co);*/
+						// 添加付款凭证
+						/*ReimburseList reim = new ReimburseList();
+						reim.setUnitNum(unitNum);
+						reim.setReimUserId(co.getCarOrderBase().getBaseUserId());
+						reim.setDeptId(staff.getDeptId());
+						reim.setGainTime(co.getStime());
+						reim.setFeeCourseId(fc);
+						reim.setVoucherNum(UT.creatReimVoucher(staff.getBaseUserId().getUname(),
+								Integer.parseInt(sortNum.toString() + i)));
+						reim.setFeeStatus(fc.getCourseType());
+						reim.setTotalMoney(_payMoney);
+						reim.setRemark(payRemark);
+						reim.setIsCheck(0);
+						reim.setAddTime(new Date());
+						reim.setReqsrc(reqsrc);
+						reim.setOperMark(operMark);
+						reim.setCarOrderReim(co);
+						reim.setOperNote(staff.getBaseUserId().getRealName() + "[添加]");
+						reimDao.save(reim);*/
+						
+						StaffReimburse obj = new StaffReimburse();
+						obj.setUnitNum(unitNum);
+						obj.setReimUserId(co.getCarOrderBase().getBaseUserId());
+						obj.setFeeCourseId(fc);
+						if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
+						obj.setGathMoney(0);
+						obj.setPayMoney(_payMoney);
+						obj.setRemark(payRemark);
+						obj.setIsCheck(0);
+						obj.setAddTime(new Date());
+						obj.setReqsrc(reqsrc);
+						obj.setOperNote(staff.getBaseUserId().getRealName()+"[添加]");
+						obj.setOperMark(operMark);
+						obj.setCarOrderReim(co);
+						srDao.save(obj);
+						
+					}
 					U.setPut(map, 1, "付款成功");
 				}
 			} else {
@@ -3241,6 +3289,418 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 	}
 	
 	@Override
+	public Map<String, Object> updCofmOrderGo(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String orderNum, String lnglat, String isArr, String isUpCar, String isToDP, String okBack) {
+		String logtxt = U.log(log, "驾驶员-确认订单出行", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(fg) {
+				if(ReqSrc.WX != reqsrc) {
+					fg = U.setPutFalse(map, QC.ERROR_REQ_SRC_MSG);
+				}
+			}
+			
+			CarOrder jco = null;// 派车订单
+			if(fg){
+				if(StringUtils.isEmpty(orderNum)){
+					fg = U.setPutFalse(map, "[订单编号]不能为空");
+				}else{
+					orderNum = orderNum.trim();
+					jco = carOrderDao.findByField("orderNum", orderNum);
+					if(jco == null){
+						fg = U.setPutFalse(map, "该订单不存在");
+					}else if(jco.getStatus() != OrderStatus.DRIVER_CONFIRMED){
+						fg = U.setPutFalse(map, "该订单您未确认");
+					}else if(jco.getStatus() == OrderStatus.AL_TRAVEL){
+						fg = U.setPutFalse(map, "该订单已确认出行");
+					}
+					
+					U.log(log, "订单编号：orderNum="+orderNum);
+				}
+			}
+			
+			if(fg){
+				if(StringUtils.isEmpty(lnglat)){
+					fg = U.setPutFalse(map, "[出行地点坐标]不能为空");
+				}else{
+					U.log(log, "出行地点坐标：lnglat="+lnglat);
+					
+					lnglat = lnglat.trim();
+					if(lnglat.indexOf(",") == -1){
+						fg = U.setPutFalse(map, "[出行地点坐标]格式错误");
+					}else{
+						// 坐标经纬度保留小数点后6位
+						String[] p = lnglat.split(",");
+						lnglat = MathUtils.saveBit(p[0], 6) + "," + MathUtils.saveBit(p[1], 6);
+					}
+				
+					U.log(log, "出行地点坐标：lnglat="+lnglat);
+				}
+			}
+			
+			int _isarr = -1;
+			if(fg){
+				if(StringUtils.isEmpty(isArr)){
+					fg = U.setPutFalse(map, "[是否到达]不能为空");
+				}else{
+					isArr = isArr.trim();
+					if(!FV.isInteger(isArr)){
+						fg = U.setPutFalse(map, "[是否到达]格式错误");
+					}else{
+						_isarr = Integer.parseInt(isArr);
+					}
+					
+					U.log(log, "[是否到达] isArr="+isArr);
+				}
+			}
+
+			int _isUpCar = -1;
+			if(fg) {
+				if(StringUtils.isEmpty(isUpCar)){
+					U.log(log, "[是否上车]为空");
+				}else{
+					isUpCar = isUpCar.trim();
+					if(!FV.isInteger(isUpCar)){
+						fg = U.setPutFalse(map, "[是否上车]格式错误");
+					}else{
+						_isUpCar = Integer.parseInt(isUpCar);
+					}
+					
+					U.log(log, "[是否上车] isUpCar="+isUpCar);
+				}
+			}
+			
+			int _isToDP = -1;
+			if(fg) {
+				if(StringUtils.isEmpty(isToDP)){
+					U.log(log, "[是否到下车点]为空");
+				}else{
+					isToDP = isToDP.trim();
+					if(!FV.isInteger(isToDP)){
+						fg = U.setPutFalse(map, "[是否到下车点]格式错误");
+					}else{
+						_isToDP = Integer.parseInt(isToDP);
+					}
+					
+					U.log(log, "[是否到下车点] isToDP="+isToDP);
+				}
+			}
+			
+			int _okBack = -1;
+			if(fg) {
+				if(StringUtils.isEmpty(okBack)){
+					U.log(log, "[确认直接回程完团]为空");
+				}else{
+					okBack = okBack.trim();
+					if(!FV.isInteger(okBack)){
+						fg = U.setPutFalse(map, "[确认直接回程完团]格式错误");
+					}else{
+						_okBack = Integer.parseInt(okBack);
+					}
+					
+					U.log(log, "[确认直接回程完团] okBack="+okBack);
+				}
+			}
+			
+			
+			if(fg) {
+				long ctt = new Date().getTime(); 			// 当前时间毫秒数
+				long stt = jco.getStime().getTime();		// 出行时间毫秒数
+				long ett = jco.getEtime().getTime();		// 完团时间毫秒数
+				
+				if(stt > ctt) {// 此操作为确认出行
+					U.log(log, "该订单[还未到出行时间]");
+					
+					if(fg && _isarr != 1) {
+						U.log(log, "[未到达]出行地点范围");
+						
+						fg = U.setPutFalse(map, 3, "你还未到乘客出发地，如果乘客行程有变化，请修改出发地");
+					}
+					
+					if(fg && _isarr == 1) {
+						U.log(log, "[已到达]出行地点范围");
+						
+						if(_isUpCar != 1) {
+							fg = U.setPutFalse(map, 0, "[按计划出行]");
+						}else {
+							U.log(log, "[已上客出行]出行地点范围");
+							
+							if(jco.getCarOrderBase().getRouteType() == RouteType.ONE_WAY) {
+								U.log(log, "单程接送：修改出行时间为当前时间，结束时间为当前时间+行程耗时");
+								
+								jco.setStime(new Date());
+								jco.setConfmStime(new Date());
+								jco.setConfmSlnglat(lnglat);
+								carOrderDao.update(jco);
+								U.log(log, "驾驶员[确认到达上车点]成功");
+								
+								// 重新计算行程距离和完团时间
+								carOrderDao.updAgainCalcEtime(jco, 2);
+								
+								fg = U.setPutFalse(map, 1, "确认出行成功");
+							}else {
+								U.log(log, "旅游包车：修改出行时间为当前时间");
+								
+								jco.setStime(new Date());
+								jco.setConfmStime(new Date());
+								jco.setConfmSlnglat(lnglat);
+								carOrderDao.update(jco);
+								U.log(log, "驾驶员[确认到达上车点]成功");
+								
+								fg = U.setPutFalse(map, 1, "确认出行成功");
+							}
+						}
+					}
+					
+				}else if(stt <= ctt && ctt < ett) {
+					U.log(log, "该订单[过了出行时间但未到完团时间]");
+					
+					if(fg && _isarr == 1) {
+						U.log(log, "[已到达]出行地点范围");
+						
+						if(_isUpCar != 1) {
+							U.log(log, "等待乘客中：无操作，相当于关闭");
+							
+							fg = U.setPutFalse(map, 0, "等待乘客中：无操作，相当于关闭");
+						}else {
+							U.log(log, "[已上客出行]（驾驶员点击）");
+							
+							if(jco.getCarOrderBase().getRouteType() == RouteType.ONE_WAY) {
+								U.log(log, "[单程接送]修改出行时间为当前时间，结束时间为当前时间+行程耗时");
+								
+								jco.setStime(new Date());
+								jco.setConfmStime(new Date());
+								jco.setConfmSlnglat(lnglat);
+								carOrderDao.update(jco);
+								U.log(log, "更新出行数据-成功");
+								
+								// 重新计算行程距离和完团时间
+								carOrderDao.updAgainCalcEtime(jco, 2);
+								
+								fg = U.setPutFalse(map, 1, "确认出行成功");
+							}else {
+								U.log(log, "[旅游包车]");
+								
+								if(_isToDP != 1) {
+									U.log(log, "还在走行程：无操作，相当于关闭");
+									
+									fg = U.setPutFalse(map, 1, "还在走行程：无操作，相当于关闭");
+								}else {
+									U.log(log, "直接到下车点：（驾驶员点击）");
+								
+									if(_okBack != 1) {
+										fg = U.setPutFalse(map, 1, "点错了：关闭弹框");
+									}else {
+										U.log(log, "确认直接回程完团：（驾驶员点击）");
+										
+										boolean f = DateUtils.isDateSame(new Date(), jco.getEtime());
+										if(!f) {
+											U.log(log, "结束时间不是当天：提示：您还有第二天行程");
+											
+											fg = U.setPutFalse(map, 0, "您还有第二天行程");
+										}else {
+											U.log(log, "结束时间是当天：结束时间为当前时间+行程耗时");
+											
+											jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+											carOrderDao.update(jco);
+											U.log(log, "更新订单状态-成功");
+											
+											// 重新计算行程距离和完团时间
+											carOrderDao.updAgainCalcEtime(jco, 2);
+											
+											fg = U.setPutFalse(map, 1, "确认完团成功");
+										}
+									}
+								}
+							}
+						}
+					}
+					
+					if(fg && _isarr != 1) {
+						U.log(log, "[未到达]出行地点范围");
+						
+						if(_isarr == 2) {
+							U.log(log, "[已到达]完团地点范围");
+							
+							if(_isUpCar == 1) {
+								U.log(log, "[已下客完团]（驾驶员点击）结束时间为当前时间");
+								
+								jco.setEtime(new Date());
+								jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+								carOrderDao.update(jco);
+								U.log(log, "驾驶员[确认完团]成功");
+								
+								fg = U.setPutFalse(map, 1, "确认完团成功");
+							}else {
+								fg = U.setPutFalse(map, 0, "点错了，相当于关闭");
+							}
+						}
+						
+						if(_isarr != 2) {
+							U.log(log, "[未到达]完团地点范围");
+							
+							if(_isUpCar == -1) {
+								fg = U.setPutFalse(map, 0, "点错了，相当于关闭");
+							}else if(_isUpCar == 0){
+								U.log(log, "[已上客出行]（驾驶员点击）");
+								
+								if(jco.getCarOrderBase().getRouteType() == RouteType.ONE_WAY) {
+									U.log(log, "[单程接送]结束时间为当前时间+行程耗时");
+									
+									jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+									carOrderDao.update(jco);
+									U.log(log, "更新订单状态-成功");
+									
+									// 重新计算行程距离和完团时间
+									carOrderDao.updAgainCalcEtime(jco, 2);
+									
+									fg = U.setPutFalse(map, 1, "确认完团成功");
+								}else {
+									U.log(log, "[旅游包车]");
+									
+									if(_isToDP != 1) {
+										U.log(log, "还在走行程：无操作，相当于关闭");
+										
+										fg = U.setPutFalse(map, 0, "无操作，相当于关闭");
+									}else {
+										U.log(log, "直接到下车点：（驾驶员点击）");
+									
+										if(_okBack != 1) {
+											fg = U.setPutFalse(map, 0, "点错了：关闭弹框");
+										}else {
+											U.log(log, "确认直接回程完团：（驾驶员点击）");
+											
+											boolean f = DateUtils.isDateSame(new Date(), jco.getEtime());
+											if(!f) {
+												U.log(log, "结束时间不是当天：提示：您还有第二天行程");
+												
+												fg = U.setPutFalse(map, 0, "您还有第二天行程");
+											}else {
+												U.log(log, "结束时间是当天：结束时间为当前时间+行程耗时");
+												
+												jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+												carOrderDao.update(jco);
+												U.log(log, "更新订单状态-成功");
+												
+												// 重新计算行程距离和完团时间
+												carOrderDao.updAgainCalcEtime(jco, 2);
+												
+												fg = U.setPutFalse(map, 1, "确认完团成功");
+											}
+										}
+									}
+								}
+							}else if(_isUpCar == 1) {
+								U.log(log, "[已下客完团]（驾驶员点击）不修改结束时间，只修改状态即可");
+								
+								jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+								carOrderDao.update(jco);
+								U.log(log, "驾驶员[确认完团]成功");
+								
+								fg = U.setPutFalse(map, 1, "确认完团成功");
+							}
+						}
+					}
+					
+				}else {
+					U.log(log, "该订单[过了完团时间]");
+					
+					if(_isarr == 2) {
+						U.log(log, "[已到达]完团地点范围");
+						
+						if(_isUpCar == 1) {
+							U.log(log, "[已下客完团]（驾驶员点击）结束时间为当前时间");
+							
+							jco.setEtime(new Date());
+							jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+							carOrderDao.update(jco);
+							U.log(log, "驾驶员[确认完团]成功");
+							
+							fg = U.setPutFalse(map, 1, "确认完团成功");
+						}else {
+							fg = U.setPutFalse(map, 0, "点错了，相当于关闭");
+						}
+					}
+					
+					if(_isarr != 2) {
+						U.log(log, "[未到达]完团地点范围");
+						
+						if(_isUpCar == -1) {
+							fg = U.setPutFalse(map, 0, "点错了，相当于关闭");
+						}else if(_isUpCar == 0){
+							U.log(log, "[已上客出行]（驾驶员点击）");
+							
+							if(jco.getCarOrderBase().getRouteType() == RouteType.ONE_WAY) {
+								U.log(log, "[单程接送]结束时间为当前时间+行程耗时");
+								
+								jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+								carOrderDao.update(jco);
+								U.log(log, "更新订单状态-成功");
+								
+								// 重新计算行程距离和完团时间
+								carOrderDao.updAgainCalcEtime(jco, 2);
+								
+								fg = U.setPutFalse(map, 1, "确认完团成功");
+							}else {
+								U.log(log, "[旅游包车]");
+								
+								if(_isToDP != 1) {
+									U.log(log, "还在走行程：无操作，相当于关闭");
+									
+									fg = U.setPutFalse(map, 0, "无操作，相当于关闭");
+								}else {
+									U.log(log, "直接到下车点：（驾驶员点击）");
+								
+									if(_okBack != 1) {
+										fg = U.setPutFalse(map, 0, "点错了：关闭弹框");
+									}else {
+										U.log(log, "确认直接回程完团：（驾驶员点击）");
+										
+										boolean f = DateUtils.isDateSame(new Date(), jco.getEtime());
+										if(!f) {
+											U.log(log, "结束时间不是当天：提示：您还有第二天行程");
+											
+											fg = U.setPutFalse(map, 0, "您还有第二天行程");
+										}else {
+											U.log(log, "结束时间是当天：结束时间为当前时间+行程耗时");
+											
+											jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+											carOrderDao.update(jco);
+											U.log(log, "更新订单状态-成功");
+											
+											// 重新计算行程距离和完团时间
+											carOrderDao.updAgainCalcEtime(jco, 2);
+											
+											fg = U.setPutFalse(map, 1, "确认完团成功");
+										}
+									}
+								}
+							}
+						}else if(_isUpCar == 1) {
+							U.log(log, "[已下客完团]（驾驶员点击）不修改结束时间，只修改状态即可");
+							
+							jco.setStatus(OrderStatus.COMPLETED);// 交易完成
+							carOrderDao.update(jco);
+							U.log(log, "驾驶员[确认完团]成功");
+							
+							fg = U.setPutFalse(map, 1, "确认完团成功");
+						}
+					}
+					
+				}
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
 	public Map<String, Object> driverCofmDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
 		String orderNum, String dayId, String lnglat, String isArr) {
 		String logtxt = U.log(log, "确认-完团（乘客下车）", reqsrc);
@@ -3276,19 +3736,19 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 						U.log(log, "完团地点坐标：lnglat="+lnglat);
 						
 						lnglat = lnglat.trim();
-						if(lnglat.indexOf("|") == -1){
+						if(lnglat.indexOf(",") == -1){
 							fg = U.setPutFalse(map, "[完团地点坐标]格式错误");
 						}else{
 							// 坐标经纬度保留小数点后6位
-							String[] p = lnglat.split("\\|");
-							lnglat = MathUtils.saveBit(p[0], 6) + "|" + MathUtils.saveBit(p[1], 6);
+							String[] p = lnglat.split(",");
+							lnglat = MathUtils.saveBit(p[0], 6) + "," + MathUtils.saveBit(p[1], 6);
 						}
 					
 						U.log(log, "完团地点坐标：lnglat="+lnglat);
 					}
 				}
 				
-				Customer cus = LU.getLUSER(request, redis);
+				Staff cus = LU.getLStaff(request, redis);
 				if(fg){
 					if(cus == null){
 						fg = U.setPutFalse(map, 401, "登录失效，请重新登录");
@@ -3579,7 +4039,10 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			if(fg) {
 				List<Object> ons = new ArrayList<Object>();
 				for (DisCarInfo dci : mco.getMainCars()) {
-					ons.add(dci.getOrderNum());
+					// 只保存派单给登录驾驶员的订单
+					if(dci.getMain_driver() != null && dci.getMain_driver().getUname().equals(luname)) {
+						ons.add(dci.getOrderNum());
+					}
 				}
 				
 				hql = "from CarOrder where orderNum in(:v0) order by stime asc";
@@ -3598,12 +4061,129 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 						o.put("stime", co.getStime()); 										// 出发时间
 						o.put("etime", co.getEtime()); 										// 到达时间
 						o.put("isjz", co.getTrades().size() > 0 ? true : false); 			// 是否已有记账
+						
+						// 获取-该订单中是否存在未审核的行程收支，有，则为待审核状态，没有，则显示“行程收支”按钮
+						boolean isAllChecked = true;
+						for (RouteTradeList rtl : co.getTrades()) {
+							if(rtl.getIsCheck() == 0) {// 存在未审核的行程收支
+								isAllChecked = false;
+								break;
+							}
+						}
+						o.put("isAllChecked", isAllChecked);								// 行程收支是否全部已审核
+						
 						disOrders.add(o);
 					}
 				}
 				map.put("data", disOrders);
 				
 				U.setPut(map, 1, "获取子订单成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> valCofmGoOrDownCar(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
+		String orderNum, String lnglat) {
+		String logtxt = U.log(log, "验证-驾驶员位置是否是订单出发点/完团地点", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(fg) {
+				if(ReqSrc.WX != reqsrc){
+					fg = U.setPutFalse(map, "请求来源错误");
+				}
+			}
+			
+			if(fg){
+				if(StringUtils.isEmpty(lnglat)){
+					fg = U.setPutFalse(map, "[出行地点坐标]不能为空");
+				}else{
+					U.log(log, "出行地点坐标：lnglat="+lnglat);
+					
+					lnglat = lnglat.trim();
+					if(lnglat.indexOf(",") == -1){
+						fg = U.setPutFalse(map, "[出行地点坐标]格式错误");
+					}else{
+						// 坐标经纬度保留小数点后6位
+						String[] p = lnglat.split(",");
+						lnglat = MathUtils.saveBit(p[0], 6) + "," + MathUtils.saveBit(p[1], 6);
+					}
+				
+					U.log(log, "出行地点坐标：lnglat="+lnglat);
+				}
+			}
+			
+			CarOrder jco = null;// 派车订单
+			if(fg){
+				if(StringUtils.isEmpty(orderNum)){
+					fg = U.setPutFalse(map, "[订单编号]不能为空");
+				}else{
+					orderNum = orderNum.trim();
+					jco = carOrderDao.findByField("orderNum", orderNum);
+					if(jco == null){
+						fg = U.setPutFalse(map, "该订单不存在");
+					}if(jco.getStatus() == OrderStatus.DRIVER_NOT_CONFIRM){
+						fg = U.setPutFalse(map, "该订单您还未确认");
+					}
+					
+					U.log(log, "订单编号：orderNum="+orderNum);
+				}
+			}
+			
+			if(fg) {
+				long ctt = new Date().getTime(); 			// 当前时间毫秒数
+				long stt = jco.getStime().getTime();		// 出行时间毫秒数
+				long ett = jco.getEtime().getTime();		// 完团时间毫秒数
+				
+				int timeOver = -1;
+				if(stt > ctt) {// 此操作为确认出行
+					U.log(log, "该订单[还未到出行时间]");
+					
+					timeOver = -1;
+				}else if(stt <= ctt && ctt < ett) {
+					U.log(log, "该订单[过了出行时间但未到完团时间]");
+					
+					timeOver = 1;
+				}else {
+					U.log(log, "该订单[过了完团时间]");
+					
+					timeOver = 0;
+				}
+				
+				map.put("timeOver", timeOver);
+			}
+			
+			if(fg){
+				RouteMapPoint sp = Util.getRSP(jco.getRouteMps());
+				int distance = Util.getDist(sp.getMapPoint(), lnglat);
+				if(distance <= QC.POINT_RANGE){
+					fg = U.setPutFalse(map, 1, "已到达出行地点周围");
+				}
+				
+				U.log(log, "当前距离出发地点距离："+distance/1000+"公里");
+			}
+			
+			if(fg){
+				RouteMapPoint sp = Util.getREP(jco.getRouteMps());
+				int distance = Util.getDist(sp.getMapPoint(), lnglat);
+				if(distance <= QC.POINT_RANGE){
+					fg = U.setPutFalse(map, 2, "已到达完团地点周围");
+				}
+				
+				U.log(log, "当前距离玩团地点距离："+distance/1000+"公里");
+			}
+			
+			if(fg){
+				// 既未到达出发地点，也未到达完团地点
+				fg = U.setPutFalse(map, 3, "既未到达出发地点，也未到达完团地点");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);

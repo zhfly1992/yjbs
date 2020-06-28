@@ -8,7 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.service.BaseService;
 import com.fx.commons.utils.enums.ReqSrc;
-import com.fx.entity.cus.Customer;
+import com.fx.entity.company.Staff;
 import com.fx.entity.order.MainCarOrder;
 
 public interface MainCarOrderService extends BaseService<MainCarOrder, Long> {
@@ -21,20 +21,19 @@ public interface MainCarOrderService extends BaseService<MainCarOrder, Long> {
 	 * @param request 			request
 	 * @param response 			response
 	 * @param unitNum			单位编号
-	 * @param operUname				当前账号
 	 * @param gathType 0师傅团上现收 1业务员交车款 2客户自己付尾款
-	 * @param ids 订单id,多个逗号拼接
-	 * @param gathMoney 收款金额
-	 * @param gathRemark 摘要
-	 * @param gathTime 收款时间
 	 * @param routeDriver 师傅信息
 	 * @param cusId 下账客户id
-	 * @param preMoney 客户本次预存款
+	 * @param gathMoney 收款金额
+	 * @param createInfo	订单id=科目id@订单id=科目id
+	 * @param faceCourseInfo    对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额@对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额
+	 * @param operName 操作账号
+	 * @param operRealName 操作姓名
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> serviceGath(ReqSrc reqsrc, HttpServletRequest request, 
-		HttpServletResponse response, String unitNum,String operUname,String gathType, String ids,
-		String gathMoney, String gathRemark,String routeDriver,String cusId,String preMoney);
+		HttpServletResponse response, String unitNum, String gathType,String routeDriver, String cusId,
+		String gathMoney, String createInfo,String faceCourseInfo,String operName,String operRealName);
 	
 	/**
 	 * 
@@ -122,7 +121,7 @@ public interface MainCarOrderService extends BaseService<MainCarOrder, Long> {
 	 * @version 2020年5月13日
 	 */
 	public Map<String, Object> confirmCollection(ReqSrc reqsrc, HttpServletResponse response,
-			HttpServletRequest request, JSONObject jsonObject,Customer customer);
+			HttpServletRequest request, JSONObject jsonObject,Staff staff);
 
 	/**
 	 * 获取-行程记账-主订单列表（未出行、已出行的行程）

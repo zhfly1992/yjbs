@@ -12,6 +12,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
+import com.fx.commons.utils.enums.OrderPayStatus;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.other.DateUtils;
 import com.fx.commons.utils.other.MathUtils;
@@ -29,14 +31,16 @@ import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.CompanyCustomDao;
-import com.fx.dao.company.StaffDao;
+import com.fx.dao.finance.BankTradeListDao;
 import com.fx.dao.finance.FeeCourseDao;
+import com.fx.dao.finance.FeeCourseTradeDao;
 import com.fx.dao.finance.ReimburseListDao;
+import com.fx.dao.finance.StaffReimburseDao;
 import com.fx.dao.order.CarOrderDao;
-import com.fx.entity.company.CompanyCustom;
-import com.fx.entity.company.Staff;
+import com.fx.dao.order.MainCarOrderDao;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.permi.Dept;
+import com.fx.entity.finance.BankTradeList;
 import com.fx.entity.finance.FeeCourse;
 import com.fx.entity.finance.FeeCourseTrade;
 import com.fx.entity.finance.ReimburseList;
@@ -52,6 +56,10 @@ import com.fx.web.util.RedisUtil;
 public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long> implements ReimburseListService {
 	/** 日志记录 */
 	private Logger log = LogManager.getLogger(this.getClass());
+	/** 缓存-服务 */
+	@Autowired
+    private RedisUtil redis;
+
 	
 	@Autowired
 	private ReimburseListDao reimDao;
@@ -63,20 +71,29 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 	@Autowired
 	private FeeCourseDao fcDao;
 	
-	/** 单位客户-服务 */
+	/** 主订单-服务 */
 	@Autowired
-	private CompanyCustomDao ccusDao;
+	private MainCarOrderDao mcoDao;
 	
-	/** 单位员工-服务 */
-	@Autowired
-	private StaffDao staffDao;
-	/** 缓存-服务 */
 	/** 子订单-服务 */
 	@Autowired
 	private CarOrderDao coDao;
 	
+	/** 科目交易记录-服务 */
 	@Autowired
-    private RedisUtil redis;
+	private FeeCourseTradeDao fctDao;
+	
+	/** 员工报账记录-服务 */
+	@Autowired
+	private StaffReimburseDao srDao;
+	
+	/** 银行账记录-服务 */
+	@Autowired
+	private BankTradeListDao btlDao;
+	
+	/** 单位客户-服务 */
+	@Autowired
+	private CompanyCustomDao ccDao;
 	
 	
 	
@@ -109,29 +126,33 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 				double stayFee=0;//住宿费
 				// 解决懒加载问题
 				for (ReimburseList reim : pd.getResult()) {
-					/*if(reim.getCourseTrades().getCourseType()==0) {
-						totalGath+=reim.getTotalMoney();
-					}else {
-						totalPay+=reim.getTotalMoney();
-					}
-					if(reim.getCarOrderReim()!=null) {
-						if(reim.getCarOrderReim().getTrades()!=null) {
-							for (RouteTradeList rtl:reim.getCarOrderReim().getTrades()){
-								singleFee+=rtl.getSingleFee();washingFee+=rtl.getWashingFee();
-								parkingFee+=rtl.getParkingFee();roadFee+=rtl.getRoadFee();
-								livingFee+=rtl.getLivingFee();otherFee+=rtl.getOtherFee();
-								waterFee+=rtl.getWaterFee();stayFee+=rtl.getStayFee();
+					Hibernate.initialize(reim.getCourseTrades());
+					if(!reim.getCourseTrades().isEmpty()) {
+						for (FeeCourseTrade fct:reim.getCourseTrades()) {
+							if(fct.getFeeCourseId().getCourseType()==0) {
+								totalGath+=reim.getTotalMoney();
+							}else {
+								totalPay+=reim.getTotalMoney();
+							}
+							if(fct.getStaffReimId()!=null) {
+								singleFee+=fct.getStaffReimId().getOrderTrade().getSingleFee();washingFee+=fct.getStaffReimId().getOrderTrade().getWashingFee();
+								parkingFee+=fct.getStaffReimId().getOrderTrade().getParkingFee();roadFee+=fct.getStaffReimId().getOrderTrade().getRoadFee();
+								livingFee+=fct.getStaffReimId().getOrderTrade().getLivingFee();otherFee+=fct.getStaffReimId().getOrderTrade().getOtherFee();
+								waterFee+=fct.getStaffReimId().getOrderTrade().getWaterFee();stayFee+=fct.getStaffReimId().getOrderTrade().getStayFee();
 							}
 						}
-					}*/
+					}
 				}
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
 				fmap.put(U.getAtJsonFilter(ReimburseList.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(FeeCourse.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(FeeCourseTrade.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(StaffReimburse.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(BankTradeList.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(CarOrder.class), new String[]{});
+				
 				map.put(QC.FIT_FIELDS, fmap);
 				map.put("totalGath", totalGath);
 				map.put("totalPay", totalPay);
@@ -155,169 +176,21 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 	}
 	
 	@Override
-	public Map<String, Object> adupReimburse(ReqSrc reqsrc, HttpServletRequest request, 
-		HttpServletResponse response, String updId, 
-		String unitNum,String uname, String feeCourseId, String totalMoney, String remark,String gainTime,String voucherUrl) {
-		String logtxt = U.log(log, (StringUtils.isNotBlank(updId))?"修改":"添加"+"-报销凭证记录", reqsrc);
-		
+	public Map<String, Object> modifyReim(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
+			String updId, String modifyFeeCourse,String gainTime) {//只能修改科目，记账时间
+		String logtxt = U.log(log, "单位-修改凭证", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
-		
 		try {
-			if(ReqSrc.PC_COMPANY == reqsrc){
-				if(fg){
-					if(StringUtils.isEmpty(unitNum)){
-						fg = U.setPutFalse(map, "[单位编号]不能为空");
-					}else{
-						unitNum = unitNum.trim();
-						
-						U.log(log, "[单位编号] unitNum="+unitNum);
-					}
-				}
-				
-				CompanyCustom ccus=null;
-				Staff staff=null;
-				if(fg){
-					if(StringUtils.isEmpty(uname)){
-						fg = U.setPutFalse(map, "[报销人]不能为空");
-					}else{
-						uname = uname.trim();
-						ccus=ccusDao.findByField("baseUserId.uname", uname);
-						if(ccus==null) {
-							fg = U.setPutFalse(map, "[报销人]不存在");
-						}else {
-							staff=staffDao.findByField("baseUserId.uname", uname);
-						}
-					}
-				}
-				
-				FeeCourse fc=null;
-				int fcStatus = 0;
-				if(fg){
-					if(StringUtils.isEmpty(feeCourseId)){
-						fg = U.setPutFalse(map, "[科目]不能为空");
-					}else{
-						feeCourseId = feeCourseId.trim();
-						fc=fcDao.findByField("id", Long.valueOf(feeCourseId));
-						if(fc==null) {
-							fg = U.setPutFalse(map, "该[科目]不存在");
-						}else {
-							fcStatus=fc.getCourseType();
-							U.log(log, "[科目] feeCourseId="+feeCourseId);
-						}
-					}
-				}
-				
-				double _totalMoney = 0d;
-				if(fg){
-					if(StringUtils.isEmpty(totalMoney)){
-						fg = U.setPutFalse(map, "[金额]不能为空");
-					}else{
-						totalMoney = totalMoney.trim();
-						if(!FV.isDouble(totalMoney)){
-							fg = U.setPutFalse(map, "[金额]格式不正确，应为正数");
-						}else{
-							_totalMoney = Double.parseDouble(totalMoney);
-						}
-						
-						U.log(log, "[金额] totalMoney="+totalMoney);
-					}
-				}
-				
-				if(fg){
-					if(StringUtils.isEmpty(remark)){
-						U.log(log, "[报销摘要]为空");
-					}else{
-						remark = remark.trim();
-						
-						U.log(log, "[报销摘要] remark="+remark);
-					}
-				}
-				
-				Date _gainTime = null;
-				if(fg){
-					if(StringUtils.isEmpty(gainTime)){
-						fg = U.setPutFalse(map, "[记账时间]不能为空");
-					}else{
-						gainTime = gainTime.trim();
-						if(!FV.isDate(gainTime)){
-							fg = U.setPutFalse(map, "[记账时间]格式不正确");
-						}else{
-							_gainTime = DateUtils.strToDate(gainTime);
-						}
-						
-						U.log(log, "[记账时间] _gainTime="+_gainTime);
-					}
-				}
-				ReimburseList obj = null;
-				if(fg){
-					if(StringUtils.isEmpty(updId)){
-						obj=new ReimburseList();
-						obj.setUnitNum(unitNum);
-						U.log(log, "[报销记录修改id]为空");
-					}else{
-						updId = updId.trim();
-						if(!FV.isLong(updId)){
-							fg = U.setPutFalse(map, "[报销记录修改id]格式不正确");
-						}else{
-							obj = reimDao.find(Long.parseLong(updId));
-							if(reimDao == null){
-								fg = U.setPutFalse(map, "该[报销记录]不存在");
-							}
-						}
-						
-						U.log(log, "[报销记录修改id] updId="+updId);
-					}
-				}
-				///////////////参数验证--end///////////////////
-				if(fg){
-					String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
-					Object sortNum=reimDao.findObj(hql, LU.getLUnitNum(request, redis),DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
-					/*obj.setReimUserId(ccus.getBaseUserId());
-					if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
-					obj.setGainTime(_gainTime);
-					obj.setFeeCourseId(fc);
-					obj.setVoucherNum(UT.creatReimVoucher(ccus.getBaseUserId().getUname(),Integer.parseInt(sortNum.toString())));
-					obj.setFeeStatus(fcStatus);
-					obj.setTotalMoney(_totalMoney);
-					obj.setRemark(remark);
-					obj.setIsCheck(0);
-					obj.setReqsrc(reqsrc);*/
-					
-					
-					//obj.setStaffReims(srlist);
-					//obj.setCourseTrades(fctlist);
-					obj.setGainTime(_gainTime);
-					obj.setVoucherNum(UT.creatReimVoucher(LU.getLUName(request, redis),Integer.parseInt(sortNum.toString())));
-					obj.setTotalMoney(_totalMoney);
-					obj.setIsCheck(0);
-					
-					if(StringUtils.isEmpty(updId)){
-						obj.setOperNote(ccus.getBaseUserId().getRealName()+"[添加]");
-						obj.setAddTime(new Date());
-						reimDao.save(obj);
-						U.setPut(map, 1, "添加成功");
-					}else{
-						obj.setOperNote(obj.getOperNote()+Util.getOperInfo(ccus.getBaseUserId().getRealName(), "修改"));
-						reimDao.update(obj);
-						U.setPut(map, 1, "修改成功");
-					}
+			ReimburseList obj=null;
+			if(fg){
+				if(StringUtils.isEmpty(updId)){
+					fg = U.setPutFalse(map, "[修改记录]不能为空");
+				}else{
+					updId = updId.trim();
+					obj=reimDao.findByField("id", Long.valueOf(updId));
 				}
 			}
-		} catch (Exception e) {
-			U.setPutEx(map, log, e, logtxt);
-			e.printStackTrace();
-		}
-		
-		return map;
-	}
-	
-	public Map<String, Object> modifyReim(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-			String createInfo, String faceCourseInfo,String gainTime) {
-		String logtxt = U.log(log, "单位-员工报账列表生成凭证", reqsrc);
-		Map<String, Object> map = new HashMap<String, Object>();
-		boolean fg = true;
-		try {
 			Date _gainTime = null;
 			if(fg){
 				if(StringUtils.isEmpty(gainTime)){
@@ -335,93 +208,88 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 			}
 			String [] faceInfos=null;
 			if(fg) {
-				if(StringUtils.isEmpty(faceCourseInfo)){
-					fg = U.setPutFalse(map, "[对方科目]不能为空");
+				if(StringUtils.isEmpty(modifyFeeCourse)){
+					fg = U.setPutFalse(map, "[科目信息]不能为空");
 				}else {
-					faceInfos=faceCourseInfo.split("@");
-				}
-			}
-			List<StaffReimburse> srlist=new ArrayList<StaffReimburse>();
-			Map<Long, Object> fcmap = new HashMap<Long, Object>();
-			if(fg){
-				if(StringUtils.isEmpty(createInfo)){
-					fg = U.setPutFalse(map, "[报账记录]不能为空");
-				}else {
-					String [] infos=createInfo.split("@");
-					String [] ids=null;
-					StaffReimburse sr=null;
-					FeeCourse fc=null;
-					for (int i = 0; i < infos.length; i++) {
-						ids=infos[i].split("=");
-						/*sr=srDao.findByField("id", Long.valueOf(ids[0]));
-						if(sr.getIsCheck()==2) {
-							fg = U.setPutFalse(map, "有报账记录已生成凭证，本次生成凭证失败");
-							break;
-						}*/
-						srlist.add(sr);
-						fc=fcDao.findByField("id", Long.valueOf(ids[1]));
-						fcmap.put(sr.getId(), fc);
-					}
+					faceInfos=modifyFeeCourse.split("@");
 				}
 			}
 			if(fg) {
-				List<FeeCourseTrade> fctlist=new ArrayList<FeeCourseTrade>();
-				FeeCourse fc=null;
-				double tradeMoney=0;//凭证交易金额
-				//添加员工报账科目交易记录
-				for (StaffReimburse eachsr:srlist) {
-					tradeMoney=MathUtils.add(tradeMoney, MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2);
-					fc=(FeeCourse)fcmap.get(eachsr.getId());
-					FeeCourseTrade fct=new FeeCourseTrade();
-					fct.setUnitNum(eachsr.getUnitNum());
-					fct.setFeeCourseId(fc);
-					fct.setRemark(eachsr.getRemark());
-					fct.setGathMoney(eachsr.getGathMoney());
-					fct.setPayMoney(eachsr.getPayMoney());
-					fct.setAddTime(new Date());
-					fctlist.add(fct);
-					//更新对应科目余额
-					fc.setBalance(MathUtils.add(fc.getBalance(), MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2));
-					fcDao.update(fc);
-				}
-				//添加对方平账科目交易记录
-				String [] faceIds=null;
-				FeeCourse face=null;
-				double faceGath=0;//对方科目借方金额
-				double facePay=0;//对方科目贷方金额
+				//添加修改科目交易记录
+				//List<FeeCourseTrade> fctlist=new ArrayList<FeeCourseTrade>();
+				String [] feeIds=null;//原科目交易记录id=新科目id@...
+				FeeCourseTrade fct=null;//原科目交易记录
+				FeeCourse oldFee=null;//原科目
+				FeeCourse newFee=null;//修改后的科目
 				for (int i = 0; i < faceInfos.length; i++) {
-					faceIds=faceInfos[i].split("=");
-					face=fcDao.findByField("id", Long.valueOf(faceIds[0]));
-					faceGath=Double.valueOf(faceIds[2]);
-					facePay=Double.valueOf(faceIds[3]);
-					FeeCourseTrade fct=new FeeCourseTrade();
-					fct.setUnitNum(LU.getLUnitNum(request, redis));
-					fct.setFeeCourseId(face);
-					fct.setRemark(faceIds[1]);
-					fct.setGathMoney(faceGath);
-					fct.setPayMoney(facePay);
-					fct.setAddTime(new Date());
-					fctlist.add(fct);
-					//更新对应科目余额
-					face.setBalance(MathUtils.add(face.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
-					fcDao.update(face);
+					feeIds=faceInfos[i].split("=");
+					fct=fctDao.findByField("id", Long.valueOf(feeIds[0]));
+					oldFee=fct.getFeeCourseId();
+					newFee=fcDao.findByField("id", Long.valueOf(feeIds[1]));//修改后的科目
+					if(oldFee!=newFee) {//原科目交易记录不等于修改的科目
+						//给原科目加1条平账记录
+						FeeCourseTrade fctPz=new FeeCourseTrade();
+						fctPz.setUnitNum(LU.getLUnitNum(request, redis));
+						fctPz.setFeeCourseId(oldFee);
+						if(fct.getGathMoney()>0) {//原来是收入，平账就加支出
+							fctPz.setPayMoney(fct.getGathMoney());
+						}else {//原来是支出，平账就加收入
+							fctPz.setGathMoney(fct.getPayMoney());
+						}
+						fctPz.setRemark(fct.getRemark()+"（原科目改变为："+newFee.getCourseName()+"后平账）");
+						fctPz.setAddTime(new Date());
+						fctDao.save(fctPz);
+						//更新原科目余额
+						oldFee.setBalance(MathUtils.add(oldFee.getBalance(), MathUtils.sub(fctPz.getGathMoney(), fctPz.getPayMoney(), 2), 2));
+						fcDao.update(oldFee);
+						obj.getCourseTrades().remove(fct);
+						
+						//新科目加1条交易记录
+						FeeCourseTrade fctNew=new FeeCourseTrade();
+						fctNew.setUnitNum(LU.getLUnitNum(request, redis));
+						fctNew.setFeeCourseId(newFee);
+						fctNew.setRemark(fct.getRemark());
+						fctNew.setGathMoney(fct.getGathMoney());
+						fctNew.setPayMoney(fct.getPayMoney());
+						fctNew.setAddTime(new Date());
+						if(fct.getBankTradeId()!=null)fctNew.setBankTradeId(fct.getBankTradeId());//新科目关联银行账
+						if(fct.getMainOrderId()!=null)fctNew.setMainOrderId(fct.getMainOrderId());//新科目关联主订单
+						if(fct.getCarOrderId()!=null)fctNew.setCarOrderId(fct.getCarOrderId());  //新科目关联子订单
+						if(fct.getStaffReimId()!=null)fctNew.setStaffReimId(fct.getStaffReimId());//新科目关联员工报账
+						//fctlist.add(fctNew);
+						//更新新科目余额
+						newFee.setBalance(MathUtils.add(newFee.getBalance(), MathUtils.sub(fctNew.getGathMoney(), fctNew.getPayMoney(), 2), 2));
+						fcDao.update(newFee);
+						obj.getCourseTrades().add(fctNew);
+						
+						/*//报账记录里面更新科目
+						if(!obj.getStaffReims().isEmpty()) {
+							for (StaffReimburse eachsr:obj.getStaffReims()) {
+								if(eachsr.getFeeCourseId()==oldFee) {
+									eachsr.setFeeCourseId(newFee);
+									srDao.update(eachsr);
+								}
+							}
+						}
+						//银行账记录里面更新科目
+						if(!obj.getBankTrades().isEmpty()) {
+							for (BankTradeList btl:obj.getBankTrades()) {
+								if(btl.getFeeCourseId()==oldFee) {
+									btl.setFeeCourseId(newFee);
+									btlDao.update(btl);
+								}
+							}
+						}*/
+					}else {
+						//fctlist.add(fct);//原科目不变
+					}
 				}
 				//生成凭证
-				ReimburseList obj=new ReimburseList();
-				obj.setUnitNum(LU.getLUnitNum(request, redis));
-				String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
-				Object sortNum=reimDao.findObj(hql, LU.getLUnitNum(request, redis),DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
-				obj.setStaffReims(srlist);
-				obj.setCourseTrades(fctlist);
+				//obj.setCourseTrades(fctlist);
 				obj.setGainTime(_gainTime);
-				obj.setVoucherNum(UT.creatReimVoucher(LU.getLUName(request, redis),Integer.parseInt(sortNum.toString())));
-				obj.setTotalMoney(tradeMoney);
-				obj.setIsCheck(0);
-				obj.setAddTime(new Date());
-				obj.setReqsrc(reqsrc);
-				obj.setOperNote(LU.getLUSER(request, redis).getBaseUserId().getRealName()+"[添加]");
-				reimDao.save(obj);
-				U.setPut(map, 1, "凭证生成成功");
+				obj.setOperNote(obj.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "修改"));
+				reimDao.update(obj);
+				U.setPut(map, 1, "凭证修改成功");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
@@ -456,6 +324,64 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 					}
 				}
 				if(fg){
+					if(!reim.getCourseTrades().isEmpty()) {//有科目交易记录添加科目平账记录
+						FeeCourse oldFee=null;
+						for (FeeCourseTrade fct:reim.getCourseTrades()) {
+							oldFee=fct.getFeeCourseId();
+							FeeCourseTrade fctPz=new FeeCourseTrade();
+							fctPz.setUnitNum(LU.getLUnitNum(request, redis));
+							fctPz.setFeeCourseId(oldFee);
+							if(fct.getGathMoney()>0) {//原来是收入，平账就加支出
+								fctPz.setPayMoney(fct.getGathMoney());
+							}else {//原来是支出，平账就加收入
+								fctPz.setGathMoney(fct.getPayMoney());
+							}
+							fctPz.setRemark(fct.getRemark()+"（凭证删除后平账）");
+							fctPz.setAddTime(new Date());
+							fctDao.save(fctPz);
+							//更新原科目余额
+							oldFee.setBalance(MathUtils.add(oldFee.getBalance(), MathUtils.sub(fctPz.getGathMoney(), fctPz.getPayMoney(), 2), 2));
+							fcDao.update(oldFee);
+							if(fct.getStaffReimId()!=null) {////有员工报账记录恢复为未生成凭证
+								fct.getStaffReimId().setFaceCourseId(null);
+								fct.getStaffReimId().setIsCheck(1);
+								fct.getStaffReimId().setOperNote(fct.getStaffReimId().getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "凭证删除"));
+								srDao.update(fct.getStaffReimId());
+							}
+							if(fct.getBankTradeId()!=null) {//有银行账记录恢复为未生成凭证
+								fct.getBankTradeId().setIsCheck(0);//未操作
+								fct.getBankTradeId().setCheckMoney(0);
+								fct.getBankTradeId().setCusName(null);//客户名称
+								fct.getBankTradeId().setVoucherNumber(null);
+								fct.getBankTradeId().setDocumentNumber(null);
+								fct.getBankTradeId().setNoticeMan(null);
+								fct.getBankTradeId().setNoticeRemark(null);
+								fct.getBankTradeId().setOrderNum(null);
+								fct.getBankTradeId().setOperNote(fct.getBankTradeId().getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "凭证删除"));
+								btlDao.update(fct.getBankTradeId());
+							}
+							if(fct.getMainOrderId()!=null) {//有主订单恢复为未生成凭证
+								MainCarOrder mco=fct.getMainOrderId();
+								mco.setAlGathPrice(MathUtils.sub(mco.getAlGathPrice(),fct.getGathMoney(), 2));
+								if(mco.getAlGathPrice()==0) {
+									mco.setPayStatus(OrderPayStatus.UNPAID);// 未收款
+								}else if(mco.getAlGathPrice()>0){
+									mco.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已收定金
+								}
+								mcoDao.update(mco);
+							}
+							if(fct.getCarOrderId()!=null) {//有子订单恢复为未生成凭证
+								CarOrder co=fct.getCarOrderId();
+								co.setAlPayPrice(MathUtils.sub(co.getAlPayPrice(),fct.getPayMoney(), 2));
+								if(co.getAlPayPrice()==0) {
+									co.setPayStatus(OrderPayStatus.UNPAID);// 未付款
+								}else if(co.getAlPayPrice()>0){
+									co.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已付定金
+								}
+								coDao.update(co);
+							}
+						}
+					}
 					reimDao.delete(reim);
 					U.setPut(map, 1, "操作成功");
 				}
@@ -487,14 +413,15 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 
 			if (fg) {
 				ReimburseList reim = reimDao.findByField("id", Long.valueOf(id));
-				// 字段过滤
+				Hibernate.initialize(reim.getCourseTrades());
+				
 				Map<String, Object> fmap = new HashMap<String, Object>();
 				fmap.put(U.getAtJsonFilter(ReimburseList.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(StaffReimburse.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(FeeCourseTrade.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(StaffReimburse.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(CarOrder.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(MainCarOrder.class), new String[]{});
 				map.put(QC.FIT_FIELDS, fmap);
 				map.put("data", reim);
 				U.setPut(map, 1, "查询成功");
@@ -540,37 +467,71 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 					String operMark="";
 					ReimburseList reim=null;
 					Map<String,List<RouteTradeList>> rtlMap=new HashMap<String,List<RouteTradeList>>();
-					List<StaffReimburse> srlist=null;
 					for (int i = 0; i < id.length; i++) {
 						operMark=UT.creatOperMark();
 						reim = reimDao.find(Long.valueOf(id[i]));
-						reim.setOperNote(reim.getOperNote()+","+note+Util.getOperInfo(LU.getLUSER(request, redis).getBaseUserId().getRealName(), "核销"));
-						reim.setIsCheck(1);
-						reim.setOperMark(operMark);
-						reim.setMyBankInfo(myBankInfo);
-						reim.setTransferInfo(transInfo);
-						reimDao.update(reim);
-						srlist=reim.getStaffReims();
-						if(srlist!=null) {
-							for (StaffReimburse sr:srlist) {
-								if(sr.getOrderTrade()!=null) {
-									if(rtlMap.get(sr.getOrderTrade().getOrderNum())==null) {
+						if(!reim.getCourseTrades().isEmpty()) {//员工报账处理已收，已付，客户预存款，预存款下账，行程收支
+							for (FeeCourseTrade fct:reim.getCourseTrades()) {
+								/*if(sr.getFaceCourseId()!=null) {
+									if("主营业务成本-外调车费".equals(sr.getFaceCourseId().getCourseName())) {//业务付款
+										CarOrder co=sr.getCarOrderReim();
+										// 更新已付款
+										if (co.getDisPrice() <= MathUtils.add(co.getAlPayPrice(), sr.getPayMoney(), 2)) { // 已付款+本次付款>=行程总价
+											co.setPayStatus(OrderPayStatus.FULL_PAID);// 全款已付
+										} else {
+											co.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已付定金
+										}
+										co.setAlPayPrice(MathUtils.add(co.getAlPayPrice(), sr.getPayMoney(), 2));
+										coDao.update(co);
+									}
+									if("主营业务收入".equals(sr.getFaceCourseId().getCourseName())) {//业务收款
+										MainCarOrder mco=sr.getMainOrderReim();
+										// 更新已收款
+										if (mco.getPrice() <= MathUtils.add(mco.getAlGathPrice(), sr.getGathMoney(), 2)) { // 已收款+本次收款>=行程总价
+											mco.setPayStatus(OrderPayStatus.FULL_PAID);// 已收全款
+										} else {
+											mco.setPayStatus(OrderPayStatus.DEPOSIT_PAID);// 已收定金
+										}
+										mco.setAlGathPrice(MathUtils.add(mco.getAlGathPrice(), sr.getGathMoney(), 2));
+										mcoDao.update(mco);
+										if(sr.getFaceCourseId()!=null && sr.getPreUserId()!=null) {//本次收款是下客户账
+											// 减去客户预存款
+											CompanyCustom cc=sr.getPreUserId();
+											cc.setPreMoney(MathUtils.sub(cc.getPreMoney(), sr.getGathMoney(), 2));
+											ccDao.update(cc);
+										}
+									}
+									if("预收账款".equals(sr.getFaceCourseId().getCourseName()) && sr.getGathMoney()>0) {//客户预存款
+										// 增加客户预存款
+										CompanyCustom cc=sr.getPreUserId();
+										cc.setPreMoney(MathUtils.add(cc.getPreMoney(), sr.getGathMoney(), 2));
+										ccDao.update(cc);
+									}
+								}*/
+								if(fct.getStaffReimId().getOrderTrade()!=null) {//有行程开支
+									if(rtlMap.get(fct.getStaffReimId().getOrderTrade().getOrderNum())==null) {
 										List<RouteTradeList> rtlOrder=new ArrayList<RouteTradeList>();
-										rtlOrder.add(sr.getOrderTrade());
-										rtlMap.put(sr.getOrderTrade().getOrderNum(), rtlOrder);
+										rtlOrder.add(fct.getStaffReimId().getOrderTrade());
+										rtlMap.put(fct.getStaffReimId().getOrderTrade().getOrderNum(), rtlOrder);
 									}else {
-										rtlMap.get(sr.getOrderTrade().getOrderNum()).add(sr.getOrderTrade());
+										rtlMap.get(fct.getStaffReimId().getOrderTrade().getOrderNum()).add(fct.getStaffReimId().getOrderTrade());
 									}
 								}
 							}
 						}
-						if(rtlMap.size()>0) {
+						if(rtlMap.size()>0) {//将行程收支添加到对应订单
 							for(Map.Entry<String, List<RouteTradeList>> entry: rtlMap.entrySet()){
 								CarOrder co=coDao.findByField("orderNum", entry.getKey());
 								co.setTrades(entry.getValue());
 								coDao.update(co);
 							}
 						}
+						reim.setIsCheck(1);
+						reim.setOperMark(operMark);
+						reim.setMyBankInfo(myBankInfo);
+						reim.setTransferInfo(transInfo);
+						reim.setOperNote(reim.getOperNote()+","+note+Util.getOperInfo(LU.getLRealName(request, redis), "核销"));
+						reimDao.update(reim);
 						//发送微信通知报销人
 						//ymSer.orderWaitforCheckOfWxmsg(null, reim, reim.getReimUserId().getUname());
 					}
@@ -704,7 +665,7 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 							 		reim.setFeeStatus(1);
 							 		reim.setTotalMoney(Double.valueOf(feerow.get(9)));
 							 	}
-							 	reim.setOperNote(Util.getOperInfo(LU.getLUSER(request, redis).getBaseUserId().getRealName(), "核销导入"));
+							 	reim.setOperNote(Util.getOperInfo(LU.getLRealName(request, redis), "核销导入"));
 							 	reim.setIsCheck(3);
 								reim.setAddTime(new Date());
 								reim.setReqsrc(reqsrc);

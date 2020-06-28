@@ -16,7 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +29,7 @@ import com.fx.commons.utils.enums.OrderPayStatus;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.other.DateUtils;
 import com.fx.commons.utils.other.MathUtils;
+import com.fx.commons.utils.other.Util;
 import com.fx.commons.utils.other.UtilFile;
 import com.fx.commons.utils.other.excel.ExportUtil;
 import com.fx.commons.utils.other.excel.POIUtils;
@@ -38,17 +38,20 @@ import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
+import com.fx.dao.company.CompanyCustomDao;
 import com.fx.dao.finance.BankListDao;
 import com.fx.dao.finance.BankTradeListDao;
 import com.fx.dao.finance.FeeCourseDao;
+import com.fx.dao.finance.ReimburseListDao;
 import com.fx.dao.order.MainCarOrderDao;
+import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.finance.BankList;
 import com.fx.entity.finance.BankTradeList;
 import com.fx.entity.finance.FeeCourse;
+import com.fx.entity.finance.FeeCourseTrade;
 import com.fx.entity.finance.ReimburseList;
 import com.fx.entity.order.MainCarOrder;
 import com.fx.service.finance.BankTradeListService;
-import com.fx.service.finance.ReimburseListService;
 import com.fx.web.util.RedisUtil;
 
 @Service
@@ -57,26 +60,29 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	/** 日志记录 */
 	private Logger log = LogManager.getLogger(this.getClass());
 	@Autowired
+    private RedisUtil redis;
+	@Override
+	public ZBaseDaoImpl<BankTradeList, Long> getDao() {
+		return btlDao;
+	}
+	@Autowired
 	private BankTradeListDao btlDao;
 	/**凭证服务**/
 	@Autowired
-	private ReimburseListService reimSer;
+	private ReimburseListDao reimDao;
 	/**银行服务**/
 	@Autowired
 	private BankListDao blDao;
 	/**科目服务**/
 	@Autowired
 	private FeeCourseDao fcDao;
-	/**订单服务**/
+	/**主订单服务**/
 	@Autowired
 	private MainCarOrderDao mcoDao;
-	
+	/**单位客户服务**/
 	@Autowired
-    private RedisUtil redis;
-	@Override
-	public ZBaseDaoImpl<BankTradeList, Long> getDao() {
-		return btlDao;
-	}
+	private CompanyCustomDao ccDao;
+	
 	@Override
 	public Map<String, Object> findBankTradeList(ReqSrc reqsrc, String page, String rows,String unitNum,String bankNo,String transName,
 			String remark,String timeType,String sTime,String eTime,String status,String isReim,String findMoney,
@@ -97,7 +103,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 				double totalPay=0;//总支出
 				// 解决懒加载问题
 				for (BankTradeList btl : pd.getResult()) {
-					Hibernate.initialize(btl.getBankTradeId());
 					totalGath+=btl.getTradeInMoney();
 					totalPay+=btl.getTradeOutMoney();
 				}
@@ -224,15 +229,13 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 				if(fg){
 					String operMark=UT.creatOperMark();
 					String [] reimIds=reimId.split(",");
-					List<ReimburseList> reims=new ArrayList<ReimburseList>();
 					ReimburseList reim=null;
 					for (int i=0;i<reimIds.length;i++) {
-						reim=reimSer.findByField("id", Long.valueOf(reimIds[i]));
+						reim=reimDao.findByField("id", Long.valueOf(reimIds[i]));
 						if(reim!=null){
 							reim.setOperMark(StringUtils.isBlank(reim.getOperMark())?operMark:reim.getOperMark()+","+operMark);
 							reim.setIsCheck(3);
-							reimSer.update(reim);
-							reims.add(reim);
+							reimDao.update(reim);
 						}
 					}
 					double reimMoney=0;
@@ -241,7 +244,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						btl.setReimMoney(reimMoney);
 						btl.setIsCheck(-1);
 						btl.setOperMark(operMark);
-						btl.setBankTradeId(reims);
 						btlDao.update(btl);
 					}
 					U.setPut(map, 1, "操作成功");
@@ -451,7 +453,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					btl.setTradeTime(tradeDate);
 					if(StringUtils.isNotBlank(moneyType))btl.setMoneyType(moneyType);
 					btl.setAddTime(new Date());
-					btl.setOperNote(LU.getLUSER(request, redis).getBaseUserId().getRealName()+"[添加]");
+					btl.setOperNote(LU.getLRealName(request, redis)+"[添加]");
 					btl.setOperMark(operMark);
 				 	btlDao.save(btl);
 					U.setPut(map, 1, "操作成功");
@@ -709,7 +711,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 			BankTradeList btl = btlDao.findByField("id", jsonObject.getLong("id"));
 			if (btl != null) {
 				U.log(log, "通过id查找银行账成功");
-				Hibernate.initialize(btl.getBankTradeId());
 				map.put("data", btl);
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
@@ -1075,7 +1076,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 							btl.setRemark(feerow.get(rekCell).trim());
 							btl.setTradeTime(tradeTime);
 							btl.setAddTime(new Date());
-							btl.setOperNote(LU.getLUSER(request, redis).getBaseUserId().getRealName()+"[导入]");
+							btl.setOperNote(LU.getLRealName(request, redis)+"[导入]");
 							btl.setOperMark(operMark);
 							if(StringUtils.isNotBlank(feerow.get(moneyType)))btl.setMoneyType(feerow.get(moneyType));
 						 	btlDao.save(btl);//导入银行账不加操作标识，等到报销才加
@@ -1122,10 +1123,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 			if(fg){
 				Page<BankTradeList> pd = btlDao.findBankTradeList(reqsrc, "1", rows, LU.getLUnitNum(request, redis), bankName, transName, remark, timeType, sTime, eTime, 
 						status, isCheck, findMoney, openRole, voucherNum, operMark, openSel, moneyType, cusName, serviceName);
-				// 解决懒加载问题
-				for (BankTradeList btl : pd.getResult()) {
-					Hibernate.initialize(btl.getBankTradeId());
-				}
 				List<BankTradeList> expBtlBankD=pd.getResult();
 				
 				String contextTitle = "车队银行账记录";// excel表内容标题
@@ -1213,10 +1210,12 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						}
 						btl.setCheckMoney(tradeMoney);
 						//btl.setCusName(obj.getReimName()+","+obj.getcName());//客户名称 20191219
+						btl.setCompanyCusId(companyCusId);
 						btl.setRemark(remark);
 						btl.setNoticeMan(notice_uname);
 						btl.setNoticeRemark(notice_note);
 						btl.setOrderNum(orderNum);
+						btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "下账：待审核"));
 						btlDao.update(btl);
 					}
 					U.setPut(map, 1, "操作成功");
@@ -1233,7 +1232,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	}
 	@Override
 	public Map<String, Object> checkYesBtl(ReqSrc reqsrc, HttpServletResponse response,
-			HttpServletRequest request, String btlId,String feeCourseId) {
+			HttpServletRequest request, String createInfo,String faceCourseInfo) {
 		String logtxt = U.log(log, "银行账审核下账记录-通过", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -1241,62 +1240,86 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		
 		try {
 			if(ReqSrc.PC_COMPANY == reqsrc){
-				if(fg){
-					if(StringUtils.isEmpty(btlId)){
-						fg = U.setPutFalse(map, "[审核记录]不能为空");
-					}
-				}
-				FeeCourse fc=null;
-				if(fg){
-					if(StringUtils.isEmpty(feeCourseId)){
-						fg = U.setPutFalse(map, "[科目id]不能为空");
-					}else{
-						fc=fcDao.findByField("id", Long.valueOf(feeCourseId));
-						if(fc==null){
-							fg = U.setPutFalse(map, "科目不存在");
-						}
+				String [] faceInfos=null;
+				if(fg) {
+					if(StringUtils.isEmpty(faceCourseInfo)){
+						fg = U.setPutFalse(map, "[对方科目信息]不能为空");
+					}else {
+						faceInfos=faceCourseInfo.split("@");
 					}
 				}
 				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
-				if(fg) {
-					String [] btlIds=btlId.split(",");
-					BankTradeList btl=null;
-					for (String each : btlIds) {
-						btl=btlDao.findByField("id", Long.valueOf(each));
-						if(btl!=null){
+				Map<Long, Object> fcmap = new HashMap<Long, Object>();
+				if(fg){
+					if(StringUtils.isEmpty(createInfo)){
+						fg = U.setPutFalse(map, "[银行账记录]不能为空");
+					}else {
+						String [] infos=createInfo.split("@");
+						String [] ids=null;
+						BankTradeList btl=null;
+						FeeCourse fc=null;
+						for (int i = 0; i < infos.length; i++) {
+							ids=infos[i].split("=");
+							btl=btlDao.findByField("id", Long.valueOf(ids[0]));
 							if(btl.getIsCheck()!=1) {
-								fg = U.setPutFalse(map, "有审核记录状态非待审核状态，不能审核");
+								fg = U.setPutFalse(map, "有报账记录状态非【待审核】状态，操作失败");
 								break;
 							}
 							btlist.add(btl);
+							fc=fcDao.findByField("id", Long.valueOf(ids[1]));
+							fcmap.put(btl.getId(), fc);
 						}
 					}
 				}
 				if(fg){
-					double tradeMoney=0;
+					double tradeMoney=0;//生成凭证总金额
+					double currMoney=0;//当前银行账报账金额
 					String operMark="";
+					List<FeeCourseTrade> fctlist=new ArrayList<FeeCourseTrade>();
+					FeeCourse fc=null;
 					for (BankTradeList btl : btlist) {
-						operMark=UT.creatOperMark();
-						tradeMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
 						if(btl.getIsCheck()==1){//待审核
-							if(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2)>=tradeMoney){//报销完成
+							tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
+							fc=(FeeCourse)fcmap.get(btl.getId());
+							FeeCourseTrade fct=new FeeCourseTrade();
+							fct.setUnitNum(btl.getUnitNum());
+							fct.setFeeCourseId(fc);
+							fct.setRemark(btl.getRemark());
+							fct.setGathMoney(btl.getTradeInMoney());
+							fct.setPayMoney(btl.getTradeOutMoney());
+							fct.setAddTime(new Date());
+							fct.setBankTradeId(btl);
+							fctlist.add(fct);
+							//更新对应科目余额
+							fc.setBalance(MathUtils.add(fc.getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
+							fcDao.update(fc);
+							//操作编号
+							operMark=UT.creatOperMark();
+							currMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
+							//更新银行账
+							btl.setFeeCourseId(fc);
+							if(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2)>=currMoney){//报销完成
 								btl.setIsCheck(-1);
 							}else{
 								btl.setIsCheck(2);//已审核
 							}
 							btl.setReimMoney(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2));
 							btl.setCheckMoney(0);
-							btl.setFeeCourseId(fc);
 							btl.setOperMark(StringUtils.isBlank(btl.getOperMark())?operMark:btl.getOperMark()+","+operMark);
+							btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "下账审核通过"));
 							btlDao.update(btl);
-							if(StringUtils.isNotBlank(btl.getOrderNum())){//订单只能收款完成
+							if("预收账款".equals(btl.getFeeCourseId().getCourseName()) && btl.getTradeInMoney()>0) {//增加客户预存款
+								CompanyCustom cc=ccDao.findByField("id", Long.valueOf(btl.getCompanyCusId()));
+								cc.setPreMoney(MathUtils.add(cc.getPreMoney(),btl.getTradeInMoney(), 2));
+								ccDao.update(cc);
+							}else if(StringUtils.isNotBlank(btl.getOrderNum())){//订单只能收款完成
 								String [] orderNums=btl.getOrderNum().split(",");
 								for (String eachNum : orderNums) {
-									MainCarOrder col=mcoDao.findByField("orderNum", eachNum);
-									if(col!=null){
-										col.setAlGathPrice(col.getPrice());
-										col.setPayStatus(OrderPayStatus.FULL_PAID);
-										mcoDao.update(col);
+									MainCarOrder mco=mcoDao.findByField("orderNum", eachNum);
+									if(mco!=null){
+										mco.setAlGathPrice(MathUtils.add(mco.getAlGathPrice(), btl.getTradeInMoney(), 2));
+										mco.setPayStatus(OrderPayStatus.FULL_PAID);
+										mcoDao.update(mco);
 									}
 								}
 							}
@@ -1305,6 +1328,42 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 							}
 						}
 					}
+					//添加对方科目交易记录
+					String [] faceIds=null;
+					FeeCourse face=null;
+					double faceGath=0;//对方科目借方金额
+					double facePay=0;//对方科目贷方金额
+					for (int i = 0; i < faceInfos.length; i++) {
+						faceIds=faceInfos[i].split("=");
+						face=fcDao.findByField("id", Long.valueOf(faceIds[0]));
+						faceGath=Double.valueOf(faceIds[2]);
+						facePay=Double.valueOf(faceIds[3]);
+						FeeCourseTrade fct=new FeeCourseTrade();
+						fct.setUnitNum(LU.getLUnitNum(request, redis));
+						fct.setFeeCourseId(face);
+						fct.setRemark(faceIds[1]);
+						fct.setGathMoney(faceGath);
+						fct.setPayMoney(facePay);
+						fct.setAddTime(new Date());
+						fctlist.add(fct);
+						//更新对应科目余额
+						face.setBalance(MathUtils.add(face.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+						fcDao.update(face);
+					}
+					//生成凭证
+					ReimburseList obj=new ReimburseList();
+					obj.setUnitNum(LU.getLUnitNum(request, redis));
+					String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
+					Object sortNum=reimDao.findObj(hql, LU.getLUnitNum(request, redis),DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
+					obj.setCourseTrades(fctlist);
+					obj.setGainTime(new Date());
+					obj.setVoucherNum(UT.creatReimVoucher(LU.getLUName(request, redis),Integer.parseInt(sortNum.toString())));
+					obj.setTotalMoney(tradeMoney);
+					obj.setIsCheck(2);
+					obj.setAddTime(new Date());
+					obj.setReqsrc(reqsrc);
+					obj.setOperNote(LU.getLRealName(request, redis)+"[添加]");
+					reimDao.save(obj);
 					U.setPut(map, 1, "操作成功");
 				}
 			}else{
@@ -1357,6 +1416,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						btl.setNoticeMan(null);
 						btl.setNoticeRemark(null);
 						btl.setOrderNum(null);
+						btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "下账审核不通过"));
 						btlDao.update(btl);
 					}
 					U.setPut(map, 1, "操作成功");

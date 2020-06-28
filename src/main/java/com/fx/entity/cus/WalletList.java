@@ -63,6 +63,7 @@ public class WalletList implements Serializable{
 	 * 24:业务对冲
 	 * 25:订单完团
 	 * 26:提现退款
+	 * 27:行程团上现收
 	 */
 	@Column(name="type", nullable=false, columnDefinition="int COMMENT '交易类型'")
 	private int type;
@@ -185,6 +186,7 @@ public class WalletList implements Serializable{
 	 * 24:业务对冲
 	 * 25:订单完团
 	 * 26:提现退款
+	 * 27:行程团上现收
 	 * @return type  
 	 */
 	public int getType() {
@@ -219,6 +221,7 @@ public class WalletList implements Serializable{
 	 * 24:业务对冲
 	 * 25:订单完团
 	 * 26:提现退款
+	 * 27:行程团上现收
 	 * @param type
 	 */
 	public void setType(int type) {

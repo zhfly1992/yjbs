@@ -36,6 +36,7 @@ import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.log.LoginLogDao;
+import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
 import com.fx.entity.cus.Customer;
@@ -99,70 +100,151 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 	 * @return map
 	 */
 	public Map<String, Object> saveWxLoginDat(Map<String, Object> map, HttpServletRequest request, boolean remberMe, 
-		Customer lcus, BaseUser luser, CompanyUser comUser, String wxid, CusRole role) {
-		UsernamePasswordToken token = new UsernamePasswordToken(luser.getUname(), luser.getLpass());
-		token.setRememberMe(remberMe);
+		Object luser, CompanyUser comUser, String wxid, CusRole role) {
+		String logtxt = U.log(log, "初始化登录用户数据，并保存至缓存");
 		
-        Subject subject = SecurityUtils.getSubject();
-        if(subject != null) subject.logout(); // 已登录，则先退出
-        
-        subject.login(token);
-        U.log(log, "token: "+token);
-        U.log(log, "是否登录==>"+subject.isAuthenticated());
-        
-        
-        // 获取-用户微信基类对象
-        WxBaseUser wxUser = wxBaseUserDao.findWxUser(comUser.getUnitNum(), luser.getUname());
-        if(wxUser == null) {
-        	U.log(log, "不存在-微信基类对象，即未绑定当前访问公众号");
-        	
-        	wxUser = new WxBaseUser();
-        	wxUser.setUname(luser.getUname());
-        	wxUser.setCompanyNum(comUser.getUnitNum());
-        	wxUser.setWxid(wxid);
-        	wxUser.setAtime(new Date());
-        	wxUser.setLgWxid(wxid);
-        	wxUser.setLgRole(role);
-        	wxUser.setLgLngLat(null);
-        	wxUser.setLgIp(IPUtil.getIpAddr(request));
-        	wxUser.setLgTime(new Date());
-        	wxBaseUserDao.save(wxUser);
-        	U.log(log, "绑定当前公众号-完成");
-        }else {
-        	U.log(log, "存在-微信基类对象，即已绑定当前访问公众号");
-        	
-        	wxUser.setLgWxid(wxid);
-        	wxUser.setLgRole(role);
-        	wxUser.setLgLngLat(null);
-        	wxUser.setLgIp(IPUtil.getIpAddr(request));
-        	wxUser.setLgTime(new Date());
-        	wxBaseUserDao.update(wxUser);
-        	U.log(log, "更新-绑定当前公众号信息-完成");
-        }
-        
-        // 记录登录日志
-        LoginLog llog = new LoginLog();
-        llog.setOperIp(IPUtil.getIpAddr(request));// 获取HTTP请求
-        llog.setUname(luser.getUname());
-        llog.setOperLocation(AddressUtil.getAddress(llog.getOperIp()));
-        llog.setAtime(new Date());
-        llog.setOperDevice(UT.getReqUA(request));
-        loginLogDao.save(llog);
-        U.log(log, "保存-登录日志-完成");
-        
-        // 缓存登录用户信息
-        Map<String, Object> mapUser = new HashMap<String, Object>();// 缓存登录用户信息map
-        String uuid = subject.getSession().getId().toString();
-		mapUser.put(QC.L_USER, lcus);
-		mapUser.put(QC.L_WX, wxUser);
-		mapUser.put(QC.L_COMPANY, comUser);
-		mapUser.put(QC.L_TIME, DateUtils.DateToStr(new Date()));
-		redis.set(uuid, mapUser);
-		
-		// 传入前端
-        map.put(QC.UUID, uuid);
-		
-		U.setPut(map, 1, "驾驶员-登录成功");
+		try {
+			if(role == CusRole.TEAM_DRIVER) {
+				Staff ldriver = (Staff)luser;
+				BaseUser lbuser = ldriver.getBaseUserId();
+				
+				UsernamePasswordToken token = new UsernamePasswordToken(lbuser.getUname(), lbuser.getLpass());
+				token.setRememberMe(remberMe);
+				
+		        Subject subject = SecurityUtils.getSubject();
+		        if(subject != null) subject.logout(); // 已登录，则先退出
+		        
+		        subject.login(token);
+		        U.log(log, "token: "+token);
+		        U.log(log, "是否登录==>"+subject.isAuthenticated());
+		        
+		        
+		        // 获取-用户微信基类对象
+		        WxBaseUser wxUser = wxBaseUserDao.findWxUser(comUser.getUnitNum(), lbuser.getUname());
+		        if(wxUser == null) {
+		        	U.log(log, "不存在-微信基类对象，即未绑定当前访问公众号");
+		        	
+		        	wxUser = new WxBaseUser();
+		        	wxUser.setUname(lbuser.getUname());
+		        	wxUser.setCompanyNum(comUser.getUnitNum());
+		        	wxUser.setWxid(wxid);
+		        	wxUser.setAtime(new Date());
+		        	wxUser.setLgWxid(wxid);
+		        	wxUser.setLgRole(role);
+		        	wxUser.setLgLngLat(null);
+		        	wxUser.setLgIp(IPUtil.getIpAddr(request));
+		        	wxUser.setLgTime(new Date());
+		        	wxBaseUserDao.save(wxUser);
+		        	U.log(log, "绑定当前公众号-完成");
+		        }else {
+		        	U.log(log, "存在-微信基类对象，即已绑定当前访问公众号");
+		        	
+		        	wxUser.setLgWxid(wxid);
+		        	wxUser.setLgRole(role);
+		        	wxUser.setLgLngLat(null);
+		        	wxUser.setLgIp(IPUtil.getIpAddr(request));
+		        	wxUser.setLgTime(new Date());
+		        	wxBaseUserDao.update(wxUser);
+		        	U.log(log, "更新-绑定当前公众号信息-完成");
+		        }
+		        
+		        // 记录登录日志
+		        LoginLog llog = new LoginLog();
+		        llog.setOperIp(IPUtil.getIpAddr(request));// 获取HTTP请求
+		        llog.setUname(lbuser.getUname());
+		        llog.setOperLocation(AddressUtil.getAddress(llog.getOperIp()));
+		        llog.setAtime(new Date());
+		        llog.setOperDevice(UT.getReqUA(request));
+		        loginLogDao.save(llog);
+		        U.log(log, "保存-登录日志-完成");
+		        
+		        // 缓存登录用户信息
+		        Map<String, Object> mapUser = new HashMap<String, Object>();
+		        String uuid = subject.getSession().getId().toString();
+				mapUser.put(QC.L_STAFF, ldriver);							// 缓存-登录驾驶员对象
+				mapUser.put(QC.L_WX, wxUser);								// 缓存-登录微信用户对象
+				mapUser.put(QC.L_COMPANY, comUser);							// 缓存-登录单位用户对象
+				mapUser.put(QC.L_TIME, DateUtils.DateToStr(new Date())); 	// 缓存-登录时间
+				redis.set(uuid, mapUser);
+				
+				// 传入前端
+		        map.put(QC.UUID, uuid);
+				
+				U.setPut(map, 1, "驾驶员-登录成功");
+			}else if(role == CusRole.PT_CUS) {
+				Customer lcus = (Customer)luser;
+				BaseUser lbuser = lcus.getBaseUserId();
+				
+				UsernamePasswordToken token = new UsernamePasswordToken(lbuser.getUname(), lbuser.getLpass());
+				token.setRememberMe(remberMe);
+				
+		        Subject subject = SecurityUtils.getSubject();
+		        if(subject != null) subject.logout(); // 已登录，则先退出
+		        
+		        subject.login(token);
+		        U.log(log, "token: "+token);
+		        U.log(log, "是否登录==>"+subject.isAuthenticated());
+		        
+		        
+		        // 获取-用户微信基类对象
+		        WxBaseUser wxUser = wxBaseUserDao.findWxUser(comUser.getUnitNum(), lbuser.getUname());
+		        if(wxUser == null) {
+		        	U.log(log, "不存在-微信基类对象，即未绑定当前访问公众号");
+		        	
+		        	wxUser = new WxBaseUser();
+		        	wxUser.setUname(lbuser.getUname());
+		        	wxUser.setCompanyNum(comUser.getUnitNum());
+		        	wxUser.setWxid(wxid);
+		        	wxUser.setAtime(new Date());
+		        	wxUser.setLgWxid(wxid);
+		        	wxUser.setLgRole(role);
+		        	wxUser.setLgLngLat(null);
+		        	wxUser.setLgIp(IPUtil.getIpAddr(request));
+		        	wxUser.setLgTime(new Date());
+		        	wxBaseUserDao.save(wxUser);
+		        	U.log(log, "绑定当前公众号-完成");
+		        }else {
+		        	U.log(log, "存在-微信基类对象，即已绑定当前访问公众号");
+		        	
+		        	wxUser.setLgWxid(wxid);
+		        	wxUser.setLgRole(role);
+		        	wxUser.setLgLngLat(null);
+		        	wxUser.setLgIp(IPUtil.getIpAddr(request));
+		        	wxUser.setLgTime(new Date());
+		        	wxBaseUserDao.update(wxUser);
+		        	U.log(log, "更新-绑定当前公众号信息-完成");
+		        }
+		        
+		        // 记录登录日志
+		        LoginLog llog = new LoginLog();
+		        llog.setOperIp(IPUtil.getIpAddr(request));// 获取HTTP请求
+		        llog.setUname(lbuser.getUname());
+		        llog.setOperLocation(AddressUtil.getAddress(llog.getOperIp()));
+		        llog.setAtime(new Date());
+		        llog.setOperDevice(UT.getReqUA(request));
+		        loginLogDao.save(llog);
+		        U.log(log, "保存-登录日志-完成");
+		        
+		        // 缓存登录用户信息
+		        Map<String, Object> mapUser = new HashMap<String, Object>();
+		        String uuid = subject.getSession().getId().toString();
+				mapUser.put(QC.L_STAFF, lcus);								// 缓存-登录驾驶员对象
+				mapUser.put(QC.L_WX, wxUser);								// 缓存-登录微信用户对象
+				mapUser.put(QC.L_COMPANY, comUser);							// 缓存-登录单位用户对象
+				mapUser.put(QC.L_TIME, DateUtils.DateToStr(new Date())); 	// 缓存-登录时间
+				redis.set(uuid, mapUser);
+				
+				// 传入前端
+		        map.put(QC.UUID, uuid);
+				
+				U.setPut(map, 1, "驾驶员-登录成功");
+			}else{
+				U.setPutFalse(map, "此角色暂未处理");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
 		
 		return map;
 	}
@@ -235,7 +317,6 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 			}
 			
 			Customer lcus = null;
-			BaseUser luser = null;
 			if(fg) {
 				if(wxuser == null) {
 					fg = U.setPutFalse(map, "[微信用户基类]不能为空");
@@ -245,14 +326,12 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 					lcus = findByField("baseUserId.uname", wxuser.getUname());
 					if(lcus == null) {
 						fg = U.setPutFalse(map, "[登录用户个人信息]不存在");
-					}else {
-						luser = lcus.getBaseUserId();
 					}
 				}
 			}
 			
 			if(fg) {
-				map = saveWxLoginDat(map, request, false, lcus, luser, comUser, wxuser.getWxid(), _role);
+				map = saveWxLoginDat(map, request, false, lcus, comUser, wxuser.getWxid(), _role);
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
@@ -325,13 +404,13 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 				if(wrole == CusRole.TEAM_DRIVER) {
 					U.setPut(map, 1, "用户是："+wrole.getKey());
 					
-//					hql = "select count(id) from Staff where unitNum = ?0 and baseUserId.uname = ?1 and isDriver = ?2";
-//					Object obj = staffDao.findObj(hql, teamNo, uname, 1, "LIMIT 1");
-//					if(obj != null && Integer.parseInt(obj.toString()) > 0) {
-//						U.setPut(map, 1, "用户是："+wrole.getKey());
-//					}else {
-//						fg = U.setPutFalse(map, "您不是："+wrole.getKey());
-//					}
+					hql = "select count(id) from Staff where unitNum = ?0 and baseUserId.uname = ?1 and isDriver = ?2";
+					Object obj = staffDao.findObj(hql, teamNo, uname, 1, "LIMIT 1");
+					if(obj != null && Integer.parseInt(obj.toString()) > 0) {
+						U.setPut(map, 1, "用户是："+wrole.getKey());
+					}else {
+						fg = U.setPutFalse(map, "您不是："+wrole.getKey());
+					}
 				}else {
 					fg = U.setPutFalse(map, "暂时没有该角色");
 				}

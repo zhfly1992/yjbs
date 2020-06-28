@@ -87,12 +87,12 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @date 20200523
 	 * @param request
 	 * @param reqsrc 请求来源
-	 * @param btlId  审核记录id
-	 * @param feeCourseId 科目id
+	 * @param createInfo	银行账记录id=科目id@银行账记录id=科目id
+	 * @param faceCourseInfo    对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额@对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> checkYesBtl(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,
-			String btlId,String feeCourseId);
+			String createInfo,String faceCourseInfo);
 	/**
 	 * @Description：审核下账记录：不通过
 	 * @author xx

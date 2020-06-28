@@ -176,7 +176,7 @@ public class StaffReimburseDao extends ZBaseDaoImpl<StaffReimburse, Long> {
 							U.log(log, "不存在上一个下标的数据，则上限是该车辆的续航里程数");
 							
 							// 车辆最大续航里程 = 上一次记录的车辆总里程 + 车辆里程数
-							maxKm = MathUtils.add(list.get(index + 1).getCurrentKilo(), car.getMileage(), 2);
+							maxKm = MathUtils.add(list.get(0).getCurrentKilo(), car.getMileage(), 2);
 						}else {
 							maxKm = list.get(index - 1).getCurrentKilo();
 							res[2] = list.get(index - 1).getId();
@@ -244,7 +244,7 @@ public class StaffReimburseDao extends ZBaseDaoImpl<StaffReimburse, Long> {
 							U.log(log, "不存在上一个下标的数据，则上限是该车辆的续航里程数");
 							
 							// 车辆最大续航里程 = 上一次记录的车辆总里程 + 车辆里程数
-							maxKm = MathUtils.add(list.get(index + 1).getCurrentKilo(), car.getMileage(), 2);
+							maxKm = MathUtils.add(list.get(0).getCurrentKilo(), car.getMileage(), 2);
 						}else {
 							maxKm = list.get(index - 1).getCurrentKilo();
 							res[2] = list.get(index - 1).getId();

@@ -38,7 +38,7 @@ public class LoginLog implements Serializable {
 	private String operLocation;
 	
 	/** 操作设备 */
-	@Column(name="oper_device", columnDefinition="varchar(255) COMMENT '操作设备'")
+	@Column(name="oper_device", columnDefinition="text COMMENT '操作设备'")
 	private String operDevice;
 	
 	/** 添加时间 */

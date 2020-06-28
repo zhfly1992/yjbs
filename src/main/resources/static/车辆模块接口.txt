@@ -34,7 +34,8 @@ localhost:8080/company/vehicle/vehicleAdd
         "atime": "2020-04-21 02:00:13"
     },
     "statusTimeslot":"2020-04-26 12:00-2020-04-26 14:00"
-	"runningArea":1
+	"runningArea":1，
+    "fuelPrice":50.5
 }
 baseUserId 为驾驶员，若不添加驾驶员则为null
 
@@ -76,7 +77,8 @@ localhost:8080/company/vehicle/vehicleUpdate
     "belongCompanyName": "公司名称",
     "belongComapnySimName": "公司简称",
     "unitNum": "asd",
-	"runningArea":1
+	"runningArea":1,
+     "fuelPrice":50.5
 }
 baseUserId 内的内容不可修改
 

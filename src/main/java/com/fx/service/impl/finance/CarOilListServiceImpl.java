@@ -15,7 +15,6 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartHttpServletRequest;
 
 import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
@@ -554,36 +553,6 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				}
 			}
 			
-			if(fg) {
-				if(StringUtils.isBlank(flen)) {
-					fg = U.setPutFalse(map, "[上传文件个数]不能为空");
-				}else {
-					flen = flen.trim();
-					if(!FV.isInteger(flen)) {
-						fg = U.setPutFalse(map, "[上传文件个数]格式错误");
-					}else {
-						int _flen = Integer.parseInt(flen);
-						if(_flen <= 0) {
-							fg = U.setPutFalse(map, "请上传加油凭证图片");
-						}
-					}
-					
-					U.log(log, "[上传文件个数] flen="+flen);
-				}
-			}
-			
-//			FileMan fm = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fid)) {
-//					fg = U.setPutFalse(map, "[加油凭证图片]不能为空");
-//				}else {
-//					fid = fid.trim();
-//					fm = fileManDao.findFileMan(fid);
-//					
-//					U.log(log, "[加油凭证图片id] fid="+fid);
-//				}
-//			}
-			
 			if(fg){
 				if(StringUtils.isEmpty(plateNum)){
 					fg = U.setPutFalse(map, "[车牌号]不能为空");
@@ -601,7 +570,7 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				}else{
 					currKm = currKm.trim();
 					if(!FV.isDouble(currKm)){
-						fg = U.setPutFalse(map, "[当前公里数]格式错误，应为正数");
+						fg = U.setPutFalse(map, "[当前公里数]格式错误");
 					}else{
 						_currKm = Double.parseDouble(currKm);
 					}
@@ -772,6 +741,24 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 			}
 			
 			if(fg) {
+				if(StringUtils.isBlank(flen)) {
+					fg = U.setPutFalse(map, "[上传文件个数]不能为空");
+				}else {
+					flen = flen.trim();
+					if(!FV.isInteger(flen)) {
+						fg = U.setPutFalse(map, "[上传文件个数]格式错误");
+					}else {
+						int _flen = Integer.parseInt(flen);
+						if(_flen <= 0) {
+							fg = U.setPutFalse(map, "请上传加油凭证图片");
+						}
+					}
+					
+					U.log(log, "[上传文件个数] flen="+flen);
+				}
+			}
+			
+			if(fg) {
 				CarOilList col = new CarOilList();
 				col.setReqsrc(reqsrc);
 				col.setUnitNum(lunitNum);
@@ -783,6 +770,7 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				col.setOilRise(_jyCount);
 				col.setOilMoney(_jyMoney);
 				col.setOilDate(_jyDate);
+				col.setOilRemark(jyRemark);
 				/******** 更新上一次加油油耗 *******/
 				if (lastOil != null) {// 非第一次添加
 					col.setLastKilo(lastOil.getCurrentKilo());// 添加才更新上次公里数
@@ -793,18 +781,12 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 					U.log(log, "更新上一次加油油耗-完成");
 				}
 				/******** 更新上一次加油油耗 *******/
-//				col.setOilVoucherUrl(fm.getFolderName()+"/"+fm.getFname());
 				col.setAddTime(new Date());
 				col.setIsCheck(0);
 				// 设置操作信息
 				col.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 				coiDao.save(col);
 				U.log(log, "添加-加油记账记录-完成");
-				
-//				// 修改对应的加油凭证图片记录数据
-//				fm.setFdat(lunitNum+"="+luname+"="+col.getId());
-//				fileManDao.update(fm);
-//				U.log(log, "修改-加油记账对应凭证图片记录-完成");
 				
 				// 油罐车和现金才加入记账报销，油票和充值卡在预存费里面审核
 				if(col.getOilWay().equals(OilWay.YGC_JY) || col.getOilWay().equals(OilWay.XJ_JY)){
@@ -841,8 +823,8 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 	
 	@Override
 	public Map<String, Object> updJyjz(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response, 
-		String lunitNum, String luname, String uid, String flen, String currKm, String jyWay, String jyStation, String jyCount, 
-		String jyMoney, String jyCard, String jyDate, String jyRemark) {
+		String lunitNum, String luname, String uid, String flen, String currKm, String jyWay, String jyStation, 
+		String jyCount, String jyMoney, String jyCard, String jyDate, String jyRemark) {
 		String logtxt = U.log(log, "修改-加油记账", reqsrc);
 
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -886,6 +868,8 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 						col = coiDao.findByField("id", Long.parseLong(uid));
 						if(col == null) {
 							fg = U.setPutFalse(map, "[加油记账]不存在");
+						}if(col.getIsCheck() != 0){
+							fg = U.setPutFalse(map, "该[加油记账]已审核，不能修改");
 						}
 					}
 					
@@ -911,18 +895,6 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				}
 			}
 			
-//			FileMan fm = null;
-//			if(fg) {
-//				if(StringUtils.isBlank(fid)) {
-//					fg = U.setPutFalse(map, "[加油凭证图片]不能为空");
-//				}else {
-//					fid = fid.trim();
-//					fm = fileManDao.findFileMan(fid);
-//					
-//					U.log(log, "[加油凭证图片id] fid="+fid);
-//				}
-//			}
-			
 			double _currKm = 0d;
 			if(fg){
 				if(StringUtils.isEmpty(currKm)){
@@ -936,6 +908,26 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 					}
 					
 					U.log(log, "[当前公里数] currKm="+currKm);
+				}
+			}
+			
+			CarOilList lastOil = null;// 获取当前修改数据的下一条数据，为了修改该记录的上一条车辆公里数
+			if(fg) {
+				// 公里数变化了
+				if(_currKm != col.getCurrentKilo()) {
+					// 修改公里数时，公里数只能是顺序添加的自身前后两条数据的公里数之间
+					Object[] minMax = staffReimburseDao.getMinMaxKm(col, 3);
+					double min = Double.parseDouble(minMax[0].toString());
+					double max = Double.parseDouble(minMax[1].toString());
+					long nextId = Long.parseLong(minMax[2].toString());
+					
+					if(_currKm <= min || _currKm >= max) {
+						fg = U.setPutFalse(map, -2, "公里数应该在"+(int)min+"到"+(int)max+"之间");
+					}
+					
+					if(nextId != 0) {// 存在下一条记录
+						lastOil = coiDao.findByField("id", nextId);
+					}
 				}
 			}
 			
@@ -1067,61 +1059,17 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				}
 			}
 			
-			CarOilList lastOil = null;
-			if(fg){
-				hql = "from CarOilList where plateNum = ?0 and teamNo = ?1 order by id desc";
-				List<CarOilList> lastCols = coiDao.hqlListFirstMax(hql, 0, 1, col.getPlateNum(), lunitNum);
-				if(lastCols.size() == 0){
-					U.log(log, "是第一次添加");
-				}else{
-					lastOil = lastCols.get(0);
-					U.log(log, "非第一次添加");
-				}
-			}
-			
-			if(fg){
-				if(fg){
-					if(col.getIsCheck() != 0){
-						fg = U.setPutFalse(map, "该[加油记账]已审核，不能修改");
-					}
-				}
-				
-				if(fg){
-					if(fg){
-						CarOilList beforeLast = null;
-						hql = "from CarOilList where plateNum = ?0 and teamNo = ?1 and id <> ?2 order by id desc";
-						List<CarOilList> beforeCols = coiDao.hqlListFirstMax(hql, 0, 1, col.getPlateNum(), lunitNum, Long.parseLong(uid));
-						if(beforeCols.size() > 0){
-							beforeLast = beforeCols.get(0);
-							
-							if (_currKm < beforeLast.getCurrentKilo()) {
-								fg = U.setPutFalse(map, "当前公里数必须大于上次公里数，上次为"+ beforeLast.getCurrentKilo()+ "公里");
-							}
-							
-							if(fg){
-								hql = "from CarList where plateNum = ?0 and teamNo = ?1";
-								CompanyVehicle car = companyVehicleDao.findCompanyCar(lunitNum, col.getPlateNum());
-								// 有续航里程判断是否超过了续航里程
-								if (car.getMileage() > 0 && _currKm > MathUtils.add(beforeLast.getCurrentKilo(), car.getMileage(), 2)) {
-									fg = U.setPutFalse(map, "当前公里数不能超过最大续航里程，最大为" + MathUtils.add(beforeLast.getCurrentKilo(), car.getMileage(), 2) + "公里");
-								}
-							}
-						}
-					}
-				}
-			}
-			
 			if(fg) {
-				col.setLastKilo(lastOil.getCurrentKilo());
 				col.setCurrentKilo(_currKm);
 				col.setOilWay(_jyWay);
 				col.setOilStation(jyStation);
 				col.setOilRise(_jyCount);
 				col.setOilMoney(_jyMoney);
 				col.setOilDate(_jyDate);
+				col.setOilRemark(jyRemark);
 				/******** 更新上一次加油油耗 *******/
 				if (lastOil != null) {// 非第一次添加
-					col.setLastKilo(lastOil.getCurrentKilo());// 添加才更新上次公里数
+					col.setLastKilo(lastOil.getCurrentKilo());// 更新上次公里数
 					// 油耗=上一次加油量/(当前公里数-上一次公里数)
 					double oilWear = MathUtils.div(lastOil.getOilRise(), MathUtils.sub(_currKm, lastOil.getCurrentKilo(), 2), 2);
 					lastOil.setOilWear(MathUtils.mul(oilWear, 100, 2));// 百公里油耗
@@ -1129,8 +1077,6 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 					U.log(log, "更新上一次加油油耗-完成");
 				}
 				/******** 更新上一次加油油耗 *******/
-//				col.setOilVoucherUrl(fm.getFolderName()+"/"+fm.getFname());
-				col.setAddTime(new Date());
 				col.setIsCheck(0);
 				// 设置操作信息
 				col.setOperNote(col.getOperNote()+Util.getOperInfo(lbuser.getRealName(), "修改"));
@@ -1138,8 +1084,8 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				U.log(log, "修改-加油记账记录-完成");
 				
 				// 获取-对应员工记账记录
-				hql = "from StaffReimburse where unitNum = ?0 and reimUserId.uname = ?1 and dat = ?2";
-				StaffReimburse sr = staffReimburseDao.findObj(hql, col.getUnitNum(), luname, col.getId()+"");
+				hql = "from StaffReimburse where unitNum = ?0 and reimUserId.uname = ?1 and dat = ?2 and jzType = ?3";
+				StaffReimburse sr = staffReimburseDao.findObj(hql, col.getUnitNum(), luname, col.getId()+"", JzType.JYJZ);
 				if(sr != null) {
 					// 油罐车和现金才加入记账报销，油票和充值卡在预存费里面审核
 					if(col.getOilWay().equals(OilWay.YGC_JY) || col.getOilWay().equals(OilWay.XJ_JY)){
@@ -1148,7 +1094,6 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 						sr.setIsCheck(0);
 						sr.setReimVoucherUrl(col.getOilVoucherUrl());
 						sr.setOperNote(sr.getOperNote()+Util.getOperInfo(lbuser.getRealName(), "修改"));
-						sr.setAddTime(col.getAddTime());
 						staffReimburseDao.update(sr);
 						U.log(log, "修改-员工报账记录-完成");
 					}else {
@@ -1183,363 +1128,6 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				
 				U.setPut(map, 1, "修改-加油记账-完成");
 			}
-		} catch (Exception e) {
-			U.setPutEx(map, log, e, logtxt);
-			e.printStackTrace();
-		}
-
-		return map;
-	}
-
-	@Override
-	public Object[] getMinMaxKm(Object obj, int reimType) {
-		String logtxt = U.log(log, "判断-指定记录公里数是否在其前后记录公里数之间");
-
-//		boolean fg = true;
-//		String hql = "";
-		Object[] res = new Object[] { 0, 0, 0 };
-
-		try {
-			/*
-			 * int index = -1; if(reimType == 3) { U.log(log, "加油报销");
-			 * 
-			 * CarOilList o = (CarOilList)obj;
-			 * 
-			 * // 查询记录的最小和最大里程（此条件控制了数据筛选量变少） double minMil = 0d, maxMil = 0d;
-			 * CarList cl = null; if(fg) { hql =
-			 * "from CarList where unitNum = ? and plateNum = ?"; cl =
-			 * clSer.findObj(hql, o.getUnitNum(), o.getPlateNum()); if(cl ==
-			 * null) { fg = U.logFalse(log,
-			 * "【车辆"+o.getPlateNum()+"不存在，请联系管理员】"); }else { //
-			 * 按照要修改的公里数向前加车辆里程作为最大值，向后减车辆里程作为最小值 minMil =
-			 * MathUtils.sub(o.getCurrentKilo(), cl.getCarMileage(), 2); maxMil
-			 * = MathUtils.add(o.getCurrentKilo(), cl.getCarMileage(), 2);
-			 * 
-			 * U.log(log, "查询加油记账车辆公里数区间为：["+minMil+", "+maxMil+"]"); } }
-			 * 
-			 * List<CarOilList> list = new ArrayList<CarOilList>(); if(fg) { //
-			 * 获取车辆加油记账，公里数控制在区间内 hql =
-			 * "select new CarOilList(id, currentKilo) from CarOilList where unitNum = ? and plateNum = ? and (currentKilo >= ? and currentKilo <= ?) order by id desc"
-			 * ; list = coiDao.findhqlList(hql, o.getUnitNum(), o.getPlateNum(),
-			 * minMil, maxMil); if(list.size() == 0) { fg = U.logFalse(log,
-			 * "没有获取到驾驶员["+o.getcName()+"]的加油记账列表"); } }
-			 * 
-			 * // 遍历列表，找到指定id数据所在列表的下标 for (int i = 0; i < list.size(); i++) {
-			 * if(list.get(i).getId() == o.getId()) { index = i; break; } }
-			 * 
-			 * if(fg) { if(index < 0) { fg = U.logFalse(log,
-			 * "没有找到指定数据id["+o.getId()+"]所在列表的下标index"); }else { //
-			 * 找到指定id的下标，则获取该下标的前后两条数据 double maxKm = 0d, minKm = 0d;//
-			 * 最大里程数，最小里程数
-			 * 
-			 * if(index == 0) { U.log(log, "不存在上一个下标的数据，则上限是该车辆的续航里程数");
-			 * 
-			 * // 车辆最大续航里程 = 上一次记录的车辆总里程 + 车辆里程数 maxKm =
-			 * MathUtils.add(list.get(index + 1).getCurrentKilo(),
-			 * cl.getCarMileage(), 2); }else { maxKm = list.get(index -
-			 * 1).getCurrentKilo(); res[2] = list.get(index - 1).getId(); }
-			 * 
-			 * if(index >= list.size() - 1) { U.log(log, "不存在下一个下标的数据，则下限是0");
-			 * minKm = 0; }else { minKm = list.get(index + 1).getCurrentKilo();
-			 * } U.log(log, "最大里程数为："+maxKm+", 最小里程数为："+minKm);
-			 * 
-			 * res[0] = minKm; res[1] = maxKm; } } }else if(reimType == 4) {
-			 * U.log(log, "维修报销");
-			 * 
-			 * CarRepairList o = (CarRepairList)obj;
-			 * 
-			 * // 查询记录的最小和最大里程（此条件控制了数据筛选量变少） double minMil = 0d, maxMil = 0d;
-			 * CarList cl = null; if(fg) { hql =
-			 * "from CarList where unitNum = ? and plateNum = ?"; cl =
-			 * clSer.findObj(hql, o.getUnitNum(), o.getPlateNum()); if(cl ==
-			 * null) { fg = U.logFalse(log,
-			 * "【车辆"+o.getPlateNum()+"不存在，请联系管理员】"); }else { //
-			 * 按照要修改的公里数向前加车辆里程作为最大值，向后减车辆里程作为最小值 minMil =
-			 * MathUtils.sub(o.getCurrentKilo(), cl.getCarMileage(), 2); maxMil
-			 * = MathUtils.add(o.getCurrentKilo(), cl.getCarMileage(), 2);
-			 * 
-			 * U.log(log, "查询加油记账车辆公里数区间为：["+minMil+", "+maxMil+"]"); } }
-			 * 
-			 * List<CarRepairList> list = new ArrayList<CarRepairList>(); if(fg)
-			 * { // 获取驾驶员所有维修记账，按照车辆公里数倒序排序（因为一般修改都是修改最近的数据） hql =
-			 * "select new CarRepairList(id, currentKilo) from CarRepairList where unitNum = ? and plateNum = ? and (currentKilo >= ? and currentKilo <= ?) order by id desc"
-			 * ; list = coiDao.findhqlList(hql, o.getUnitNum(), o.getPlateNum(),
-			 * minMil, maxMil); if(list.size() == 0) { fg = U.logFalse(log,
-			 * "没有获取到驾驶员["+o.getcName()+"]的加油记账列表"); } }
-			 * 
-			 * // 遍历列表，找到指定id数据所在列表的下标 for (int i = 0; i < list.size(); i++) {
-			 * if(list.get(i).getId() == o.getId()) { index = i; break; } }
-			 * 
-			 * if(fg) { if(index < 0) { fg = U.logFalse(log,
-			 * "没有找到指定数据id["+o.getId()+"]所在列表的下标index"); }else { //
-			 * 找到指定id的下标，则获取该下标的前后两条数据 double maxKm = 0d, minKm = 0d;//
-			 * 最大里程数，最小里程数
-			 * 
-			 * if(index == 0) { U.log(log, "不存在上一个下标的数据，则上限是该车辆的续航里程数");
-			 * 
-			 * // 车辆最大续航里程 = 上一次记录的车辆总里程 + 车辆里程数 maxKm =
-			 * MathUtils.add(list.get(index + 1).getCurrentKilo(),
-			 * cl.getCarMileage(), 2); }else { maxKm = list.get(index -
-			 * 1).getCurrentKilo(); res[2] = list.get(index - 1).getId(); }
-			 * 
-			 * if(index >= list.size() - 1) { U.log(log, "不存在下一个下标的数据，则下限是0");
-			 * minKm = 0; }else { minKm = list.get(index + 1).getCurrentKilo();
-			 * } U.log(log, "最大里程数为："+maxKm+", 最小里程数为："+minKm);
-			 * 
-			 * res[0] = minKm; res[1] = maxKm; } } }
-			 */
-		} catch (Exception e) {
-			U.log(log, logtxt, e);
-			e.printStackTrace();
-		}
-
-		return res;
-	}
-
-
-
-	@Override
-	public Map<String, Object> updCoi(ReqSrc reqsrc, HttpServletRequest request, HttpServletResponse response,
-			MultipartHttpServletRequest multReq, String unitNum, String luname, String uid, String currKm,
-			String addOilWay, String oilStation, String oilRise, String oilMoney, String oilCard, String jyDate,
-			String jyRemark, String imgIds) {
-		String logtxt = U.log(log, "修改-加油记录", reqsrc);
-
-		Map<String, Object> map = new HashMap<String, Object>();
-//		String hql = "";
-//		boolean fg = true;
-
-		try {
-			/*
-			 * if(fg){ if(StringUtils.isEmpty(unitNum)){ fg = U.setPutFalse(map,
-			 * "您未登录车队，不能继续操作"); }else { unitNum = unitNum.trim();
-			 * 
-			 * U.log(log, "[登录车队编号] unitNum="+unitNum); } }
-			 * 
-			 * if(fg){ if(StringUtils.isEmpty(luname)){ fg = U.setPutFalse(map,
-			 * "[登录账号]不能为空"); }else{ luname = luname.trim();
-			 * 
-			 * U.log(log, "登录账号：luname="+luname); } }
-			 * 
-			 * DriverList dl = null; if(fg){ dl =
-			 * dlSer.findDriverOfCarTeam(luname, unitNum); if(dl == null){ fg =
-			 * U.setPutFalse(map, "当前驾驶员不存在"); }else
-			 * if(StringUtils.isEmpty(dl.getReimburseTipOper())) { fg =
-			 * U.setPutFalse(map, 3, "请先设置报销通知操作员"); }
-			 * 
-			 * U.log(log, "[登录驾驶员] driver="+dl.getDriverName()); }
-			 * 
-			 * 
-			 * if(fg){ if(StringUtils.isEmpty(uid)){ fg = U.setPutFalse(map,
-			 * "[加油记录id]不能为空"); }else{ uid = uid.trim(); if(!FV.isLong(uid)){ fg
-			 * = U.setPutFalse(map, "[加油记录id]格式错误，应为long类型"); }
-			 * 
-			 * U.log(log, "加油记录id：uid="+uid); } }
-			 * 
-			 * CarOilList col = null; if(fg) { col = coiDao.findByField("id",
-			 * Long.parseLong(uid)); if(col == null){ fg = U.setPutFalse(map,
-			 * "该[加油记录]不存在"); }else if(col.getIsCheck() != 0){ fg =
-			 * U.setPutFalse(map, "该加油记账不是[未审核]，不能修改"); } }
-			 * 
-			 * ReimburseList rl = null; if(fg && (col.getOilWay() ==
-			 * OilWay.YGC_JY || col.getOilWay() == OilWay.XJ_JY)) { hql =
-			 * "from ReimburseList where reimType = ? and orderNum = ?"; rl =
-			 * reimSer.findObj(hql, 3, col.getId()+""); if(rl == null) { fg =
-			 * U.setPutFalse(map, "该加油记录对应[财务报销记录]不存在，请联系管理员"); }else {
-			 * U.log(log, "[财务报销记录id] id="+rl.getId()); } }
-			 * 
-			 * double _currKm = 0d; if(fg){ if(StringUtils.isEmpty(currKm)){ fg
-			 * = U.setPutFalse(map, "[车辆公里数]不能为空"); }else{ currKm =
-			 * currKm.trim(); if(!FV.isDouble(currKm)){ fg = U.setPutFalse(map,
-			 * "[车辆公里数]格式不正确"); }else{ _currKm = Double.parseDouble(currKm); }
-			 * 
-			 * U.log(log, "[车辆公里数] currKm="+currKm); } }
-			 * 
-			 * CarOilList lastCol = null;// 获取当前修改数据的下一条数据，为了修改该记录的上一条车辆公里数
-			 * if(fg) { // 公里数变化了 if(_currKm != col.getCurrentKilo()) { //
-			 * 修改公里数时，公里数只能是顺序添加的自身前后两条数据的公里数之间 Object[] minMax =
-			 * getMinMaxKm(col, 3); double min =
-			 * Double.parseDouble(minMax[0].toString()); double max =
-			 * Double.parseDouble(minMax[1].toString()); long nextId =
-			 * Long.parseLong(minMax[2].toString());
-			 * 
-			 * if(_currKm <= min || _currKm >= max) { fg = U.setPutFalse(map,
-			 * -2, "公里数应该在"+(int)min+"到"+(int)max+"之间"); }
-			 * 
-			 * if(nextId != 0) {// 存在下一条记录 lastCol = coiDao.findByField("id",
-			 * nextId); } } }
-			 * 
-			 * OilWay jyWay = null; if(fg){ if(StringUtils.isEmpty(addOilWay)){
-			 * fg = U.setPutFalse(map, "[加油方式]不能为空"); }else{ addOilWay =
-			 * addOilWay.trim(); if(!FV.isOfEnum(OilWay.class, addOilWay)){ fg =
-			 * U.setPutFalse(map, "[加油方式]格式不正确"); }else{ jyWay =
-			 * OilWay.valueOf(addOilWay); }
-			 * 
-			 * U.log(log, "加油方式：addOilWay="+addOilWay); } }
-			 * 
-			 * if(fg){ if(OilWay.YP_JY == jyWay){// 油票加油，验证-加油站 if(fg){
-			 * if(StringUtils.isEmpty(oilStation)){ fg = U.setPutFalse(map,
-			 * "[加油站名称]不能为空"); }else{ oilStation = oilStation.trim();
-			 * 
-			 * U.log(log, "加油站名称：oilStation="+oilStation); } } }else
-			 * if(OilWay.CZK_JY == jyWay){// 充值卡加油-验证加油卡 if(fg){
-			 * if(StringUtils.isEmpty(oilCard)){ fg = U.setPutFalse(map,
-			 * "[加油卡号]不能为空"); }else{ oilCard = oilCard.trim();
-			 * 
-			 * U.log(log, "加油卡号：oilCard="+oilCard); } } } }
-			 * 
-			 * Date _jyDate = null; if(fg){ if(StringUtils.isEmpty(jyDate)){ fg
-			 * = U.setPutFalse(map, "[加油日期]不能为空"); }else{ jyDate =
-			 * jyDate.trim(); if(!FV.isDate(jyDate)){ fg = U.setPutFalse(map,
-			 * "[加油日期]格式不正确"); }else{ _jyDate = DateUtils.strToDate(jyDate); }
-			 * 
-			 * U.log(log, "加油日期：jyDate="+jyDate); } }
-			 * 
-			 * if(fg){ if(StringUtils.isEmpty(jyRemark)){ U.log(log,
-			 * "[加油备注]为空"); }else{ jyRemark = jyRemark.trim();
-			 * if(jyRemark.length() > 40){ fg = U.setPutFalse(map,
-			 * "[备注]最多填写40个字"); }
-			 * 
-			 * U.log(log, "加油备注：jyRemark="+jyRemark); } }
-			 * 
-			 * double _oilRise = 0d; double _oilMoney = 0d; if(fg){
-			 * if(OilWay.YP_JY == jyWay) { if(StringUtils.isEmpty(oilRise) &&
-			 * StringUtils.isEmpty(oilMoney)) { fg = U.setPutFalse(map,
-			 * "[加油数量]或[加油金额]至少填写一个"); }else { if(fg){
-			 * if(StringUtils.isEmpty(oilRise)){ U.log(log, "[加油数量]为空"); }else{
-			 * oilRise = oilRise.trim(); if(!FV.isDouble(oilRise)){ fg =
-			 * U.setPutFalse(map, "[加油数量]格式错误，应为正数"); }else{ _oilRise =
-			 * Double.parseDouble(oilRise); }
-			 * 
-			 * U.log(log, "加油数量：oilRise="+oilRise); } }
-			 * 
-			 * if(fg) { if(StringUtils.isEmpty(oilMoney)){ U.log(log,
-			 * "[加油金额]为空"); }else{ oilMoney = oilMoney.trim();
-			 * if(!FV.isDouble(oilMoney)){ fg = U.setPutFalse(map,
-			 * "[加油金额]格式错误，应为正数"); }else{ _oilMoney =
-			 * Double.parseDouble(oilMoney); }
-			 * 
-			 * U.log(log, "加油金额：oilMoney="+oilMoney); } } } }else { if(fg){
-			 * if(StringUtils.isEmpty(oilMoney)){ if
-			 * (StringUtils.isNotEmpty(oilCard)) {// 加油卡不为空，则加油金额也不能为空 fg =
-			 * U.setPutFalse(map, "[加油金额]不能为空"); }else{ U.log(log, "[加油金额]为空");
-			 * } }else{ oilMoney = oilMoney.trim(); if(!FV.isDouble(oilMoney)){
-			 * fg = U.setPutFalse(map, "[加油金额]格式错误，应为正数"); }else{ _oilMoney =
-			 * Double.parseDouble(oilMoney); }
-			 * 
-			 * U.log(log, "加油金额：oilMoney="+oilMoney); } } } }
-			 * 
-			 * List<Object> delImgIds = new ArrayList<Object>(); String
-			 * imgUrlStr = ""; if(fg) { if(StringUtils.isEmpty(imgIds)) {
-			 * U.log(log, "[图片id数组字符串]为空，则说明用户将之前的图片都删除了");
-			 * 
-			 * // 修改前的全部id数组 if(StringUtils.isNotBlank(col.getOilVoucherId())) {
-			 * String[] allIds = col.getOilVoucherId().split(","); for (String
-			 * id1 : allIds) { delImgIds.add(Long.parseLong(id1)); } U.log(log,
-			 * "需要删除的图片id数组字符串 delImgIds="+StringUtils.join(delImgIds.toArray(),
-			 * ",")); } }else { imgIds = imgIds.trim();
-			 * 
-			 * // 不会删除的id数组 String[] noDelIds = imgIds.split(",");
-			 * 
-			 * // 修改前的全部id数组 if(StringUtils.isNotBlank(col.getOilVoucherId())) {
-			 * String[] allIds = col.getOilVoucherId().split(","); for (String
-			 * id1 : allIds) { boolean is = false; for (String id2 : noDelIds) {
-			 * if(StringUtils.isNotBlank(id2) && id1.equals(id2)) { is = true;
-			 * break;// 跳出内层循环 } }
-			 * 
-			 * if(!is) {// 不存在，则添加 delImgIds.add(Long.parseLong(id1)); } }
-			 * U.log(log,
-			 * "需要删除的图片id数组字符串 delImgIds="+StringUtils.join(delImgIds.toArray(),
-			 * ",")); }
-			 * 
-			 * List<String> imgUrls = new ArrayList<String>(); // 修改前的全部url数组
-			 * if(StringUtils.isNotBlank(col.getOilVoucherUrl())) { String[]
-			 * allUrls = col.getOilVoucherUrl().split(","); for (String id1 :
-			 * allUrls) { boolean is = false; for (String id2 : noDelIds) {
-			 * if(id1.contains("_"+id2+".")) { is = true; break;// 跳出内层循环 } }
-			 * 
-			 * if(is) {// 存在，则添加 imgUrls.add(id1); } } imgUrlStr =
-			 * StringUtils.join(imgUrls.toArray(), ",");
-			 * 
-			 * U.log(log, "需保留的图片地址url数组字符串 imgUrls="+imgUrlStr); } }
-			 * 
-			 * }
-			 * 
-			 * String voucherInfo = null; if(fg){
-			 * if(multReq.getFileNames().hasNext()){// 存在文件 U.log(log,
-			 * "[加油小票图片]不为空，即用户修改/添加了图片");
-			 * 
-			 * voucherInfo = fmSer.upFiles(multReq, response, "加油凭证");
-			 * if(voucherInfo == null || voucherInfo.contains("-")){ U.log(log,
-			 * "修改图片成功，结果："+voucherInfo); }else { fg = U.setPutFalse(map,
-			 * "[加油记录]修改图片凭证失败"); } }else { U.log(log, "[加油小票图片]为空，即用户未修改图片"); }
-			 * 
-			 * if(fg) { // 存在需要删除的图片id数组字符串 if(delImgIds.size() > 0) {
-			 * fmSer.delFileList(delImgIds.toArray(), Util.MFILEURL); } } }
-			 * 
-			 * if(fg) { // 最新的图片id数组字符串, 最新的图片url数组字符串 String newIds = "",
-			 * newUrls = ""; if (voucherInfo != null) { newIds =
-			 * StringUtils.isEmpty(imgIds) ? voucherInfo.split("-")[0] :
-			 * imgIds+","+voucherInfo.split("-")[0]; newUrls =
-			 * StringUtils.isEmpty(imgUrlStr) ? voucherInfo.split("-")[1] :
-			 * imgUrlStr+","+voucherInfo.split("-")[1]; }else { newIds = imgIds;
-			 * newUrls = imgUrlStr; } col.setOilVoucherId(newIds);
-			 * col.setOilVoucherUrl(newUrls); col.setIsCheck(0);// 变成未审核
-			 * col.setOilWay(jyWay); col.setAddOilWay(jyWay.getOilWayText());
-			 * col.setOilRise(_oilRise); if (StringUtils.isNotEmpty(oilStation))
-			 * { col.setOilStation(oilStation);// 加油站 }else if
-			 * (StringUtils.isNotEmpty(oilCard)) { col.setOilStation(oilCard);//
-			 * 加油卡 }
-			 * 
-			 * if (StringUtils.isNotEmpty(oilMoney)) {// 加油金额
-			 * col.setOilMoney(_oilMoney); } else {// 非现金根据后台设置计算出价格 //
-			 * 获取对应类型的数据对象 hql =
-			 * "from PublicDataSet where setId = ? and type = ?"; PublicDataSet
-			 * pds = pdsDao.findObj(hql, KCBConstans.POWER_PRICE, 9); if (pds !=
-			 * null) { // 获取车辆动力来源 CarList cl = clSer.findByField("plateNum",
-			 * col.getPlateNum()); String[] price =
-			 * pds.getCusSmsSet().split(","); double money =
-			 * MathUtils.mul(_oilRise, Double.valueOf(price[cl.getCarPower()]),
-			 * 2); col.setOilMoney(money); } }
-			 * 
-			 * col.setOilDate(_jyDate); col.setOilRemark(jyRemark);
-			 * col.setCurrentKilo(_currKm);
-			 * 
-			 * String operNote =
-			 * com.ebam.mis.utils.kcb.others.Util.getOperInfo(luname, "修改");
-			 * if(StringUtils.isNotBlank(col.getRemark())) { operNote +=
-			 * col.getRemark(); } col.setRemark(operNote); coiDao.update(col);
-			 * U.log(log, "更新[加油记账]完成");
-			 * 
-			 * if(lastCol != null) {// 存在下一条记录，则修改对应的最后一条记录的公里数
-			 * lastCol.setLastKilo(_currKm); coiDao.update(lastCol); U.log(log,
-			 * "更新[下一条加油记账-最后一次公里数]完成"); }
-			 * 
-			 * // 修改对应财务报销记录 if(rl != null) { rl.setIsCheck(0);// 变成未审核
-			 * rl.setTotalMoney(col.getOilMoney());
-			 * rl.setRemark(col.getOilRemark()); // 记录修改操作人
-			 * rl.setOperator(rl.getOperator()+","+dl.getDriverName());
-			 * rl.setUseDayStart(col.getOilDate());
-			 * rl.setReimVoucherId(col.getOilVoucherId());
-			 * rl.setReimVoucherUrl(col.getOilVoucherUrl());
-			 * 
-			 * operNote = com.ebam.mis.utils.kcb.others.Util.getOperInfo(luname,
-			 * "修改"); if(StringUtils.isNotBlank(rl.getNote())) { operNote +=
-			 * rl.getNote(); } rl.setNote(operNote); reimSer.update(rl);
-			 * U.log(log, "更新[对应财务报销记录]完成");
-			 * 
-			 * -------通知驾驶员设置的职务人员--begin------------ if(rl != null &&
-			 * rl.getIsCheck() == 0) { U.log(log, "微信通知驾驶员所设置的职务人员：未审核才通知");
-			 * 
-			 * if(StringUtils.isNotBlank(dl.getReimburseTipOper())) { String[]
-			 * opers = dl.getReimburseTipOper().split(",");
-			 * 
-			 * for (String o : opers) { ymSer.orderWaitforCheckOfWxmsg(null, rl,
-			 * o); } } }else { U.log(log, "该报销记账不是：未审核，则不通知"); }
-			 * -------通知驾驶员设置的职务人员--end------------ }
-			 * 
-			 * U.setPut(map, 1, "修改[加油记账]成功"); }
-			 */
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();
@@ -1812,6 +1400,11 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 			
 			if (fg) {
 				map.put("data", col);
+				
+				// 字段过滤
+				Map<String, Object> fmap = new HashMap<String, Object>();
+				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
+				map.put(QC.FIT_FIELDS, fmap);
 
 				U.setPut(map, 1, "获取[加油记账记录]成功");
 			}

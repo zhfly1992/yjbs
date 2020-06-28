@@ -16,6 +16,8 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import com.fx.commons.utils.enums.Education;
+import com.fx.commons.utils.enums.Sex;
 import com.fx.commons.utils.enums.StaffState;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.permi.Dept;
@@ -65,7 +67,7 @@ public class Staff implements Serializable{
 	
 	/** 试用截止/合同到期时间 */
 	@Temporal(TemporalType.DATE)
-	@Column(name="expire_time", nullable=false, columnDefinition="datetime COMMENT '试用截止/合同到期时间'")
+	@Column(name="expire_time", columnDefinition="datetime COMMENT '试用截止/合同到期时间'")
 	private Date expireTime;
 	
 	/** 入职公司 */
@@ -95,6 +97,27 @@ public class Staff implements Serializable{
 	@Column(name="is_del", columnDefinition="tinyint(1) DEFAULT '0' COMMENT '是否软删除'")
 	private int isDel;
 	
+	/** 性别*/
+	@Enumerated(EnumType.STRING)
+	@Column(name="sex", nullable=false, columnDefinition="varchar(10) COMMENT '性别'")
+	private Sex sex;
+	
+	/** 年龄*/
+	@Column(name="age", nullable=false, columnDefinition="tinyint(1) COMMENT '年龄")
+	private int age;
+	
+	/** 学历*/
+	@Enumerated(EnumType.STRING)
+	@Column(name="education", nullable=false, columnDefinition="varchar(30) COMMENT '学历")
+	private Education education;
+	
+	/** 离职信息 */
+	@Column(name="leave_info", columnDefinition="varchar(200) COMMENT '离职信息，格式 :时间,备注'")
+	private String leaveInfo;
+	
+    /** 住址 */
+    @Column(name="address",columnDefinition="varchar(50) COMMENT '住址'")
+    private String address;
 	
 	/** 驾驶员属性  */
 	
@@ -591,12 +614,84 @@ public class Staff implements Serializable{
 	}
 	
 
+
+
+	/**
+	 * @return the sex
+	 */
+	public Sex getSex() {
+		return sex;
+	}
+
+	/**
+	 * @param sex the sex to set
+	 */
+	public void setSex(Sex sex) {
+		this.sex = sex;
+	}
+
+	/**
+	 * @return the age
+	 */
+	public int getAge() {
+		return age;
+	}
+
+	/**
+	 * @param age the age to set
+	 */
+	public void setAge(int age) {
+		this.age = age;
+	}
+
+	/**
+	 * @return the education
+	 */
+	public Education getEducation() {
+		return education;
+	}
+
+	/**
+	 * @param education the education to set
+	 */
+	public void setEducation(Education education) {
+		this.education = education;
+	}
+
 	/**  
 	 * 获取 serialVersionUID  
 	 * @return serialVersionUID
 	 */
 	public static long getSerialversionuid() {
 		return serialVersionUID;
+	}
+
+	/**
+	 * @return the leaveInfo
+	 */
+	public String getLeaveInfo() {
+		return leaveInfo;
+	}
+
+	/**
+	 * @param leaveInfo the leaveInfo to set
+	 */
+	public void setLeaveInfo(String leaveInfo) {
+		this.leaveInfo = leaveInfo;
+	}
+
+	/**
+	 * @return the address
+	 */
+	public String getAddress() {
+		return address;
+	}
+
+	/**
+	 * @param address the address to set
+	 */
+	public void setAddress(String address) {
+		address = address;
 	}
 
 }
