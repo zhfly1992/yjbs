@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +25,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
-import com.fx.commons.utils.enums.CusType;
 import com.fx.commons.utils.enums.RegWay;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.enums.StaffState;
@@ -37,10 +37,12 @@ import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.CompanyCustomDao;
 import com.fx.dao.company.CompanyVehicleDao;
+import com.fx.dao.company.CustomTypeDao;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.BaseUserDao;
 import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.company.CompanyVehicle;
+import com.fx.entity.company.CustomType;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
@@ -63,6 +65,10 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 	
 	@Autowired
 	private CompanyVehicleDao companyVehicleDao;
+	
+	/** 客户类型-数据源 */
+	@Autowired
+	private CustomTypeDao	ctDao;
 
 
 
@@ -102,6 +108,11 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 
 			if (fg) {
 				Page<Staff> pd = staffDao.findStaffList(reqsrc, page, rows, unitNum, find);
+				// 解决懒加载问题
+				for (Staff sf : pd.getResult()) {
+					Hibernate.initialize(sf.getMoneyTypes());
+				}
+				
 				U.setPageData(map, pd);
 
 				// 字段过滤
@@ -199,14 +210,15 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 				CompanyCustom checkIfExists = companyCustomDao.checkIfExists(reqsrc, unitNum, uname);
 				if (checkIfExists == null) {
 					CompanyCustom addCompanyCustom;
+					CustomType ct=ctDao.findByField("typeName", "个人");//默认客户类型为个人
 					if (staff.getEntryCompany() != null) {
 						addCompanyCustom = addCompanyCustom(baseUser, unitNum, staff.getEntryCompany().getUnitName(),
-								CusType.COMPANY, 0, "员工", jsonObject.getString("serviceMan"),
+								ct, 0, "员工", jsonObject.getString("serviceMan"),
 								jsonObject.getString("recomMan"));
 					}
 					else{
 						addCompanyCustom = addCompanyCustom(baseUser, unitNum, currentCompany,
-								CusType.COMPANY, 0, "员工", jsonObject.getString("serviceMan"),
+								ct, 0, "员工", jsonObject.getString("serviceMan"),
 								jsonObject.getString("recomMan"));
 					}
 		
@@ -291,14 +303,14 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 
 
 
-	private CompanyCustom addCompanyCustom(BaseUser baseUser, String unitNum, String unitName, CusType cusType,
+	private CompanyCustom addCompanyCustom(BaseUser baseUser, String unitNum, String unitName, CustomType cusType,
 			int isDepend, String cusRole, String serviceMan, String recomMan) {
 		try {
 			CompanyCustom companyCustom = new CompanyCustom();
 			companyCustom.setBaseUserId(baseUser);
 			companyCustom.setAddTime(new Date());
 			companyCustom.setCusRole(cusRole);
-			companyCustom.setCusType(cusType);
+			companyCustom.setCusTypeId(cusType);
 			companyCustom.setIsDepend(isDepend);
 			companyCustom.setServiceMan(serviceMan);
 			companyCustom.setRecomMan(recomMan);
@@ -525,7 +537,7 @@ public class StaffServiceImpl extends BaseServiceImpl<Staff, Long> implements St
 			List<CompanyVehicle> companyVehicles = companyVehicleDao.findhqlList("from CompanyVehicle where unitNum = ?0 and baseUserId is not null", unitNum);
 			Set<String> unameSet = new HashSet<>();
 			for(CompanyVehicle cv:companyVehicles){
-				unameSet.add(cv.getBaseUserId().getUname());
+				unameSet.add(cv.getStaff().getBaseUserId().getUname());
 			}
 			
 			List<BaseUser> findhqlList = staffDao.findhqlList(

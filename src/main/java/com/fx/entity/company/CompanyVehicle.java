@@ -19,7 +19,6 @@ import com.fx.commons.utils.enums.BusinessType;
 import com.fx.commons.utils.enums.CarNature;
 import com.fx.commons.utils.enums.VehiclePowerSourceType;
 import com.fx.commons.utils.enums.VehicleType;
-import com.fx.entity.cus.BaseUser;
 
 /**
  * 单位车辆
@@ -110,21 +109,21 @@ public class CompanyVehicle {
     @Column(name="fuel",nullable=false, columnDefinition="float COMMENT '正常油耗'")
     private Float fuel;
 
-//    /** 停靠地址全称 */
-//    @Column(name="docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址全称'")
-//    private String dockedAddress;
-//
-//    /** 停靠地址简称 */
-//    @Column(name="simple_docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址简称'")
-//    private String simpleDockedAddress;
-//
-//    /** 停靠地址纬度*/
-//    @Column(name="docked_latitude",nullable=false, columnDefinition="float COMMENT '停靠地址纬度'")
-//    private Double dockedLatitude;
-//
-//    /** 停靠地址经度*/
-//    @Column(name="docked_longitude",nullable=false, columnDefinition="float COMMENT '停靠地址经度'")
-//    private Double dockedLongitude;
+    /** 停靠地址全称 */
+    @Column(name="docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址全称'")
+    private String dockedAddress;
+
+    /** 停靠地址简称 */
+    @Column(name="simple_docked_address",nullable=false, columnDefinition="varchar(20) COMMENT '停靠地址简称'")
+    private String simpleDockedAddress;
+
+    /** 停靠地址纬度*/
+    @Column(name="docked_latitude",nullable=false, columnDefinition="float COMMENT '停靠地址纬度'")
+    private Double dockedLatitude;
+
+    /** 停靠地址经度*/
+    @Column(name="docked_longitude",nullable=false, columnDefinition="float COMMENT '停靠地址经度'")
+    private Double dockedLongitude;
 
     /** 行驶证照 eg：Uxxxx */
     @Column(name="travel_license_photo_url",nullable=false, columnDefinition="varchar(512) COMMENT '行驶证照url'")
@@ -133,12 +132,11 @@ public class CompanyVehicle {
     /** 驾照需求 eg：A1 */
     @Column(name="driving_type",nullable=false, columnDefinition="varchar(12) COMMENT '驾照需求'")
     private String drivingType;
-    
-    /** 主驾驶人(用户基类id) */
-	@OneToOne(targetEntity = BaseUser.class)
-//	@JoinColumn(name="base_user_id", nullable=false, unique=true, referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '用户基类用户名'")
-	@JoinColumn(name="base_user_id", referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '主驾驶人，用户基类用户名'")
-	private BaseUser baseUserId;
+	
+	/** 主驾驶人 */
+	@OneToOne(targetEntity = Staff.class)
+	@JoinColumn(name="staff_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '主驾驶人'")
+	private Staff staff;
 	
 	/** 所属公司 eg：A1 */
     @Column(name="company_name", columnDefinition="varchar(100) COMMENT '所属公司全称'")
@@ -431,20 +429,6 @@ public class CompanyVehicle {
 	}
 
 	/**
-	 * @return the baseUserId
-	 */
-	public BaseUser getBaseUserId() {
-		return baseUserId;
-	}
-
-	/**
-	 * @param baseUserId the baseUserId to set
-	 */
-	public void setBaseUserId(BaseUser baseUserId) {
-		this.baseUserId = baseUserId;
-	}
-
-	/**
 	 * @return the serialversionuid
 	 */
 	public static long getSerialversionuid() {
@@ -490,6 +474,69 @@ public class CompanyVehicle {
 	public void setFuelPrice(Float fuelPrice) {
 		this.fuelPrice = fuelPrice;
 	}
+
 	
+	/**  
+	 * 获取 主驾驶人  
+	 * @return staff
+	 */
+	public Staff getStaff() {
+		return staff;
+	}
 	
+	/**  
+	 * 设置 主驾驶人  
+	 * @param staff 
+	 */
+	public void setStaff(Staff staff) {
+		this.staff = staff;
+	}
+	/**
+	 * @return the dockedAddress
+	 */
+	public String getDockedAddress() {
+		return dockedAddress;
+	}
+	/**
+	 * @param dockedAddress the dockedAddress to set
+	 */
+	public void setDockedAddress(String dockedAddress) {
+		this.dockedAddress = dockedAddress;
+	}
+	/**
+	 * @return the simpleDockedAddress
+	 */
+	public String getSimpleDockedAddress() {
+		return simpleDockedAddress;
+	}
+	/**
+	 * @param simpleDockedAddress the simpleDockedAddress to set
+	 */
+	public void setSimpleDockedAddress(String simpleDockedAddress) {
+		this.simpleDockedAddress = simpleDockedAddress;
+	}
+	/**
+	 * @return the dockedLatitude
+	 */
+	public Double getDockedLatitude() {
+		return dockedLatitude;
+	}
+	/**
+	 * @param dockedLatitude the dockedLatitude to set
+	 */
+	public void setDockedLatitude(Double dockedLatitude) {
+		this.dockedLatitude = dockedLatitude;
+	}
+	/**
+	 * @return the dockedLongitude
+	 */
+	public Double getDockedLongitude() {
+		return dockedLongitude;
+	}
+	/**
+	 * @param dockedLongitude the dockedLongitude to set
+	 */
+	public void setDockedLongitude(Double dockedLongitude) {
+		this.dockedLongitude = dockedLongitude;
+	}
 }

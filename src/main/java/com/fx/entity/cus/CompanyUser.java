@@ -34,11 +34,11 @@ public class CompanyUser implements Serializable {
 	private String companyName;
 	
 	/** 单位地址 eg：四川省-成都市-武侯区 遇见巴士科技公司 */
-	@Column(name="company_addr", nullable=false, columnDefinition="varchar(100) COMMENT '单位地址'")
+	@Column(name="company_addr", columnDefinition="varchar(100) COMMENT '单位地址'")
 	private String companyAddr;
 	
 	/** 单位地址坐标 eg：103.666666,30.666666 */
-	@Column(name="company_lnglat", nullable=false, columnDefinition="varchar(50) COMMENT '单位地址坐标'")
+	@Column(name="company_lnglat", columnDefinition="varchar(50) COMMENT '单位地址坐标'")
 	private String companyLnglat;
 	
 	/** 单位编号 eg：Uxxxx */

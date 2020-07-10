@@ -10,7 +10,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import com.fx.commons.utils.other.CookieUtil;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
@@ -26,8 +25,6 @@ public class LU extends BaseController {
 	/** 日志记录 */
 	public static Logger log = LogManager.getLogger(LU.class.getName());
 
-
-
 	/**
 	 * 获取-缓存中的登录用户map对象
 	 * 
@@ -37,11 +34,18 @@ public class LU extends BaseController {
 	 *            redis
 	 * @return 登录用户map对象
 	 */
-	public  Map<String, Object> getLMap(HttpServletRequest request, RedisUtil redis) {
+	public Map<String, Object> getLMap(HttpServletRequest request, RedisUtil redis) {
 		String uuid = (String) request.getHeader("uuid"); // 请求获取uuid
+		U.log(log, "《《《《《《《【从request中获取的uuid="+uuid+"】》》》》》》》");
+		
 		if (StringUtils.isEmpty(uuid)) {
 			uuid = getUUID();
+			U.log(log, "《《《《《《《【从session中获取的uuid="+uuid+"】》》》》》》》");
 		}
+		
+//		String uuid = getUUID();
+//		U.log(log, "《《《《《《《【当前登录用户token="+uuid+"】》》》》》》》");
+		
 		@SuppressWarnings("unchecked")
 		Map<String, Object> loginKey = (Map<String, Object>) redis.get(uuid);
 
@@ -63,8 +67,8 @@ public class LU extends BaseController {
 		if (cus != null) {
 			return cus.getBaseUserId().getUname();
 		}else {
-			Staff staff=getLStaff(request, redis);
-			if(staff!=null) return staff.getBaseUserId().getUname();
+			Staff staff = getLStaff(request, redis);
+			if(staff != null) return staff.getBaseUserId().getUname();
 		}
 		return null;
 	}
@@ -82,14 +86,11 @@ public class LU extends BaseController {
 		if (cus != null) {
 			return cus.getBaseUserId().getRealName();
 		}else {
-			Staff staff=getLStaff(request, redis);
-			if(staff!=null) return staff.getBaseUserId().getRealName();
+			Staff staff = getLStaff(request, redis);
+			if(staff != null) return staff.getBaseUserId().getRealName();
 		}
 		return null;
 	}
-
-
-
 
 	/**
 	 * 获取-登录用户基类信息
@@ -97,8 +98,6 @@ public class LU extends BaseController {
 	public static BaseUser getLBuser() {
 		return getCurrentUser();
 	}
-
-
 
 	/**
 	 * 获取-登录单位信息
@@ -198,31 +197,39 @@ public class LU extends BaseController {
 	 * @return 用户微信绑定对象
 	 */
 	public static WxBaseUser getLWx(HttpServletRequest request ,RedisUtil redis){
-		try {
-			String uuid = request.getParameter(QC.UUID);
-			if(StringUtils.isEmpty(uuid)){
-				uuid = CookieUtil.getUUID(request, null);
-			}
-			U.log(log, "获取用户缓存信息：从request中获取uuid："+uuid);
-			
-			Object obj = redis.get(uuid);
-			if(obj != null){
-				U.log(log, "成功：获取用户缓存信息");
-				U.log(log, U.toJsonStr(obj));
-				
-				@SuppressWarnings("unchecked")
-				Map<String, Object> loginKey = (Map<String, Object>)obj;
-				 
-				return (WxBaseUser)loginKey.get(QC.L_WX);
-			}else{
-				U.log(log, "失败：获取用户缓存信息为空");
-				return null;
-			}
-		} catch (Exception e) {
-			U.log(log, "异常：获取用户缓存信息为空", e);
-			e.printStackTrace();
-			return null;
+		LU lu = new LU();
+		Map<String, Object> loginKey = lu.getLMap(request, redis);
+		if (loginKey != null) {
+			return (WxBaseUser) loginKey.get(QC.L_WX);
 		}
+
+		return null;
+		
+//		try {
+//			String uuid = request.getParameter(QC.UUID);
+//			if(StringUtils.isEmpty(uuid)){
+//				uuid = CookieUtil.getUUID(request, null);
+//			}
+//			U.log(log, "获取用户缓存信息：从request中获取uuid："+uuid);
+//			
+//			Object obj = redis.get(uuid);
+//			if(obj != null){
+//				U.log(log, "成功：获取用户缓存信息");
+//				U.log(log, U.toJsonStr(obj));
+//				
+//				@SuppressWarnings("unchecked")
+//				Map<String, Object> loginKey = (Map<String, Object>)obj;
+//				 
+//				return (WxBaseUser)loginKey.get(QC.L_WX);
+//			}else{
+//				U.log(log, "失败：获取用户缓存信息为空");
+//				return null;
+//			}
+//		} catch (Exception e) {
+//			U.log(log, "异常：获取用户缓存信息为空", e);
+//			e.printStackTrace();
+//			return null;
+//		}
 	}
 
 }

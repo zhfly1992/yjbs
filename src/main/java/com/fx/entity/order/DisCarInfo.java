@@ -14,7 +14,7 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-import com.fx.entity.cus.BaseUser;
+import com.fx.entity.company.Staff;
 
 /**
  * 派单车辆信息表
@@ -38,14 +38,14 @@ public class DisCarInfo implements Serializable {
 	private int seats;
 	
 	/** 主驾驶用户 */
-	@OneToOne(targetEntity = BaseUser.class)
-	@JoinColumn(name="main_driver",referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '主驾驶用户名'")
-	private BaseUser main_driver;
+	@OneToOne(targetEntity = Staff.class)
+	@JoinColumn(name="main_driver",referencedColumnName="id", columnDefinition="varchar(30) COMMENT '主驾驶员'")
+	private Staff main_driver;
 	
 	/** 副驾驶用户 */
-	@OneToOne(targetEntity = BaseUser.class)
-	@JoinColumn(name="vice_driver", referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '副驾驶用户名'")
-	private BaseUser vice_driver;
+	@OneToOne(targetEntity = Staff.class)
+	@JoinColumn(name="vice_driver", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '副驾驶员'")
+	private Staff vice_driver;
 	
 	/** 主驾开始时间 eg：2020-03-12 10:00:00 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -149,49 +149,38 @@ public class DisCarInfo implements Serializable {
 	}
 	
 
-
 	/**  
 	 * 获取 主驾驶用户  
 	 * @return main_driver
 	 */
-	public BaseUser getMain_driver() {
+	public Staff getMain_driver() {
 		return main_driver;
 	}
 	
-
 	/**  
 	 * 设置 主驾驶用户  
-	 * @param main_driver
+	 * @param main_driver 
 	 */
-	public void setMain_driver(BaseUser main_driver) {
+	public void setMain_driver(Staff main_driver) {
 		this.main_driver = main_driver;
 	}
 	
-
 	/**  
 	 * 获取 副驾驶用户  
 	 * @return vice_driver
 	 */
-	public BaseUser getVice_driver() {
+	public Staff getVice_driver() {
 		return vice_driver;
 	}
 	
-
 	/**  
 	 * 设置 副驾驶用户  
-	 * @param vice_driver
+	 * @param vice_driver 
 	 */
-	public void setVice_driver(BaseUser vice_driver) {
+	public void setVice_driver(Staff vice_driver) {
 		this.vice_driver = vice_driver;
 	}
 	
-
-
-	
-
-
-	
-
 	/**  
 	 * 获取 外部车主副驾驶员信息eg：主驾驶员手机号=姓名;副驾驶员手机号=姓名;  
 	 * @return outDriverInfo

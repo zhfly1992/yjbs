@@ -44,10 +44,19 @@ public class StaffReimburse implements Serializable{
 	@Column(name="unit_num",nullable=false, columnDefinition="varchar(20) COMMENT '单位编号'")
 	private String unitNum;
 	
+	/** 添加人信息 */
+	@OneToOne(targetEntity = BaseUser.class)
+	@JoinColumn(name="add_user", nullable=false, referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '添加人信息'")
+	private BaseUser addUser;
+	
 	/** 报销人信息 */
 	@OneToOne(targetEntity = BaseUser.class)
-	@JoinColumn(name="reim_user_id", nullable=false, referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '报销人信息'")
-	private BaseUser reimUserId;
+	@JoinColumn(name="reim_user", nullable=false, referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '报销人信息'")
+	private BaseUser reimUser;
+	
+	/** 车牌号 */
+	@Column(name="plate_num", columnDefinition="text COMMENT '车牌号'")
+	private String plateNum;
 	
 	/** 科目名称 */
 	@OneToOne(targetEntity = FeeCourse.class)
@@ -69,16 +78,6 @@ public class StaffReimburse implements Serializable{
 	@JoinColumn(name="dept_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '业务部门id'")
 	private Dept deptId;
 	
-	/** 记账类型 */
-	@Enumerated(EnumType.STRING)
-	@Column(name="jz_type", columnDefinition="varchar(20) COMMENT '记账类型'")
-	private JzType jzType;
-	
-	/** 记账日期 */
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="jz_date", columnDefinition="datetime COMMENT '记账日期'")
-	private Date jzDate;
-	
 	/** 摘要 */
 	@Column(name="remark",  columnDefinition="varchar(255) COMMENT '摘要'")
 	private String remark;
@@ -94,6 +93,10 @@ public class StaffReimburse implements Serializable{
 	/** -1已驳回 0 未审核 1已审核 2已生成凭证*/
 	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '-1已驳回 0 未审核 1已审核 2已生成凭证'")
 	private int isCheck;
+	
+	/** 凭证号码 */
+	@Column(name="voucher_num",  columnDefinition="varchar(100) COMMENT '凭证号码'")
+	private String voucherNum;
 	
 	/**  驳回原因 */
 	@Column(name="refuse_reason",  columnDefinition="varchar(255) COMMENT '驳回原因'")
@@ -118,9 +121,20 @@ public class StaffReimburse implements Serializable{
 	@JoinColumn(name="main_order_reim", referencedColumnName="order_num", columnDefinition="varchar(30) COMMENT '主订单引用'")
 	private MainCarOrder mainOrderReim;
 	
-	/** 关联数据 */
-	@Column(name="dat", columnDefinition="varchar(30) COMMENT '关联数据'")
-	private String dat;
+	/** 记账类型 */
+	@Enumerated(EnumType.STRING)
+	@Column(name="jz_type", columnDefinition="varchar(20) COMMENT '记账类型'")
+	private JzType jzType;
+	
+	/** 支付日期 */
+	@Temporal(TemporalType.TIMESTAMP)
+	@Column(name="pay_date", columnDefinition="datetime COMMENT '记账日期'")
+	private Date payDate;
+	
+	/** 驾驶员记账引用 */
+	@OneToOne(targetEntity = DriverJzRecord.class)
+	@JoinColumn(name="driver_jz_record_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '驾驶员记账引用'")
+	private DriverJzRecord driverJzRecordId;
 	
 	/**  数据来源 */
 	@Enumerated(EnumType.STRING)
@@ -189,21 +203,114 @@ public class StaffReimburse implements Serializable{
 		this.unitNum = unitNum;
 	}
 
+
+	/**  
+	 * 获取 添加人信息  
+	 * @return addUser
+	 */
+	public BaseUser getAddUser() {
+		return addUser;
+	}
+	
+
+	/**  
+	 * 设置 添加人信息  
+	 * @param addUser
+	 */
+	public void setAddUser(BaseUser addUser) {
+		this.addUser = addUser;
+	}
+	
+
 	/**  
 	 * 获取 报销人信息  
-	 * @return reimUserId
+	 * @return reimUser
 	 */
-	public BaseUser getReimUserId() {
-		return reimUserId;
+	public BaseUser getReimUser() {
+		return reimUser;
 	}
+	
 
 	/**  
 	 * 设置 报销人信息  
-	 * @param reimUserId 
+	 * @param reimUser
 	 */
-	public void setReimUserId(BaseUser reimUserId) {
-		this.reimUserId = reimUserId;
+	public void setReimUser(BaseUser reimUser) {
+		this.reimUser = reimUser;
 	}
+	
+
+	/**  
+	 * 获取 车牌号  
+	 * @return plateNum
+	 */
+	public String getPlateNum() {
+		return plateNum;
+	}
+	
+
+	/**  
+	 * 设置 车牌号  
+	 * @param plateNum
+	 */
+	public void setPlateNum(String plateNum) {
+		this.plateNum = plateNum;
+	}
+	
+
+	/**  
+	 * 获取 凭证号码  
+	 * @return voucherNum
+	 */
+	public String getVoucherNum() {
+		return voucherNum;
+	}
+	
+
+	/**  
+	 * 设置 凭证号码  
+	 * @param voucherNum
+	 */
+	public void setVoucherNum(String voucherNum) {
+		this.voucherNum = voucherNum;
+	}
+	
+
+	/**  
+	 * 获取 支付日期  
+	 * @return payDate
+	 */
+	public Date getPayDate() {
+		return payDate;
+	}
+	
+
+	/**  
+	 * 设置 支付日期  
+	 * @param payDate
+	 */
+	public void setPayDate(Date payDate) {
+		this.payDate = payDate;
+	}
+	
+
+	/**  
+	 * 获取 驾驶员记账引用  
+	 * @return driverJzRecordId
+	 */
+	public DriverJzRecord getDriverJzRecordId() {
+		return driverJzRecordId;
+	}
+	
+
+	/**  
+	 * 设置 驾驶员记账引用  
+	 * @param driverJzRecordId
+	 */
+	public void setDriverJzRecordId(DriverJzRecord driverJzRecordId) {
+		this.driverJzRecordId = driverJzRecordId;
+	}
+	
 
 	/**  
 	 * 获取 科目名称  
@@ -292,21 +399,6 @@ public class StaffReimburse implements Serializable{
 		this.jzType = jzType;
 	}
 
-	/**  
-	 * 获取 记账日期  
-	 * @return jzDate
-	 */
-	public Date getJzDate() {
-		return jzDate;
-	}
-
-	/**  
-	 * 设置 记账日期  
-	 * @param jzDate
-	 */
-	public void setJzDate(Date jzDate) {
-		this.jzDate = jzDate;
-	}
 
 	/**  
 	 * 获取 摘要  
@@ -434,22 +526,6 @@ public class StaffReimburse implements Serializable{
 	 */
 	public void setMainOrderReim(MainCarOrder mainOrderReim) {
 		this.mainOrderReim = mainOrderReim;
-	}
-	
-	/**  
-	 * 获取 关联数据  
-	 * @return dat
-	 */
-	public String getDat() {
-		return dat;
-	}
-
-	/**  
-	 * 设置 关联数据  
-	 * @param dat
-	 */
-	public void setDat(String dat) {
-		this.dat = dat;
 	}
 
 	/**  

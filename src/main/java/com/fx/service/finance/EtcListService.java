@@ -28,7 +28,7 @@ public interface EtcListService extends BaseService<EtcList, Long> {
 	 * @param driverUname 驾驶员账号
 	 * @param cardNo 卡号
 	 * @param operMark 操作编号
-	 * @param map
+	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表, count: 数据总条数}
 	 */
 	public Map<String, Object> findEtcList(ReqSrc reqsrc,String page, String rows,String unitNum,String findOrderNum, String sTime, String eTime,
 			String plateNum,String driverUname,String cardNo,String operMark);
@@ -40,6 +40,7 @@ public interface EtcListService extends BaseService<EtcList, Long> {
 	 * @param reqsrc 请求来源
 	 * @param file 文件对象
 	 * @param cardNo 卡号
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
 	public Map<String, Object> importFeeEtc(ReqSrc reqsrc,HttpServletRequest request,MultipartFile file,String cardNo);
 	/**

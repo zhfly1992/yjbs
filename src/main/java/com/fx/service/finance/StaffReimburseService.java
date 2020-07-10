@@ -23,16 +23,19 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @param rows  页大小
 	 * @param unitNum  单位编号
 	 * @param uname    报销人账号
+	 * @param plateNum 车牌号
 	 * @param deptId   业务部门id
 	 * @param remark   摘要
 	 * @param money  金额
 	 * @param isCheck 状态
+	 * @param voucherNo 凭证号
+	 * @param operMark 操作标识
 	 * @param sTime 开始时间
 	 * @param eTime 结束时间
 	 * map{code: 结果状态码, msg: 结果状态说明, data:数据列表 }
 	 */
-	public Map<String, Object> findStaffReimburse(HttpServletRequest request,ReqSrc reqsrc, String page, String rows, String uname,
-			String deptId,String remark,String money,String isCheck,String addMark,String sTime,String eTime);
+	public Map<String, Object> findStaffReimburse(HttpServletRequest request,ReqSrc reqsrc, String page, String rows, String uname,String plateNum,
+			String deptId,String remark,String money,String isCheck,String voucherNo,String operMark,String sTime,String eTime);
 	/**
 	 * @author xx
 	 * @version 2020611
@@ -61,12 +64,11 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @param reqsrc 		请求来源
 	 * @param request 		request
 	 * @param response 		response
-	 * @param uname			报销人账号
-	 * @param staffReimInfo 	收入金额=支出金额=摘要=图片url,多张图片逗号拼接/@收入金额=支出金额=摘要=图片url,多张图片逗号拼接
+	 * @param staffReimInfo 参数格式：报销人账号=车牌号=收入金额=支出金额=摘要=图片url(多张图片逗号拼接)@报销人账号=车牌号=收入金额=支出金额=摘要=图片url(多张图片逗号拼接),eg:0=100=测试=图片url
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> addStaffReimburse(ReqSrc reqsrc, HttpServletRequest request, 
-			HttpServletResponse response,String uname, String staffReimInfo);
+			HttpServletResponse response, String staffReimInfo);
 	
 	/**
 	 * 单位-修改-员工报账记录
@@ -77,6 +79,7 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @param response 		response
 	 * @param updId  		修改记录id
 	 * @param uname			报销人账号
+	 * @param plateNum      车牌号
 	 * @param gathMoney 	收入金额
 	 * @param payMoney 		支出金额
 	 * @param remark 		摘要
@@ -84,7 +87,7 @@ public interface StaffReimburseService extends BaseService<StaffReimburse, Long>
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> modifyStaffReimburse(ReqSrc reqsrc, HttpServletRequest request, 
-			HttpServletResponse response, String updId, String uname, String gathMoney,
+			HttpServletResponse response, String updId, String uname,String plateNum, String gathMoney,
 			String payMoney, String remark,String voucherUrl);
 	
 	/**

@@ -677,7 +677,7 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				crl.setUnitNum(lunitNum);
 				crl.setRepairDriver(lbuser);
 				crl.setPlateNum(plateNum);
-				crl.setRepairName(wxStation);
+//				crl.setRepairName(wxStation);
 				crl.setRepairMoney(_wxMoney);
 				crl.setRepairPayWay(_wxPayWay);
 				crl.setRepairRemark(wxRemark);
@@ -694,9 +694,9 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 				if(crl.getRepairPayWay() != 0) {
 					StaffReimburse sr = new StaffReimburse();
 					sr.setUnitNum(crl.getUnitNum());
-					sr.setReimUserId(lbuser);
+//					sr.setReimUserId(lbuser);
 					sr.setDeptId(driver.getDeptId());
-					sr.setJzDate(crl.getRepDate());
+//					sr.setJzDate(crl.getRepDate());
 					sr.setRemark(crl.getRepairRemark());
 					sr.setPayMoney(crl.getRepairMoney());
 					sr.setIsCheck(0);
@@ -705,7 +705,7 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 					sr.setReqsrc(reqsrc);
 					sr.setOperNote(crl.getOperNote());
 					sr.setAddTime(crl.getAddTime());
-					sr.setDat(crl.getId()+"");// 保存加油记账id
+//					sr.setDat(crl.getId()+"");// 保存加油记账id
 					staffReimburseDao.save(sr);
 					U.log(log, "添加-员工报账记录-完成");
 				}
@@ -892,7 +892,7 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 			}
 			
 			if(fg) {
-				obj.setRepairName(wxStation);
+//				obj.setRepairName(wxStation);
 				obj.setRepairMoney(_wxMoney);
 				obj.setRepairPayWay(_wxPayWay);
 				obj.setRepairRemark(wxRemark);
@@ -928,9 +928,9 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 					if(obj.getRepairPayWay() != 0) {
 						sr = new StaffReimburse();
 						sr.setUnitNum(obj.getUnitNum());
-						sr.setReimUserId(lbuser);
+//						sr.setReimUserId(lbuser);
 						sr.setDeptId(driver.getDeptId());
-						sr.setJzDate(obj.getRepDate());
+//						sr.setJzDate(obj.getRepDate());
 						sr.setRemark(obj.getRepairRemark());
 						sr.setPayMoney(obj.getRepairMoney());
 						sr.setIsCheck(0);
@@ -939,7 +939,7 @@ public class CarRepairListServiceImpl extends BaseServiceImpl<CarRepairList,Long
 						sr.setReqsrc(reqsrc);
 						sr.setOperNote(obj.getOperNote());
 						sr.setAddTime(obj.getAddTime());
-						sr.setDat(obj.getId()+"");// 保存加油记账id
+//						sr.setDat(obj.getId()+"");// 保存加油记账id
 						staffReimburseDao.save(sr);
 						U.log(log, "添加-员工报账记录-完成");
 					}

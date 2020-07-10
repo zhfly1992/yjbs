@@ -36,13 +36,13 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param moneyType      金额类型
 	 * @param cusName   客户名称
 	 * @param serviceName 业务员名称
-	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表, count: 数据总条数,totalGath:累计收入 totalPay:累计支出 balance:余额}
 	 */
 	public Map<String, Object> findBankTradeList(ReqSrc reqsrc, String page, String rows,String unitNum,String bankName,String transName,
 			String remark,String timeType,String sTime,String eTime,String status,String isReim,String findMoney,
 			String openRole,String voucherNum,String operMark,String openSel,String moneyType,String cusName,String serviceName);
 	/**
-	 * 锁定银行账
+	 * 锁定、解锁银行账（已取消）
 	 * @author xx
 	 * @date 20200508
 	 * @param request
@@ -53,7 +53,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 */
 	public Map<String, Object> lockBankTrade(HttpServletRequest request,ReqSrc reqsrc,String lockId,String isLock);
 	/**
-	 * 银行账关联财务记账报销（结账）
+	 * 银行账关联财务记账报销（结账）已取消
 	 * @author xx
 	 * @date 20200508
 	 * @param request
@@ -72,14 +72,13 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param btlId  下账记录id
 	 * @param money 下账金额
 	 * @param companyCusId 客户id
-	 * @param remak 摘要
 	 * @param notice_uname 通报人id
 	 * @param notice_note 通报内容
 	 * @param orderNum 下账订单号
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> downBtlMoney(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,String btlId,
-			String money,String companyCusId,String remark,String notice_uname,String notice_note,String orderNum);
+			String money,String companyCusId,String notice_uname,String notice_note,String orderNum);
 	
 	/**
 	 * @Description：审核下账记录：通过
@@ -111,21 +110,9 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param request
 	 * @param reqsrc 请求来源
 	 * @param transId  互转id
-	 * @param voucherNumber 凭证号
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
-	public Map<String, Object> transBtl(HttpServletRequest request,ReqSrc reqsrc,String transId,String voucherNumber);
-	/**
-	 * 根据类型计算本次添加记录的余额
-	 * @author xx
-	 * @date 20200508
-	 * @param unitNum 车队编号
-	 * @param accountMoney 本次借方
-	 * @param creditMoney 本次贷方
-	 * @param bankName 收付款方式
-	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
-	 */
-	public double bankBalance(String unitNum,double accountMoney,double creditMoney,String bankName);
+	public Map<String, Object> transBtl(HttpServletRequest request,ReqSrc reqsrc,String transId);
 	/**
 	 * 人工添加银行账
 	 * @author xx
@@ -140,7 +127,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param tradeMoney 交易金额
 	 * @param balance 余额
 	 * @param remark 备注
-	 * @param moneyType 金额类型
+	 * @param moneyType 金额类型id
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
 	public Map<String, Object> addBtl(HttpServletRequest request,ReqSrc reqsrc,String myBank,String transName,String transNum,
@@ -152,7 +139,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param request
 	 * @param reqsrc 请求来源
 	 * @param updId  修改id
-	 * @param moneyType 金额类型
+	 * @param moneyType 金额类型id
 	 * @param remark 摘要
 	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
 	 */
@@ -169,7 +156,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 */
 	public Map<String, Object> delBtl(HttpServletRequest request,ReqSrc reqsrc,String delId,String myBankNum);
 	/**
-	 * 开放银行账查询
+	 * 开放银行账查询（已取消）
 	 * @author xx
 	 * @date 20200508
 	 * @param request
@@ -180,7 +167,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 */
 	public Map<String, Object> openSelBtl(HttpServletRequest request,ReqSrc reqsrc,String openBtlId,String openRole);
 	/**
-	 * 撤销银行账
+	 * 撤销银行账（不启用）
 	 * @author xx
 	 * @date 20200508
 	 * @param reqsrc 			请求来源
@@ -207,7 +194,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param response
 	 * @param request
 	 * @param jsonObject 包含主键id
-	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表 }
+	 * @return map{code: 结果状态码, msg: 结果状态码说明, data:查询数据结果}
 	 */
 	public Map<String, Object> findBtlById(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 			JSONObject jsonObject);
@@ -230,7 +217,7 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @param reqsrc
 	 * @param response
 	 * @param request
-	 * @return map{code: 结果状态码, msg: 结果状态说明, transNames:对方户名列表, remarks:摘要列表 }
+	 * @return map{code: 结果状态码, msg: 结果状态码说明, transNames:对方户名列表,格式：对方户名/@对方账号, remarks:摘要列表}
 	 */
 	public Map<String, Object> findTransNamesAndRemarks(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request);
 	
@@ -256,4 +243,18 @@ public interface BankTradeListService extends BaseService<BankTradeList, Long> {
 	 * @return  map{code: 结果状态码, msg: 结果状态说明 }
 	 */
 	public Map<String, Object> btlExport(HttpServletRequest request,HttpServletResponse response,ReqSrc reqsrc,JSONObject jsonObject);
+	
+	/**
+	 * @Description：生成凭证
+	 * @author xx
+	 * @date 20200702
+	 * @param request
+	 * @param reqsrc 请求来源
+	 * @param createInfo	报销人uname=车牌号=银行账记录id=科目id@报销人uname=车牌号=银行账记录id=科目id
+	 * @param faceCourseInfo    报销人uname=车牌号=对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额@报销人uname=车牌号=对方科目id=对方科目摘要=对方科目借方金额=对方科目贷方金额
+	 * @param gainTime 入账时间
+	 * @return map{code[1-成功；0-失败；-1-异常；], msg[提示信息]}
+	 */
+	public Map<String, Object> createReim(ReqSrc reqsrc,HttpServletResponse response,HttpServletRequest request,
+			String createInfo,String faceCourseInfo,String gainTime);
 }

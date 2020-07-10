@@ -350,6 +350,116 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200429
  	 */
+	@ApiOperation(value="获取订单列表", notes="返回map{code: 结果状态码, msg: 结果状态码说明, data: 订单列表, count:总数, statics: 统计}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="page", 
+			dataType="int",
+			value="页码 eg：1"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="row", 
+			dataType="int",
+			value="每页数量 eg:10"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="find", 
+			dataType="String",
+			value="业务员或者订单号"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="orderPayStatus", 
+			dataType="String",
+			value="订单支付状态 "
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="orderSource", 
+			dataType="String",
+			value="订单来源 "
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="orderStatus", 
+			dataType="String",
+			value="订单状态 "
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="startTime", 
+			dataType="String",
+			value="开始时间"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="endTime", 
+			dataType="String",
+			value="结束时间"
+		),
+		@ApiImplicitParam(
+			required=true, 
+			name="compositor", 
+			dataType="String",
+			value="顺序 eg:ASC,DESC"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="timeType", 
+			dataType="String",
+			value="时间类型 eg:1.用车时间,2.下单时间"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="driver", 
+			dataType="String",
+			value="驾驶员"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="seats", 
+			dataType="String",
+			value="座位数"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="dutyMan", 
+			dataType="String",
+			value="用车方负责人"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="suppMan", 
+			dataType="String",
+			value="供车方负责人"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="plateNum", 
+			dataType="String",
+			value="车牌号"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="routeType", 
+			dataType="String",
+			value="行程类型"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="serviceType", 
+			dataType="String",
+			value="订单业务类型"
+		),
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="orderList",method=RequestMethod.POST)
  	public void getCarOrderList(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -362,6 +472,26 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="设置订单外调", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="idList", 
+			dataType="String",
+			value="子订单id数组  eg：[1,2]"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="mainOrderNum", 
+			dataType="String",
+			value="主订单编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="setExternal",method=RequestMethod.POST)
  	public void setOrderExternal(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -374,28 +504,90 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="取消订单外调", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="idList", 
+			dataType="String",
+			value="子订单id数组  eg：[1,2]"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="mainOrderNum", 
+			dataType="String",
+			value="主订单编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="cancelExternal",method=RequestMethod.POST)
  	public void cancelOrderExternal(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
  		map = carOrderService.cancelExternal(ReqSrc.PC_COMPANY, response, request,jsonObject);
  		Message.print(response, map);
  	}
+	
  	/**
  	 *锁定 订单外调API（post）/company/order/lockExternal
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="锁定 订单外调", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="idList", 
+			dataType="String",
+			value="子订单id数组  eg：[1,2]"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="mainOrderNum", 
+			dataType="String",
+			value="主订单编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="lockExternal",method=RequestMethod.POST)
  	public void lockOrderExternal(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
  		map = carOrderService.lockExternal(ReqSrc.PC_COMPANY, response, request,jsonObject,LU.getLRealName(request, redis));
  		Message.print(response, map);
  	}
+	
  	/**
  	 *解锁订单外调API（post）/company/order/unlockExternal
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="解锁订单外调", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="idList", 
+			dataType="String",
+			value="子订单id数组  eg：[1,2]"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="mainOrderNum", 
+			dataType="String",
+			value="主订单编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="unlockExternal",method=RequestMethod.POST)
  	public void unlockOrderExternal(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -408,6 +600,26 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="删除订单API", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="idList", 
+			dataType="String",
+			value="子订单id数组  eg：[1,2]"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="mainOrderNum", 
+			dataType="String",
+			value="主订单编号"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="deleteOrder",method=RequestMethod.POST)
  	public void deleteOrder(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -420,6 +632,20 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="根据id获取子订单", notes="返回map{code: 结果状态码, msg: 结果状态码说明, data: 子订单数据}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="id", 
+			dataType="String",
+			value="子订单id  eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="getOrderById",method=RequestMethod.POST)
  	public void getCarOrderById(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -432,6 +658,20 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200529
  	 */
+	@ApiOperation(value="根据id获取主订单", notes="返回map{code: 结果状态码, msg: 结果状态码说明, data: 主订单数据}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="id", 
+			dataType="String",
+			value="主订单id  eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="getMainCarOrderById",method=RequestMethod.POST)
  	public void getMainCarOrderById(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -445,6 +685,20 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200502
  	 */
+	@ApiOperation(value="取消派车", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="orderId", 
+			dataType="String",
+			value="子订单id  eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="cancelDisCar",method=RequestMethod.POST)
  	public void cancelDisCar(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
@@ -470,17 +724,46 @@ public class CompanyOrderController extends BaseController {
  	 * @author zh
  	 * @date 20200503
  	 */
+	@ApiOperation(value="取消主订单", notes="返回map{code: 结果状态码, msg: 结果状态码说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="mainOrderId", 
+			dataType="String",
+			value="主订单id  eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="cancelMainCarOrder",method=RequestMethod.POST)
  	public void cancelOrder(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();
  		map = mainCarOrderService.cancelMainCarOrder(ReqSrc.PC_COMPANY, response, request, jsonObject);
  		Message.print(response, map);
  	}
+	
 	/**
  	 * 查询主订单下的子订单（post）/company/order/getAllOrderByMainOrderNum
  	 * @author zh
  	 * @date 20200503
  	 */
+	@ApiOperation(value="查询主订单下的子订单", notes="返回map{code: 结果状态码, msg: 结果状态码说明, data: 子订单数据}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="mainOrderNum", 
+			dataType="String",
+			value="主订单编号  eg：xxxxx"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
  	@RequestMapping(value="getAllOrderByMainOrderNum",method=RequestMethod.POST)
  	public void getAllOrderByMainOrderNum(HttpServletRequest request, HttpServletResponse response,@RequestBody JSONObject jsonObject){
  		Map<String, Object> map = new HashMap<String, Object>();

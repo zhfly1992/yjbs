@@ -84,7 +84,7 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 	 * @author :zh
 	 * @version 2020年5月1日
 	 */
-	public Page<CarOrder> getCarOrderForPayment(ReqSrc reqsrc, String page, String rows, OrderPayStatus orderPayStatus,
+	public Page<CarOrder> getCarOrderForPayment(ReqSrc reqsrc, String page, String rows, String orderPayStatus,
 			String startTime, String endTime, CompositorType compositorType, String timeType, String driver,
 			String dutyService, String suppCar, String plateNum, String orderNum, String routeDetail, String serviceMan,
 			String unitNum, String customer) {
@@ -131,10 +131,13 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
 					}				
 				}
-
-				if (orderPayStatus != null) {
-					// 添加付款状态
-					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
+				
+				if (StringUtils.isNotBlank(orderPayStatus)) {
+					if("0".equals(orderPayStatus)) {//应付款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.FULL_PAID, "payStatus"));//非全款已付
+					}else {//已付款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.UNPAID, "payStatus"));//非未收款
+					}
 				}
 
 				// 通过驾驶员uname搜索
@@ -359,7 +362,7 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 	 * @author :zh
 	 * @version 2020年6月8日
 	 */
-	public Map<String, Object> countCarOrderForPayment(ReqSrc reqsrc, String page, String rows, OrderPayStatus orderPayStatus,
+	public Map<String, Object> countCarOrderForPayment(ReqSrc reqsrc, String page, String rows, String orderPayStatus,
 			String startTime, String endTime, CompositorType compositorType, String timeType, String driver,
 			String dutyService, String suppCar, String plateNum, String orderNum, String routeDetail, String serviceMan,
 			String unitNum, String customer) {
@@ -407,10 +410,13 @@ public class CarOrderDao extends ZBaseDaoImpl<CarOrder, Long> {
 						filts.add(new Filtration(MatchType.LE, DateUtils.strToDate(endTime), "addTime"));
 					}				
 				}
-
-				if (orderPayStatus != null) {
-					// 添加付款状态
-					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
+				
+				if (StringUtils.isNotBlank(orderPayStatus)) {
+					if("0".equals(orderPayStatus)) {//应付款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.FULL_PAID, "payStatus"));//非全款已付
+					}else {//已付款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.UNPAID, "payStatus"));//非未收款
+					}
 				}
 
 				// 通过驾驶员uname搜索

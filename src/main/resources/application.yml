@@ -47,11 +47,11 @@ spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
-#    password: 123456
-#    url: jdbc:mysql://127.0.0.1:3306/yjbs?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
+    password: 123456
+    url: jdbc:mysql://127.0.0.1:3306/yjbs?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8
 
-    password: fx123456.        #Fx778899asdZ
-    url: jdbc:mysql://121.37.161.108:3306/yjbs_test?sslmode=require&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
+#    password: fx123456.        #Fx778899asdZ
+#    url: jdbc:mysql://121.37.161.108:3306/yjbs_test?sslmode=require&serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8
     
     druid:
       initialSize: 1 #初始化时建立物理连接的个数。初始化发生在显示调用init方法，或者第一次getConnection时

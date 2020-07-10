@@ -14,7 +14,8 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
-import com.fx.commons.utils.enums.UState;
+import com.fx.commons.utils.enums.MenuType;
+import com.fx.commons.utils.enums.ReqSrc;
 
 /**
  * 资源表
@@ -29,6 +30,11 @@ public class Menu implements Serializable {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 	
+	/** 所属系统 */
+	@Enumerated(EnumType.STRING)
+	@Column(name="systype", columnDefinition="varchar(20) COMMENT '所属系统'")
+	private ReqSrc systype;
+	
 	/** 资源名称 */
 	@Column(name="name", nullable=false, columnDefinition="varchar(30) COMMENT '资源名称'")
 	private String name;
@@ -41,26 +47,26 @@ public class Menu implements Serializable {
 	@Column(name="url", columnDefinition="varchar(200) COMMENT '资源URL'")
 	private String url;
 	
-	/** 权限标志 */
+	/** 权限标识 */
 	@Column(name="perms", columnDefinition="text COMMENT '权限标志'")
 	private String perms;
 	
-	/** 菜单类型：如button按钮 menu菜单 */
-	@Column(name="mtype", columnDefinition="varchar(20) COMMENT '菜单类型：如button按钮 menu菜单'")
-	private String mtype;
+	/** 菜单类型 */
+	@Enumerated(EnumType.STRING)
+	@Column(name="mtype", nullable=false, columnDefinition="varchar(20) COMMENT '状态'")
+	private MenuType mtype;
 	
 	/** 菜单图标 */
 	@Column(name="micon", columnDefinition="varchar(30) COMMENT '菜单图标'")
 	private String micon;
 	
-	/** 排序 */
-	@Column(name="msort", columnDefinition="varchar(20) COMMENT '排序'")
-	private String msort;
+	/** 菜单资源编号 */
+	@Column(name="num", unique=true, nullable=false, columnDefinition="varchar(30) COMMENT '菜单资源编号'")
+	private String num;
 	
-	/** 状态 */
-	@Enumerated(EnumType.STRING)
-	@Column(name="status", nullable=false, columnDefinition="varchar(20) COMMENT '状态'")
-	private UState status;
+	/** 开关状态 1-开启；0-关闭； */
+	@Column(name="ocState", nullable=false, columnDefinition="int default 1 COMMENT '开关状态 1-开启；0-关闭；'")
+	private int ocState;
 	
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -84,7 +90,20 @@ public class Menu implements Serializable {
 	public void setId(long id) {
 		this.id = id;
 	}
-	
+
+	/**
+	 * @return the 所属系统
+	 */
+	public ReqSrc getSystype() {
+		return systype;
+	}
+
+	/**
+	 * @param 所属系统 the systype to set
+	 */
+	public void setSystype(ReqSrc systype) {
+		this.systype = systype;
+	}
 
 	/**  
 	 * 获取 操作用户  
@@ -156,25 +175,20 @@ public class Menu implements Serializable {
 	public void setPerms(String perms) {
 		this.perms = perms;
 	}
-	
 
-	/**  
-	 * 获取 菜单类型：如button按钮menu菜单  
-	 * @return mtype
+	/**
+	 * @return the 菜单类型
 	 */
-	public String getMtype() {
+	public MenuType getMtype() {
 		return mtype;
 	}
-	
 
-	/**  
-	 * 设置 菜单类型：如button按钮menu菜单  
-	 * @param mtype
+	/**
+	 * @param 菜单类型 the mtype to set
 	 */
-	public void setMtype(String mtype) {
+	public void setMtype(MenuType mtype) {
 		this.mtype = mtype;
 	}
-	
 
 	/**  
 	 * 获取 菜单图标  
@@ -193,42 +207,36 @@ public class Menu implements Serializable {
 		this.micon = micon;
 	}
 	
-
-	/**  
-	 * 获取 排序  
-	 * @return msort
+	/**
+	 * 获取 资源编号
+	 * @return num
 	 */
-	public String getMsort() {
-		return msort;
+	public String getNum() {
+		return num;
 	}
-	
-
-	/**  
-	 * 设置 排序  
-	 * @param msort
+	/**
+	 * 设置 资源编号
+	 * @param num
 	 */
-	public void setMsort(String msort) {
-		this.msort = msort;
+	public void setNum(String num) {
+		this.num = num;
 	}
-	
 
-	/**  
-	 * 获取 状态  
-	 * @return status
-	 */
-	public UState getStatus() {
-		return status;
-	}
-	
 
-	/**  
-	 * 设置 状态  
-	 * @param status
+	/**
+	 * @return the 开关状态1-开启；0-关闭；
 	 */
-	public void setStatus(UState status) {
-		this.status = status;
+	public int getOcState() {
+		return ocState;
 	}
-	
+
+
+	/**
+	 * @param 开关状态1-开启；0-关闭； the ocState to set
+	 */
+	public void setOcState(int ocState) {
+		this.ocState = ocState;
+	}
 
 	/**  
 	 * 获取 添加时间  

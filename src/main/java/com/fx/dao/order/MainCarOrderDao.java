@@ -88,7 +88,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 	 * @version 2020年5月21日
 	 */
 	public Map<String, Object> findMainCarOrderList(ReqSrc reqsrc, String page, String rows, String find,
-			OrderPayStatus orderPayStatus, OrderSource orderSource, MainOrderStatus orderStatus, String startTime,
+			String orderPayStatus, OrderSource orderSource, MainOrderStatus orderStatus, String startTime,
 			String endTime, CompositorType compositorType, String timeType, String driver, Integer seat, String dutyMan,
 			String suppMan, String plateNum, RouteType routeType, ServiceType serviceType, String companyNum,String isExternal) {
 
@@ -146,8 +146,12 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 					filts.add(new Filtration(MatchType.NE, MainOrderStatus.CANCELED, "mainOrderBase.status"));
 					filts.add(new Filtration(MatchType.NE, MainOrderStatus.FINISHED_DIS_CAR, "mainOrderBase.status"));
 				}
-				if (orderPayStatus != null) {
-					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
+				if (StringUtils.isNotBlank(orderPayStatus)) {
+					if("0".equals(orderPayStatus)) {//应收款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.FULL_PAID, "payStatus"));//非全款已付
+					}else {//已收款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.UNPAID, "payStatus"));//非未收款
+					}
 				}
 				if (orderSource != null) {
 					filts.add(new Filtration(MatchType.EQ, orderSource, "mainOrderBase.orderSource"));
@@ -323,7 +327,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 
 
 	public Page<MainCarOrder> getMainCarOrderForCollection(ReqSrc reqsrc, String page, String rows,
-			OrderPayStatus orderPayStatus, String startTime, String endTime, CompositorType compositorType,
+			String orderPayStatus, String startTime, String endTime, CompositorType compositorType,
 			String timeType, String driver, String dutyService, String plateNum, String orderNum, String routeDetail,
 			String serviceMan, String unitNum, String customer, String businessType) {
 
@@ -368,9 +372,12 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 					}	
 				}
 
-				if (orderPayStatus != null) {
-					// 添加付款状态
-					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
+				if (StringUtils.isNotBlank(orderPayStatus)) {
+					if("0".equals(orderPayStatus)) {//应收款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.FULL_PAID, "payStatus"));//非全款已付
+					}else {//已收款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.UNPAID, "payStatus"));//非未收款
+					}
 				}
 
 				// 通过驾驶员uname搜索
@@ -449,7 +456,7 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 
 
 	public Map<String, Object> countMainCarOrderForCollection(ReqSrc reqsrc, String page, String rows,
-			OrderPayStatus orderPayStatus, String startTime, String endTime, CompositorType compositorType,
+			String orderPayStatus, String startTime, String endTime, CompositorType compositorType,
 			String timeType, String driver, String dutyService, String plateNum, String orderNum, String routeDetail,
 			String serviceMan, String unitNum, String customer, String businessType) {
 
@@ -494,9 +501,12 @@ public class MainCarOrderDao extends ZBaseDaoImpl<MainCarOrder, Long> {
 					}	
 				}
 
-				if (orderPayStatus != null) {
-					// 添加付款状态
-					filts.add(new Filtration(MatchType.EQ, orderPayStatus, "payStatus"));
+				if (StringUtils.isNotBlank(orderPayStatus)) {
+					if("0".equals(orderPayStatus)) {//应收款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.FULL_PAID, "payStatus"));//非全款已付
+					}else {//已收款
+						filts.add(new Filtration(MatchType.NE, OrderPayStatus.UNPAID, "payStatus"));//非未收款
+					}
 				}
 
 				// 通过驾驶员uname搜索

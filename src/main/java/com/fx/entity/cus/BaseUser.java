@@ -17,7 +17,6 @@ import javax.persistence.TemporalType;
 import com.fasterxml.jackson.annotation.JsonFilter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fx.commons.utils.enums.RegWay;
-import com.fx.commons.utils.enums.Sex;
 import com.fx.commons.utils.enums.UState;
 
 /**
@@ -65,18 +64,18 @@ public class BaseUser implements Serializable {
 	@Column(name="ustate", nullable=false, columnDefinition="varchar(20) COMMENT '用户状态'")
 	private UState ustate;
 	
-	/** 性别 */
-	@Enumerated(EnumType.STRING)
-	@Column(name="sex", columnDefinition="varchar(20) COMMENT '性别'")
-	private Sex sex;
-	
-	/** 昵称 */
-	@Column(name="nick_name", columnDefinition="varchar(30) COMMENT '昵称'")
-	private String nickName;
-	
-	/** 用户头像url */
-	@Column(name="head_img", columnDefinition="varchar(200) COMMENT '用户头像url'")
-	private String headImg;
+//	/** 性别 */
+//	@Enumerated(EnumType.STRING)
+//	@Column(name="sex", columnDefinition="varchar(20) COMMENT '性别'")
+//	private Sex sex;
+//	
+//	/** 昵称 */
+//	@Column(name="nick_name", columnDefinition="varchar(30) COMMENT '昵称'")
+//	private String nickName;
+//	
+//	/** 用户头像url */
+//	@Column(name="head_img", columnDefinition="varchar(200) COMMENT '用户头像url'")
+//	private String headImg;
 
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -207,53 +206,53 @@ public class BaseUser implements Serializable {
 		this.ustate = ustate;
 	}
 
-	/**  
-	 * 获取 性别  
-	 * @return sex
-	 */
-	public Sex getSex() {
-		return sex;
-	}
-
-	/**  
-	 * 设置 性别  
-	 * @param sex
-	 */
-	public void setSex(Sex sex) {
-		this.sex = sex;
-	}
-
-	/**  
-	 * 获取 昵称  
-	 * @return nickName
-	 */
-	public String getNickName() {
-		return nickName;
-	}
-
-	/**  
-	 * 设置 昵称  
-	 * @param nickName
-	 */
-	public void setNickName(String nickName) {
-		this.nickName = nickName;
-	}
-
-	/**  
-	 * 获取 用户头像url  
-	 * @return headImg
-	 */
-	public String getHeadImg() {
-		return headImg;
-	}
-
-	/**  
-	 * 设置 用户头像url  
-	 * @param headImg
-	 */
-	public void setHeadImg(String headImg) {
-		this.headImg = headImg;
-	}
+//	/**  
+//	 * 获取 性别  
+//	 * @return sex
+//	 */
+//	public Sex getSex() {
+//		return sex;
+//	}
+//
+//	/**  
+//	 * 设置 性别  
+//	 * @param sex
+//	 */
+//	public void setSex(Sex sex) {
+//		this.sex = sex;
+//	}
+//
+//	/**  
+//	 * 获取 昵称  
+//	 * @return nickName
+//	 */
+//	public String getNickName() {
+//		return nickName;
+//	}
+//
+//	/**  
+//	 * 设置 昵称  
+//	 * @param nickName
+//	 */
+//	public void setNickName(String nickName) {
+//		this.nickName = nickName;
+//	}
+//
+//	/**  
+//	 * 获取 用户头像url  
+//	 * @return headImg
+//	 */
+//	public String getHeadImg() {
+//		return headImg;
+//	}
+//
+//	/**  
+//	 * 设置 用户头像url  
+//	 * @param headImg
+//	 */
+//	public void setHeadImg(String headImg) {
+//		this.headImg = headImg;
+//	}
 
 	/**  
 	 * 获取 盐值  

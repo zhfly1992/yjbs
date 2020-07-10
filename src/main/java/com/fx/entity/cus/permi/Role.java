@@ -46,25 +46,6 @@ public class Role implements Serializable {
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="atime", nullable=false, columnDefinition="datetime COMMENT '添加时间'")
 	private Date atime;
-	
-	/** 部门id */
-	@Column(name="dept_id", columnDefinition="bigint COMMENT '部门id'")
-	private long deptId;
-	
-	/**
-	 * @return the deptId
-	 */
-	public long getDeptId() {
-		return deptId;
-	}
-
-
-	/**
-	 * @param deptId the deptId to set
-	 */
-	public void setDeptId(long deptId) {
-		this.deptId = deptId;
-	}
 
 
 	/**  

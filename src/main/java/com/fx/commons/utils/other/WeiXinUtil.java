@@ -157,8 +157,6 @@ public class WeiXinUtil {
    }
    /**
     * 根据access_token和oppenid拉取用户信息
-    * @author qfc
-    * 2018-4-24
     * @param access_token 
     * @param openid
     */

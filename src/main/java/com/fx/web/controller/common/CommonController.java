@@ -17,11 +17,13 @@ import com.fx.commons.annotation.Log;
 import com.fx.commons.utils.clazz.Message;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.other.towcode.EncoderHandler;
+import com.fx.commons.utils.tools.U;
 import com.fx.service.CommonService;
 import com.fx.service.back.CarBrandService;
 import com.fx.service.back.CityListService;
 import com.fx.service.back.CountyListService;
 import com.fx.service.back.scenic_spots_dat.ScenicSpotsPointService;
+import com.fx.service.cus.SmsRecordService;
 import com.fx.web.controller.BaseController;
 
 import io.swagger.annotations.Api;
@@ -52,6 +54,9 @@ public class CommonController extends BaseController {
 	/** 城市区/县-服务 */
 	@Autowired
 	private CountyListService countySer;
+	/** 短信记录-服务 */
+	@Autowired
+	private SmsRecordService smsRecordSer;
 	
 	
 	/**
@@ -69,6 +74,33 @@ public class CommonController extends BaseController {
     public void unauthorized(HttpServletResponse response) {
     	Message.print(response, new Message(400, "用户无权限"));
     }
+  
+    @Log("获取-手机短信-登录验证码")
+	@ApiOperation(value="获取-手机短信-登录验证码")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="lphone", 
+			paramType="query", 
+			dataType="String", 
+			value="手机号码"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@RequestMapping(value="getPhoneCode", method=RequestMethod.POST)
+	public void getPhoneCode(HttpServletRequest request, HttpServletResponse response, @RequestBody JSONObject json){
+    	Map<String, Object> map = new HashMap<String, Object>();
+		
+		String lphone = U.P(json, "lphone");
+		
+		map = smsRecordSer.sendSmsCode(request, response, lphone);
+		
+		Message.print(response, map);
+	}
     
     /**
 	* 生成二维码

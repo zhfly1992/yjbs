@@ -35,7 +35,7 @@ public interface CompanyGroupService extends BaseService<CompanyGroup, Long> {
 	 * @param response
 	 * @param request
 	 * @param jsonObject 包含主键id
-	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表, count: 数据总条数}
+	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表}
 	 */
 	public Map<String, Object> findGroupById(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 			JSONObject jsonObject);
@@ -71,7 +71,7 @@ public interface CompanyGroupService extends BaseService<CompanyGroup, Long> {
 	 * @param response
 	 * @param request
 	 * @param unitNum 单位编号
-	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表, count: 数据总条数}
+	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表}
 	 */
 	public Map<String, Object> getGroupList(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,String unitNum);
 	/**
@@ -82,7 +82,7 @@ public interface CompanyGroupService extends BaseService<CompanyGroup, Long> {
 	 * @param response
 	 * @param request
 	 * @param groupName 小组名称
-	 * @return map{code: 结果状态码, msg: 结果状态说明, data: 数据列表}
+	 * @return map{code: 结果状态码, msg: 结果状态说明}
 	 */
 	public Map<String, Object> findGroupByName(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 			String groupName,String groupId);

@@ -13,31 +13,20 @@ localhost:8080/company/vehicle/vehicleAdd
     "powerSource": "DIESEL",
     "mileage": 100,
     "fuel": 10,
-    "dockedAddress": "aaaa",
-    "simpleDockedAddress": "bbb",
-    "dockedLatitude": 123.123,
-    "dockedLongitude": 123.123,
+	"dockedAddress": "北京市西城区北京动物园",
+    "simpleDockedAddress": "",
+    "dockedLatitude": 39.947735083865815,
+    "dockedLongitude": 116.34337596398342,
     "travelLicensePhotoURL": "asdasdasd",
     "drivingType": "A1",
     "unitNum": "asd",
     "belongComapnySimName": "公司简称",
     "belongCompanyName": "公司名称",
-    "baseUserId": {
-        "id": 1,
-        "uname": "U1587434412929",
-        "phone": "16341312312",
-        "realName": "奥术大师",
-        "regWay": "PC_COMPANY",
-        "ustate": "NORMAL",
-        "nickName": null,
-        "headImg": null,
-        "atime": "2020-04-21 02:00:13"
-    },
     "statusTimeslot":"2020-04-26 12:00-2020-04-26 14:00"
 	"runningArea":1，
     "fuelPrice":50.5
 }
-baseUserId 为驾驶员，若不添加驾驶员则为null
+
 
 修改车辆
 localhost:8080/company/vehicle/vehicleUpdate
@@ -57,28 +46,17 @@ localhost:8080/company/vehicle/vehicleUpdate
     "powerSource": "DIESEL",
     "mileage": 100,
     "fuel": 10,
-    "dockedAddress": "aaaa",
-    "simpleDockedAddress": "bbb",
-    "dockedLatitude": 123.123,
-    "dockedLongitude": 123.123,
     "travelLicensePhotoURL": "asdasdasd",
     "drivingType": "A1",
-    "baseUserId": {
-        "id": 1,
-        "uname": "U1587434412929",
-        "phone": "16341312312",
-        "realName": "奥术大师",
-        "regWay": "PC_COMPANY",
-        "ustate": "NORMAL",
-        "nickName": null,
-        "headImg": null,
-        "atime": "2020-04-21 02:00:13"
-    },
     "belongCompanyName": "公司名称",
     "belongComapnySimName": "公司简称",
     "unitNum": "asd",
 	"runningArea":1,
-     "fuelPrice":50.5
+    "fuelPrice":50.5，
+	"dockedAddress": "北京市西城区北京动物园",
+    "simpleDockedAddress": "",
+    "dockedLatitude": 39.947735083865815,
+    "dockedLongitude": 116.34337596398342,
 }
 baseUserId 内的内容不可修改
 
@@ -168,10 +146,6 @@ companyId  关联公司id
 powerSource  动力来源  目前只支持传"DIESEL"
 mileage  续航里程
 fuel    正常油耗
-dockedAddress   停靠地址全称
-simpleDockedAddress  停靠地址简称
-dockedLatitude   停靠地址纬度
-dockedLongitude  停靠地址经度
 travelLicensePhotoURL   eg：Uxxxx
 drivingType   驾照需求 eg：A1
 travelLicensePhotoURL 行驶证照

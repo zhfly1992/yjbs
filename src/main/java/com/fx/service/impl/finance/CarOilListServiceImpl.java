@@ -792,18 +792,18 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 				if(col.getOilWay().equals(OilWay.YGC_JY) || col.getOilWay().equals(OilWay.XJ_JY)){
 					StaffReimburse sr = new StaffReimburse();
 					sr.setUnitNum(col.getUnitNum());
-					sr.setReimUserId(lbuser);
+//					sr.setReimUserId(lbuser);
 					sr.setDeptId(driver.getDeptId());
 					sr.setRemark(col.getOilRemark());
 					sr.setJzType(JzType.JYJZ);
-					sr.setJzDate(col.getOilDate());
+//					sr.setJzDate(col.getOilDate());
 					sr.setPayMoney(col.getOilMoney());
 					sr.setIsCheck(0);
 					sr.setReimVoucherUrl(col.getOilVoucherUrl());
 					sr.setReqsrc(reqsrc);
 					sr.setOperNote(col.getOperNote());
 					sr.setAddTime(col.getAddTime());
-					sr.setDat(col.getId()+"");// 保存加油记账id
+//					sr.setDat(col.getId()+"");// 保存加油记账id
 					staffReimburseDao.save(sr);
 					U.log(log, "添加-员工报账记录-完成");
 				}
@@ -1106,10 +1106,10 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 					if(col.getOilWay().equals(OilWay.YGC_JY) || col.getOilWay().equals(OilWay.XJ_JY)){
 						sr = new StaffReimburse();
 						sr.setUnitNum(col.getUnitNum());
-						sr.setReimUserId(lbuser);
+//						sr.setReimUserId(lbuser);
 						sr.setDeptId(driver.getDeptId());
 						sr.setRemark(col.getOilRemark());
-						sr.setJzDate(col.getOilDate());
+//						sr.setJzDate(col.getOilDate());
 						sr.setPayMoney(col.getOilMoney());
 						sr.setIsCheck(0);
 						sr.setJzType(JzType.JYJZ);
@@ -1117,7 +1117,7 @@ public class CarOilListServiceImpl extends BaseServiceImpl<CarOilList, Long> imp
 						sr.setReqsrc(reqsrc);
 						sr.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 						sr.setAddTime(col.getAddTime());
-						sr.setDat(col.getId()+"");// 保存加油记账id
+//						sr.setDat(col.getId()+"");// 保存加油记账id
 						staffReimburseDao.save(sr);
 						U.log(log, "重新添加-员工报账记录-完成");
 					}

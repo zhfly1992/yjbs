@@ -78,8 +78,7 @@ public class ShiroConfig {
         /**swagger拦截配置--end***/
         
         /**页面拦截配置--begin*/
-        filterChainDefinitionMap.put("/page/*/login", "anon");
-        filterChainDefinitionMap.put("/page/*/register", "anon");
+        filterChainDefinitionMap.put("/page/index", "anon");
         filterChainDefinitionMap.put("/page/notfound", "anon");
         filterChainDefinitionMap.put("/page/error", "anon");
         /**页面拦截配置--end***/
@@ -96,10 +95,10 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/common/getPlateNumShort", "anon");
         
         // 配置不会被拦截的链接 顺序判断，因为前端模板采用了thymeleaf，这里不能直接使用 ("/static/**", "anon")来配置匿名访问，必须配置到每个静态目录
-        filterChainDefinitionMap.put("/back/**", "anon");
-        filterChainDefinitionMap.put("/customer/**", "anon");
-        filterChainDefinitionMap.put("/company/**", "anon");
-        filterChainDefinitionMap.put("/common/**", "anon");
+//        filterChainDefinitionMap.put("/back/**", "anon");
+//        filterChainDefinitionMap.put("/customer/**", "anon");
+//        filterChainDefinitionMap.put("/company/**", "anon");
+//        filterChainDefinitionMap.put("/common/**", "anon");
         
         // 微信授权文件
         filterChainDefinitionMap.put("/MP_verify_0K8o1Dm2b3zprV1Y.txt", "anon");
@@ -113,15 +112,17 @@ public class ShiroConfig {
         filterChainDefinitionMap.put("/mb/wxAuthCallBack", "anon");
         // 提交-微信驾驶员-登录
         filterChainDefinitionMap.put("/mb/driver/passLogin", "anon");
+        // 提交-微信驾驶员-登录
+        filterChainDefinitionMap.put("/mb/driver/smsLogin", "anon");
         
         /**********移动端-配置--end************/
         
         
         
         // 提交-后台登录
-        filterChainDefinitionMap.put("/back/cus/subLogin", "authc");
+        filterChainDefinitionMap.put("/back/cus/passLogin", "anon");
         // 提交-个人/单位登录
-        filterChainDefinitionMap.put("/company/cus/subLogin", "authc");
+        filterChainDefinitionMap.put("/company/cus/subLogin", "anon");
         // 提交-个人/单位注册
         filterChainDefinitionMap.put("/company/cus/subRegister", "authc");
         // 所有url都必须认证通过才可以访问

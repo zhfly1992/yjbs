@@ -24,8 +24,10 @@ import com.fx.commons.utils.tools.LU;
 import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.dao.finance.BankListDao;
+import com.fx.dao.finance.FeeCourseDao;
 import com.fx.entity.finance.BankList;
 import com.fx.entity.finance.BankTradeList;
+import com.fx.entity.finance.FeeCourse;
 import com.fx.service.finance.BankListService;
 import com.fx.service.finance.BankTradeListService;
 import com.fx.web.util.RedisUtil;
@@ -43,6 +45,9 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 	/*******银行账服务*******/
 	@Autowired
     private BankTradeListService btlSer;
+	/**科目服务**/
+	@Autowired
+	private FeeCourseDao fcDao;
 	
 	@Override
 	public ZBaseDaoImpl<BankList, Long> getDao() {
@@ -51,7 +56,7 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 	@Override
 	public Map<String, Object> findBankList(ReqSrc reqsrc, String page, String rows,String unitNum, String find,
 			String sTime, String eTime,String isOpen) {
-		String logtxt = U.log(log, "获取-用户-分页列表", reqsrc);
+		String logtxt = U.log(log, "获取-银行-分页列表", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -84,7 +89,7 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 	}
 	@Override
 	public Map<String, Object> adupBank(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			String updId, String bankName, String cardNo, String cardName) {
+			String updId, String bankName, String cardNo, String cardName,String courseId) {
 		String logtxt = U.log(log, (StringUtils.isNotBlank(updId))?"修改":"添加"+"-银行", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -92,17 +97,26 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 		
 		try {
 			if(ReqSrc.PC_COMPANY == reqsrc){
-				if(StringUtils.isBlank(updId)) {//添加
-					String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
-					BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
-					if (isExit != null) { // 已设置
-						fg = U.setPutFalse(map, "该银行信息已存在，请修改");
+				FeeCourse fc=null;
+				if(StringUtils.isNotBlank(courseId)) {
+					fc=fcDao.findByField("id", Long.valueOf(courseId));
+					if(fc==null) {
+						fg = U.setPutFalse(map, "关联科目不存在，请检查后重试");
 					}
-				}else {//修改
-					String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
-					BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
-					if (isExit != null && isExit.getId()!=Long.valueOf(updId)) { // 已设置
-						fg = U.setPutFalse(map, "该银行信息已存在，请修改");
+				}
+				if(fg) {
+					if(StringUtils.isBlank(updId)) {//添加
+						String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
+						BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
+						if (isExit != null) { // 已设置
+							fg = U.setPutFalse(map, "该银行信息已存在，请修改");
+						}
+					}else {//修改
+						String hql="from BankList where bankName = ?0 and cardNo = ?1 and unitNum = ?2";
+						BankList isExit = blDao.findObj(hql,bankName,cardNo, LU.getLUnitNum(request, redis));
+						if (isExit != null && isExit.getId()!=Long.valueOf(updId)) { // 已设置
+							fg = U.setPutFalse(map, "该银行信息已存在，请修改");
+						}
 					}
 				}
 				BankList bank=null;
@@ -128,6 +142,7 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 					bank.setBankName(bankName);
 					bank.setCardNo(cardNo);
 					bank.setCardName(cardName);
+					if(fc!=null) bank.setFeeCourseId(fc);
 					if(StringUtils.isNotBlank(updId)){
 						bank.setOperNote(bank.getOperNote() +Util.getOperInfo(LU.getLRealName(request, redis), "修改"));
 					}else {
@@ -281,6 +296,35 @@ public class BankListServiceImpl extends BaseServiceImpl<BankList,Long> implemen
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();
 		}
+		return map;
+	}
+	@Override
+	public Map<String, Object> isAllowModify(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String id) {
+		String logtxt = U.log(log, "获取-单位-银行是否能修改", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			BankList bank=blDao.findByField("id",Long.valueOf(id));
+			if(bank==null) {
+				fg = U.setPutFalse(map, "[银行数据]不存在");
+			}else {
+				String hql="from BankTradeList where myBankNum = ?0 and unitNum = ?1 order by id asc";
+				BankTradeList btl=btlSer.findObj(hql, bank.getCardNo(),LU.getLUnitNum(request, redis),"LIMIT 1");
+				if(btl!=null){
+					fg = U.setPutFalse(map, "该银行已有交易记录存在，不能修改");
+				}
+			}
+			if(fg) {
+				U.setPut(map, 1, "可修改");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
 		return map;
 	}
 	

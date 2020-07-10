@@ -21,7 +21,7 @@ import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.tools.U;
-import com.fx.dao.cus.permi.TbRoleDao;
+import com.fx.dao.cus.permi.RoleDao;
 import com.fx.entity.cus.permi.Role;
 import com.fx.service.cus.permi.RoleService;
 
@@ -33,13 +33,13 @@ public class RoleServiceImpl extends BaseServiceImpl<Role, Long> implements Role
 
 	/** 用户角色-数据源 */
 	@Autowired
-	private TbRoleDao	tbRoleDao;
+	private RoleDao	roleDao;
 
 
 
 	@Override
 	public ZBaseDaoImpl<Role, Long> getDao() {
-		return tbRoleDao;
+		return roleDao;
 	}
 
 
@@ -68,7 +68,7 @@ public class RoleServiceImpl extends BaseServiceImpl<Role, Long> implements Role
 						+ "LEFT JOIN TbUser u ON (u.id = ur.userId) " + "LEFT JOIN tbRoleMenu rm ON (r.id = rm.roleId) "
 						+ "LEFT JOIN TbMenu m ON (m.id = rm.menuId) " + "WHERE u.uname = ? " + "ORDER BY id asc";
 
-				list = tbRoleDao.findhqlList(hql, uname);
+				list = roleDao.findhqlList(hql, uname);
 
 				U.log(log, "获取成功");
 			}
@@ -82,6 +82,7 @@ public class RoleServiceImpl extends BaseServiceImpl<Role, Long> implements Role
 
 
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Map<String, Object> getRoleByDeptId(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
 			String deptId) {
@@ -92,7 +93,7 @@ public class RoleServiceImpl extends BaseServiceImpl<Role, Long> implements Role
 				U.logFalse(log, "后台-角色-根据部门获取角色-失败-部门id为空");
 				U.setPutFalse(map, 0, "部门id为空");
 			} else {
-				Session session = tbRoleDao.openSession();
+				Session session = roleDao.openSession();
 				Query createQuery = session.createQuery("from Role where deptId = " + Long.parseLong(deptId));
 				List<Role> list = createQuery.list();
 				List<Role> result = new ArrayList<>();

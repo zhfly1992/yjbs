@@ -97,8 +97,8 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	
 	
 	@Override
-	public Map<String, Object> findStaffReimburse(HttpServletRequest request,ReqSrc reqsrc, String page, String rows, String uname,
-			String deptId,String remark,String money,String isCheck,String addMark,String sTime,String eTime) {
+	public Map<String, Object> findStaffReimburse(HttpServletRequest request,ReqSrc reqsrc, String page, String rows, String uname,String plateNum,
+			String deptId,String remark,String money,String isCheck,String voucherNo,String operMark,String sTime,String eTime) {
 		String logtxt = U.log(log, "获取-员工报账-分页列表", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -110,23 +110,8 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			/*****参数--验证--end******/
 			if(fg){
 				Page<StaffReimburse> pd =srDao.findStaffReimburse(reqsrc, page, rows, LU.getLUnitNum(request, redis), 
-						uname, deptId, remark, money, isCheck, addMark, sTime, eTime);
-				U.setPageData(map, pd);
-				for (StaffReimburse sr :pd.getResult()) {
-					if(sr.getCarOrderReim()!=null) {
-						Hibernate.initialize(sr.getCarOrderReim().getRouteMps());
-						Hibernate.initialize(sr.getCarOrderReim().getTrades());
-					}
-					if(sr.getMainOrderReim()!=null)Hibernate.initialize(sr.getMainOrderReim().getMainCars());
-				}
-				// 字段过滤
-				Map<String, Object> fmap = new HashMap<String, Object>();
-				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(CarOrder.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(MainCarOrder.class), new String[]{});
-				map.put(QC.FIT_FIELDS, fmap);
-				/*double totalGath=0;//总收入
+						uname,plateNum, deptId, remark, money, isCheck, voucherNo,operMark, sTime, eTime);
+				double totalGath=0;//总收入
 				double totalPay=0;//总支出
 				double singleFee=0;//打单费
 				double washingFee=0;//洗车费
@@ -136,13 +121,32 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				double otherFee=0;//其他费
 				double waterFee=0;//买水费
 				double stayFee=0;//住宿费
+				for (StaffReimburse sr :pd.getResult()) {
+					if(sr.getCarOrderReim()!=null) {
+						Hibernate.initialize(sr.getCarOrderReim().getRouteMps());
+						Hibernate.initialize(sr.getCarOrderReim().getTrades());
+					}
+					if(sr.getMainOrderReim()!=null)Hibernate.initialize(sr.getMainOrderReim().getMainCars());
+					if(sr.getOrderTrade()!=null) {
+						singleFee+=sr.getOrderTrade().getSingleFee();
+						washingFee+=sr.getOrderTrade().getWashingFee();
+						parkingFee+=sr.getOrderTrade().getParkingFee();
+						roadFee+=sr.getOrderTrade().getRoadFee();
+						livingFee+=sr.getOrderTrade().getLivingFee();
+						otherFee+=sr.getOrderTrade().getOtherFee();
+						waterFee+=sr.getOrderTrade().getWaterFee();
+						stayFee+=sr.getOrderTrade().getStayFee();
+					}
+					totalGath+=sr.getGathMoney();
+					totalPay+=sr.getPayMoney();
+				}
+				U.setPageData(map, pd);
 				// 字段过滤
 				Map<String, Object> fmap = new HashMap<String, Object>();
-				fmap.put(U.getAtJsonFilter(StaffReimburse.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
-				fmap.put(U.getAtJsonFilter(FeeCourse.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(BaseUser.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(Dept.class), new String[]{});
 				fmap.put(U.getAtJsonFilter(CarOrder.class), new String[]{});
+				fmap.put(U.getAtJsonFilter(MainCarOrder.class), new String[]{});
 				map.put(QC.FIT_FIELDS, fmap);
 				map.put("totalGath", totalGath);
 				map.put("totalPay", totalPay);
@@ -154,7 +158,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				map.put("livingFee", livingFee);
 				map.put("otherFee", otherFee);
 				map.put("waterFee", waterFee);
-				map.put("stayFee", stayFee);*/
+				map.put("stayFee", stayFee);
 				U.setPut(map, 1, "请求数据成功");
 			}
 		} catch (Exception e) {
@@ -167,7 +171,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	
 	@Override
 	public Map<String, Object> addStaffReimburse(ReqSrc reqsrc, HttpServletRequest request, 
-			HttpServletResponse response,String uname, String staffReimInfo) {
+			HttpServletResponse response, String staffReimInfo) {
 		String logtxt = U.log(log,"单位-添加员工报账记录", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -178,7 +182,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				
 				CompanyCustom ccus=null;
 				Staff staff=null;
-				if(fg){
+				/*if(fg){
 					if(StringUtils.isEmpty(uname)){
 						fg = U.setPutFalse(map, "[报销人]不能为空");
 					}else{
@@ -190,16 +194,33 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 							staff=staffDao.findByField("baseUserId.uname", uname);
 						}
 					}
-				}
+				}*/
+				Map<Integer, BaseUser> fcmap = new HashMap<Integer, BaseUser>();//客户
+				Map<Integer, Dept> bmmap = new HashMap<Integer, Dept>();//部门
 				String [] staffInfos=null;
 				if(fg) {
 					if(StringUtils.isEmpty(staffReimInfo)){
 						fg = U.setPutFalse(map, "[报账信息]不能为空");
 					}else {
-						if(!staffReimInfo.contains("=")) {
-							fg = U.setPutFalse(map, "[报账信息]格式错误");
-						}else {
-							staffInfos=staffReimInfo.split("@");
+						staffInfos=staffReimInfo.split("@");
+						String [] infos=null;
+						for (int i = 0; i < staffInfos.length; i++) {
+							infos=staffInfos[i].split("=");
+							if(infos.length!=6) {
+								fg = U.setPutFalse(map, "第"+(i+1)+"个[员工帐科目信息]格式错误");
+								break;
+							}else {
+								ccus=ccusDao.findByField("baseUserId.uname", infos[0]);
+								if(ccus==null) {
+									fg = U.setPutFalse(map, "第"+(i+1)+"个报销人不存在");
+									break;
+								}
+								fcmap.put(i, ccus.getBaseUserId());
+								staff=staffDao.findByField("baseUserId.uname", infos[0]);
+								if(staff!=null) {
+									bmmap.put(i, staff.getDeptId());
+								}
+							}
 						}
 					}
 				}
@@ -210,15 +231,15 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 						staffInfo=staffInfos[i].split("=");
 						StaffReimburse obj = new StaffReimburse();
 						obj.setUnitNum(LU.getLUnitNum(request, redis));
-						obj.setReimUserId(ccus.getBaseUserId());
-						if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
-						obj.setGathMoney(Double.valueOf(staffInfo[0]));
-						obj.setPayMoney(Double.valueOf(staffInfo[1]));
-						obj.setRemark(staffInfo[2]);
+						obj.setReimUser(fcmap.get(i));
+						if(bmmap.get(i)!=null) obj.setDeptId(bmmap.get(i));//是员工就有部门
+						obj.setGathMoney(Double.valueOf(staffInfo[2]));
+						obj.setPayMoney(Double.valueOf(staffInfo[3]));
+						obj.setRemark(staffInfo[4]);
 						obj.setIsCheck(0);
 						obj.setAddTime(new Date());
 						obj.setReqsrc(reqsrc);
-						if(StringUtils.isNotBlank(staffInfo[3]))obj.setReimVoucherUrl(staffInfo[3]);
+						if(StringUtils.isNotBlank(staffInfo[5]))obj.setReimVoucherUrl(staffInfo[5]);
 						obj.setOperNote(LU.getLRealName(request, redis)+"[添加]");
 						obj.setOperMark(operMark);
 						srDao.save(obj);
@@ -236,7 +257,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 	
 	@Override
 	public Map<String, Object> modifyStaffReimburse(ReqSrc reqsrc, HttpServletRequest request, 
-			HttpServletResponse response,String updId, String uname, String gathMoney,
+			HttpServletResponse response,String updId, String uname,String plateNum, String gathMoney,
 			String payMoney, String remark,String voucherUrl) {
 		String logtxt = U.log(log, "单位-修改报销凭证记录", reqsrc);
 		
@@ -316,8 +337,9 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				///////////////参数验证--end///////////////////
 				if(fg){
 					String operMark=DateUtils.getOrderNum(7);
-					obj.setReimUserId(ccus.getBaseUserId());
+					obj.setReimUser(ccus.getBaseUserId());
 					if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
+					if(StringUtils.isNotBlank(plateNum)) obj.setPlateNum(plateNum);
 					obj.setGathMoney(_gathMoney);
 					obj.setPayMoney(_payMoney);
 					obj.setRemark(remark);
@@ -572,6 +594,12 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					fg = U.setPutFalse(map, "[对方科目]不能为空");
 				}else {
 					faceInfos=faceCourseInfo.split("@");
+					for (int i = 0; i < faceInfos.length; i++) {
+						if(faceInfos[i].split("=").length!=4) {
+							fg = U.setPutFalse(map, "第"+(i+1)+"个[对方科目信息]格式错误");
+							break;
+						}
+					}
 				}
 			}
 			List<StaffReimburse> srlist=new ArrayList<StaffReimburse>();
@@ -581,6 +609,12 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					fg = U.setPutFalse(map, "[报账记录]不能为空");
 				}else {
 					String [] infos=createInfo.split("@");
+					for (int i = 0; i < infos.length; i++) {
+						if(infos[i].split("=").length!=2) {
+							fg = U.setPutFalse(map, "第"+(i+1)+"个[员工报账科目信息]格式错误");
+							break;
+						}
+					}
 					String [] ids=null;
 					StaffReimburse sr=null;
 					FeeCourse fc=null;
@@ -593,6 +627,10 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 						}
 						srlist.add(sr);
 						fc=fcDao.findByField("id", Long.valueOf(ids[1]));
+						if(fc.getIsLastCourse()==0) {
+							fg = U.setPutFalse(map, "科目【"+fc.getCourseName()+"】非末级科目，不能生成凭证");
+							break;
+						}
 						fcmap.put(sr.getId(), fc);
 					}
 				}
@@ -603,8 +641,12 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				double tradeMoney=0;//凭证交易金额
 				//添加员工报账科目交易记录
 				for (StaffReimburse eachsr:srlist) {
-					tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2);
 					fc=(FeeCourse)fcmap.get(eachsr.getId());
+					if(fc.getCourseType()==0) {//收入
+						tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2);
+					}else {//支出
+						tradeMoney+=MathUtils.sub(tradeMoney, MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2);
+					}
 					FeeCourseTrade fct=new FeeCourseTrade();
 					fct.setUnitNum(eachsr.getUnitNum());
 					fct.setFeeCourseId(fc);
@@ -617,6 +659,15 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					//更新对应科目余额
 					fc.setBalance(MathUtils.add(fc.getBalance(), MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2));
 					fcDao.update(fc);
+					if(fc.getParentCourseId()!=null) {//更新父级科目余额
+						FeeCourse parentOne=fc.getParentCourseId();
+						fc.getParentCourseId().setBalance(MathUtils.add(parentOne.getBalance(), MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2));
+						fcDao.update(parentOne);
+						if(parentOne.getParentCourseId()!=null) {
+							parentOne.getParentCourseId().setBalance(MathUtils.add(parentOne.getParentCourseId().getBalance(), MathUtils.sub(eachsr.getGathMoney(), eachsr.getPayMoney(), 2), 2));
+							fcDao.update(parentOne.getParentCourseId());
+						}
+					}
 					//更新员工报账状态
 					eachsr.setFeeCourseId(fc);
 					eachsr.setIsCheck(2);
@@ -643,6 +694,15 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 					//更新对应科目余额
 					face.setBalance(MathUtils.add(face.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
 					fcDao.update(face);
+					if(fc.getParentCourseId()!=null) {//更新父级科目余额
+						FeeCourse parentOne=fc.getParentCourseId();
+						parentOne.setBalance(MathUtils.add(parentOne.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+						fcDao.update(parentOne);
+						if(parentOne.getParentCourseId()!=null) {
+							parentOne.getParentCourseId().setBalance(MathUtils.add(parentOne.getParentCourseId().getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+							fcDao.update(parentOne.getParentCourseId());
+						}
+					}
 				}
 				//生成凭证
 				ReimburseList obj=new ReimburseList();
@@ -796,9 +856,9 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			if(fg) {
 				StaffReimburse sr = new StaffReimburse();
 				sr.setUnitNum(lunitNum);
-				sr.setReimUserId(lbuser);
+				sr.setReimUser(lbuser);
 				sr.setDeptId(driver.getDeptId());
-				sr.setJzDate(_jzDate);
+//				sr.setJzDate(_jzDate);
 				sr.setFeeCourseId(jzFeeCourse);
 				sr.setRemark(jzRemark);
 				sr.setPayMoney(_jzMoney);
@@ -807,7 +867,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 				sr.setReqsrc(reqsrc);
 				sr.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 				sr.setAddTime(new Date());
-				sr.setDat(plateNum);
+//				sr.setDat(plateNum);
 				srDao.save(sr);
 				U.log(log, "添加-员工报账记录-完成");
 				
@@ -1004,7 +1064,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			if(fg) {
 				if(sr == null) {
 					fg = U.setPutFalse(map, "该[其他记账]不存在");
-				}else if(!sr.getReimUserId().getUname().equals(luname)) {
+				}else if(!sr.getReimUser().getUname().equals(luname)) {
 					fg = U.setPutFalse(map, "该[其他记账]不是你添加的");
 				}if (sr.getIsCheck() != -1 && sr.getIsCheck() != 0) {
 					fg = U.setPutFalse(map, "删除失败，该[其他记账]已审核");
@@ -1090,7 +1150,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			if(fg) {
 				if(sr == null) {
 					fg = U.setPutFalse(map, "该[其他记账]不存在");
-				}else if(!sr.getReimUserId().getUname().equals(luname)) {
+				}else if(!sr.getReimUser().getUname().equals(luname)) {
 					fg = U.setPutFalse(map, "该[其他记账]不是你添加的");
 				}
 			}
@@ -1215,7 +1275,7 @@ public class StaffReimburseServiceImpl extends BaseServiceImpl<StaffReimburse,Lo
 			if(fg) {
 				if(sr == null) {
 					fg = U.setPutFalse(map, "该[员工记账]不存在");
-				}else if(!sr.getReimUserId().getUname().equals(luname)) {
+				}else if(!sr.getReimUser().getUname().equals(luname)) {
 					fg = U.setPutFalse(map, "该[员工记账]不是你添加的");
 				}if (sr.getIsCheck() != -1 && sr.getIsCheck() != 0) {
 					fg = U.setPutFalse(map, "删除失败，该[员工记账]已审核");

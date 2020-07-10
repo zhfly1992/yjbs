@@ -43,7 +43,7 @@ public interface CustomerService extends BaseService<Customer, Long> {
 	 * @param lpass 	登录密码
 	 * @param imgCode 	图片验证码
 	 * @param remberMe 	是否记住账号 true-记住；false-不记住；
-	 * @return map{ code: 结果状态码, msg: 结果状态码说明, token: 登录token }
+	 * @return map{ code: 结果状态码, msg: 结果状态码说明}
 	 */
 	public Map<String, Object> subCompanyLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request, 
 		String lphone, String lpass, String imgCode, String remberMe);
@@ -114,5 +114,21 @@ public interface CustomerService extends BaseService<Customer, Long> {
 	 * @return map{ code: 结果状态码, msg: 结果状态码说明, data: 数据 }
 	 */
 	public Map<String, Object> findLUser(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request);
+
+	/**
+	 * 用户-手机号短信登录
+	 * @param reqsrc 	请求来源
+	 * @param response 	response
+	 * @param request 	request
+	 * @param lrole		登录的用户角色
+	 * @param wxid		登录用户微信id
+	 * @param teamNo	登录用户所属单位编号
+	 * @param lphone 	登录用户手机号
+	 * @param smsCode	登录用户短信验证码
+	 * @param remberMe 	是否记住账号 true-记住；false-不记住；
+	 * @return map{ code: 结果状态码, msg: 结果状态码说明, token: 登录token }
+	 */
+	public Map<String, Object> subSmsLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+		CusRole lrole, String wxid, String teamNo, String lphone, String smsCode, String remberMe);
 	
 }

@@ -53,10 +53,6 @@ public class ReimburseList implements Serializable{
 	@Column(name="gain_time", columnDefinition="datetime COMMENT '记账时间'")
 	private Date gainTime;
 	
-	/** 车牌号 */
-	@Column(name="plate_num", columnDefinition="text COMMENT '车牌号'")
-	private String plateNum;
-	
 	/** 0未核销 1已核销 2已关联 */
 	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '0未核销 1已核销 2已关联'")
 	private int isCheck;
@@ -181,24 +177,6 @@ public class ReimburseList implements Serializable{
 	 */
 	public void setGainTime(Date gainTime) {
 		this.gainTime = gainTime;
-	}
-	
-
-	/**  
-	 * 获取 车牌号  
-	 * @return plateNum
-	 */
-	public String getPlateNum() {
-		return plateNum;
-	}
-	
-
-	/**  
-	 * 设置 车牌号  
-	 * @param plateNum 
-	 */
-	public void setPlateNum(String plateNum) {
-		this.plateNum = plateNum;
 	}
 	
 

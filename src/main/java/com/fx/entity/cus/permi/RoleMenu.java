@@ -26,6 +26,10 @@ public class RoleMenu implements Serializable {
 	@Column(name="role_id", columnDefinition="bigint COMMENT '角色ID'")
 	private long roleId;
 	
+	/** 关系类型：1-角色；2-用户； */
+	@Column(name="type", nullable=false, columnDefinition="int COMMENT '关系类型：1-角色；2-用户；'")
+	private int type;
+	
 	/** 菜单/按钮ID */
 	@Column(name="menu_id", columnDefinition="bigint COMMENT '菜单/按钮ID'")
 	private long menuId;
@@ -39,7 +43,6 @@ public class RoleMenu implements Serializable {
 		return id;
 	}
 
-
 	/**  
 	 * 设置 唯一id自增长主键  
 	 * @param 唯一id自增长主键
@@ -48,7 +51,6 @@ public class RoleMenu implements Serializable {
 		this.id = id;
 	}
 
-
 	/**  
 	 * 获取 角色ID  
 	 * @return roleId
@@ -56,7 +58,6 @@ public class RoleMenu implements Serializable {
 	public long getRoleId() {
 		return roleId;
 	}
-	
 
 	/**  
 	 * 设置 角色ID  
@@ -65,7 +66,20 @@ public class RoleMenu implements Serializable {
 	public void setRoleId(long roleId) {
 		this.roleId = roleId;
 	}
-	
+
+	/**
+	 * @return the 关系类型：1-角色；2-用户；
+	 */
+	public int getType() {
+		return type;
+	}
+
+	/**
+	 * @param 关系类型：1-角色；2-用户； the type to set
+	 */
+	public void setType(int type) {
+		this.type = type;
+	}
 
 	/**  
 	 * 获取 菜单按钮ID  
@@ -74,7 +88,6 @@ public class RoleMenu implements Serializable {
 	public long getMenuId() {
 		return menuId;
 	}
-	
 
 	/**  
 	 * 设置 菜单按钮ID  
@@ -83,7 +96,6 @@ public class RoleMenu implements Serializable {
 	public void setMenuId(long menuId) {
 		this.menuId = menuId;
 	}
-	
 
 	/**  
 	 * 获取 serialVersionUID  

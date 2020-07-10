@@ -2,15 +2,19 @@ package com.fx.entity.company;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
@@ -22,6 +26,7 @@ import com.fx.commons.utils.enums.StaffState;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.permi.Dept;
 import com.fx.entity.cus.permi.Role;
+import com.fx.entity.finance.MoneyType;
 
 /**
  * 单位的员工
@@ -54,6 +59,15 @@ public class Staff implements Serializable{
 	@OneToOne(targetEntity = Role.class)
 	@JoinColumn(name="role_id", nullable=false,referencedColumnName="id", columnDefinition="varchar(20) COMMENT '角色(职务)id'")
 	private Role roleId;
+	
+	/** 可查看的金额类型引用 */
+	@OneToMany(cascade=CascadeType.DETACH,fetch=FetchType.LAZY)
+	@JoinColumn(name="staff_id")
+	private List<MoneyType> moneyTypes;
+	
+	/** 是否能查看银行帐余额 0不能查看 1能查看*/
+	@Column(name="look_btl_balance", columnDefinition="tinyint(1) DEFAULT '0' COMMENT '是否能查看银行帐余额 0不能查看 1能查看'")
+	private int lookBtlBalance;
 	
 	/** 入职时间 */
 	@Temporal(TemporalType.DATE)
@@ -103,21 +117,33 @@ public class Staff implements Serializable{
 	private Sex sex;
 	
 	/** 年龄*/
-	@Column(name="age", nullable=false, columnDefinition="tinyint(1) COMMENT '年龄")
+	@Column(name="age", nullable=false, columnDefinition="tinyint(1) COMMENT '年龄'")
 	private int age;
 	
 	/** 学历*/
 	@Enumerated(EnumType.STRING)
-	@Column(name="education", nullable=false, columnDefinition="varchar(30) COMMENT '学历")
+	@Column(name="education", nullable=false, columnDefinition="varchar(30) COMMENT '学历'")
 	private Education education;
 	
 	/** 离职信息 */
 	@Column(name="leave_info", columnDefinition="varchar(200) COMMENT '离职信息，格式 :时间,备注'")
 	private String leaveInfo;
 	
-    /** 住址 */
-    @Column(name="address",columnDefinition="varchar(50) COMMENT '住址'")
+	 /** 地址全称 */
+    @Column(name="address",columnDefinition="varchar(20) COMMENT '地址全称'")
     private String address;
+
+    /** 地址简称 */
+    @Column(name="simple_address", columnDefinition="varchar(20) COMMENT '地址简称'")
+    private String simpleAddress;
+
+    /** 地址纬度*/
+    @Column(name="latitude",columnDefinition="float COMMENT '地址纬度'")
+    private Double latitude;
+
+    /** 地址经度*/
+    @Column(name="longitude",columnDefinition="float COMMENT '地址经度'")
+    private Double longitude;
 	
 	/** 驾驶员属性  */
 	
@@ -691,7 +717,87 @@ public class Staff implements Serializable{
 	 * @param address the address to set
 	 */
 	public void setAddress(String address) {
-		address = address;
+		this.address = address;
 	}
+
+	/**
+	 * @return the simpleAddress
+	 */
+	public String getSimpleAddress() {
+		return simpleAddress;
+	}
+
+	/**
+	 * @param simpleAddress the simpleAddress to set
+	 */
+	public void setSimpleAddress(String simpleAddress) {
+		this.simpleAddress = simpleAddress;
+	}
+
+	/**
+	 * @return the latitude
+	 */
+	public Double getLatitude() {
+		return latitude;
+	}
+
+	/**
+	 * @param latitude the latitude to set
+	 */
+	public void setLatitude(Double latitude) {
+		this.latitude = latitude;
+	}
+
+	/**
+	 * @return the longitude
+	 */
+	public Double getLongitude() {
+		return longitude;
+	}
+
+	/**
+	 * @param longitude the longitude to set
+	 */
+	public void setLongitude(Double longitude) {
+		this.longitude = longitude;
+	}
+
+	/**  
+	 * 获取 可查看的金额类型引用  
+	 * @return moneyTypes
+	 */
+	public List<MoneyType> getMoneyTypes() {
+		return moneyTypes;
+	}
+	
+
+	/**  
+	 * 设置 可查看的金额类型引用  
+	 * @param moneyTypes
+	 */
+	public void setMoneyTypes(List<MoneyType> moneyTypes) {
+		this.moneyTypes = moneyTypes;
+	}
+	
+
+	/**  
+	 * 获取 是否能查看银行帐余额0不能查看1能查看  
+	 * @return lookBtlBalance
+	 */
+	public int getLookBtlBalance() {
+		return lookBtlBalance;
+	}
+	
+
+	/**  
+	 * 设置 是否能查看银行帐余额0不能查看1能查看  
+	 * @param lookBtlBalance
+	 */
+	public void setLookBtlBalance(int lookBtlBalance) {
+		this.lookBtlBalance = lookBtlBalance;
+	}
+	
+
+
 
 }

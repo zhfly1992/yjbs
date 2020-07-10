@@ -14,6 +14,7 @@ import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
+import com.fx.entity.cus.BaseUser;
 import com.fx.entity.order.CarOrder;
 import com.fx.entity.order.MainCarOrder;
 
@@ -38,10 +39,23 @@ public class FeeCourseTrade implements Serializable {
 	@Column(name="unit_num",nullable=false, columnDefinition="varchar(20) COMMENT '单位编号'")
 	private String unitNum;
 	
+	/** 凭证号码 */
+	@Column(name="voucher_num",  columnDefinition="varchar(100) COMMENT '凭证号码'")
+	private String voucherNum;
+	
 	/** 报账科目名称 */
 	@OneToOne(targetEntity = FeeCourse.class)
 	@JoinColumn(name="fee_course_id", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '报账科目id'")
 	private FeeCourse feeCourseId;
+	
+	/** 报销人信息 */
+	@OneToOne(targetEntity = BaseUser.class)
+	@JoinColumn(name="reim_user_id", referencedColumnName="uname", columnDefinition="varchar(30) COMMENT '报销人信息'")
+	private BaseUser reimUserId;
+	
+	/** 车牌号 */
+	@Column(name="plate_num", columnDefinition="text COMMENT '车牌号'")
+	private String plateNum;
 	
 	/** 摘要 */
 	@Column(name="remark",  columnDefinition="varchar(255) COMMENT '摘要'")
@@ -66,17 +80,17 @@ public class FeeCourseTrade implements Serializable {
 	private BankTradeList bankTradeId;
 	
 	/** 主订单引用 */
-	@OneToOne(targetEntity = BankTradeList.class)
+	@OneToOne(targetEntity = MainCarOrder.class)
 	@JoinColumn(name="main_order_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '主订单引用'")
 	private MainCarOrder mainOrderId;
 	
 	/** 子订单引用 */
-	@OneToOne(targetEntity = BankTradeList.class)
+	@OneToOne(targetEntity = CarOrder.class)
 	@JoinColumn(name="car_order_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '子订单引用'")
 	private CarOrder carOrderId;
 	
 	/** 员工报账引用 */
-	@OneToOne(targetEntity = BankTradeList.class)
+	@OneToOne(targetEntity = StaffReimburse.class)
 	@JoinColumn(name="staff_reim_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '员工报账引用'")
 	private StaffReimburse staffReimId;
 
@@ -115,6 +129,36 @@ public class FeeCourseTrade implements Serializable {
 		this.unitNum = unitNum;
 	}
 	
+
+	public String getVoucherNum() {
+		return voucherNum;
+	}
+
+
+	public void setVoucherNum(String voucherNum) {
+		this.voucherNum = voucherNum;
+	}
+
+
+	public BaseUser getReimUserId() {
+		return reimUserId;
+	}
+
+
+	public void setReimUserId(BaseUser reimUserId) {
+		this.reimUserId = reimUserId;
+	}
+
+
+	public String getPlateNum() {
+		return plateNum;
+	}
+
+
+	public void setPlateNum(String plateNum) {
+		this.plateNum = plateNum;
+	}
+
 
 	/**  
 	 * 获取 科目名称  

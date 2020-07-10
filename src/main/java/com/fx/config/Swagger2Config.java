@@ -60,6 +60,9 @@ public class Swagger2Config {
     	// 公共接口模块
     	ctls.add("com.fx.web.controller.common");
     	
+    	// 公共接口模块
+    	ctls.add("com.fx.entity");
+    	
     	if(ctls.size() > 0) ctlstr = StringUtils.join(ctls.toArray(), ";");
     	
     	return ctlstr;

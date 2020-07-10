@@ -11,9 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.alibaba.fastjson.JSONObject;
 import com.fx.commons.annotation.Log;
 import com.fx.commons.utils.clazz.MapRes;
 import com.fx.commons.utils.clazz.Message;
@@ -25,6 +27,7 @@ import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.wx.util.Sign;
 import com.fx.entity.wxdat.WxPublicData;
 import com.fx.service.cus.CustomerService;
+import com.fx.service.cus.WxBaseUserService;
 import com.fx.service.wxdat.WxGlobalService;
 import com.fx.service.wxdat.WxPublicDataService;
 import com.fx.web.util.RedisUtil;
@@ -47,13 +50,15 @@ public class WxAuthController {
 	/** 微信公众号数据-服务 */
 	@Autowired
 	private WxPublicDataService wxPublicDataSer;
-	
 	/** 个人用户-服务 */
 	@Autowired
 	private CustomerService customerSer;
 	/** 缓存-服务 */
 	@Autowired
 	private RedisUtil redis;
+	/** 微信基类-服务 */
+	@Autowired
+	private WxBaseUserService wxBaseUserSer;
 	
 	
 	/**
@@ -146,6 +151,29 @@ public class WxAuthController {
 		Map<String, Object> map = new HashMap<String, Object>();
 		
 		map = customerSer.findLUser(ReqSrc.WX, response, request);
+		
+		Message.print(response, map);
+	}
+    
+    @ApiOperation(
+		value="绑定微信公众号",
+		notes="返回map{code: 结果状态码, msg: 结果状态码说明}"
+	)
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
+	@Log("绑定微信公众号")
+	@RequestMapping(value="setMainWx", method=RequestMethod.POST)
+	public void setMainWx(HttpServletResponse response, HttpServletRequest request, @RequestBody JSONObject json) {
+    	String smsCode = U.P(json, "smsCode");
+    	
+		Map<String, Object> map = new HashMap<String, Object>();
+		
+		String luname = LU.getLUName(request, redis);
+		String lunitNum = LU.getLUnitNum(request, redis);
+		map = wxBaseUserSer.updMainWx(ReqSrc.WX, lunitNum, luname, smsCode);
 		
 		Message.print(response, map);
 	}

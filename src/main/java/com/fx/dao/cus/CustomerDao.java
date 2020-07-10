@@ -57,7 +57,7 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 	private LoginLogDao loginLogDao;
 	/** 用户基类-数据源 */
 	@Autowired
-	private BaseUserDao buDao;
+	private BaseUserDao baseUserDao;
 	/** 单位-服务 */
 	@Autowired
 	private CompanyUserDao companyUserDao;
@@ -159,8 +159,10 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 		        U.log(log, "保存-登录日志-完成");
 		        
 		        // 缓存登录用户信息
-		        Map<String, Object> mapUser = new HashMap<String, Object>();
 		        String uuid = subject.getSession().getId().toString();
+		        U.log(log, "登录uuid："+uuid);
+		        
+		        Map<String, Object> mapUser = new HashMap<String, Object>();
 				mapUser.put(QC.L_STAFF, ldriver);							// 缓存-登录驾驶员对象
 				mapUser.put(QC.L_WX, wxUser);								// 缓存-登录微信用户对象
 				mapUser.put(QC.L_COMPANY, comUser);							// 缓存-登录单位用户对象
@@ -226,8 +228,10 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 		        U.log(log, "保存-登录日志-完成");
 		        
 		        // 缓存登录用户信息
-		        Map<String, Object> mapUser = new HashMap<String, Object>();
 		        String uuid = subject.getSession().getId().toString();
+		        U.log(log, "登录uuid："+uuid);
+		        
+		        Map<String, Object> mapUser = new HashMap<String, Object>();
 				mapUser.put(QC.L_STAFF, lcus);								// 缓存-登录驾驶员对象
 				mapUser.put(QC.L_WX, wxUser);								// 缓存-登录微信用户对象
 				mapUser.put(QC.L_COMPANY, comUser);							// 缓存-登录单位用户对象
@@ -237,7 +241,7 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 				// 传入前端
 		        map.put(QC.UUID, uuid);
 				
-				U.setPut(map, 1, "驾驶员-登录成功");
+				U.setPut(map, 1, "用户-登录成功");
 			}else{
 				U.setPutFalse(map, "此角色暂未处理");
 			}
@@ -260,7 +264,7 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 	 * @return map{code: 结果状态码, msg: 结果状态码说明, uuid: 登录成功的uuid}
 	 */
 	public Map<String, Object> wxAutoLogin(HttpServletRequest request, HttpServletResponse response, 
-		String recUname, String role, String teamNo, WxBaseUser wxuser) {
+		String recUname, String role, String teamNo, WxBaseUser wxbuser) {
 		String logtxt = U.log(log, "微信-用户自动登录");
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -273,7 +277,7 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 					U.log(log, "[推荐人用户名]为空");
 				}else {
 					recUname = recUname.trim();
-					recUser = buDao.findByField("uname", recUname);
+					recUser = baseUserDao.findByField("uname", recUname);
 					
 					U.log(log, "[推荐人用户名] recUname="+recUname);
 				}
@@ -285,7 +289,7 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 				}
 			}
 			
-			CusRole _role = null;
+			CusRole lrole = null;
 			if(fg) {
 				if(StringUtils.isBlank(role)) {
 					fg = U.setPutFalse(map, "[用户角色]不能为空");
@@ -294,21 +298,21 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 					if(!FV.isOfEnum(CusRole.class, role)) {
 						fg = U.setPutFalse(map, "[用户角色]格式错误");
 					}else {
-						_role = CusRole.valueOf(role);
+						lrole = CusRole.valueOf(role);
 					}
 					
 					U.log(log, "[用户角色] role="+role);
 				}
 			}
 			
-			CompanyUser comUser = null;
+			CompanyUser compUser = null;
 			if(fg) {
 				if(StringUtils.isBlank(teamNo)) {
 					fg = U.setPutFalse(map, "[车队编号]不能为空");
 				}else {
 					teamNo = teamNo.trim();
-					comUser = companyUserDao.findByField("unitNum", teamNo);
-					if(comUser == null) {
+					compUser = companyUserDao.findByField("unitNum", teamNo);
+					if(compUser == null) {
 						fg = U.setPutFalse(map, "[车队]不存在");
 					}
 					
@@ -316,22 +320,40 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 				}
 			}
 			
-			Customer lcus = null;
 			if(fg) {
-				if(wxuser == null) {
-					fg = U.setPutFalse(map, "[微信用户基类]不能为空");
-				}else {
-					U.log(log, "[微信用户微信id] wxid="+wxuser.getWxid());
-					
-					lcus = findByField("baseUserId.uname", wxuser.getUname());
+				BaseUser buser = baseUserDao.findByUname(wxbuser.getUname());
+				
+				if(lrole == CusRole.PT_CUS) {
+					Customer lcus = findByField("baseUserId.uname", wxbuser.getUname());
 					if(lcus == null) {
-						fg = U.setPutFalse(map, "[登录用户个人信息]不存在");
+						fg = U.setPutFalse(map, "当前账号用户信息不存在");
+					}else {
+						U.log(log, "已绑定微信，则修改绑定信息");
+						
+						wxbuser.setLgWxid(wxbuser.getWxid());
+						wxbuser.setLgRole(lrole);
+						wxbuser.setLgLngLat(null);
+						wxbuser.setLgIp(IPUtil.getIpAddr(request));
+						wxbuser.setLgTime(new Date());
+			        	wxBaseUserDao.update(wxbuser);
+			        	U.log(log, "更新-绑定当前公众号信息-完成");
+						
+						map = saveWxLoginDat(map, request, false, lcus, compUser, wxbuser.getWxid(), lrole);
 					}
+				}else if(lrole == CusRole.TEAM_DRIVER){// 驾驶员
+					if(buser == null) {
+						U.setPut(map, 0, "您还没有["+lrole.getKey()+"]账号，请联系当前单位分配");
+					}else {
+						Object lstaff = staffDao.getTeamDriver(teamNo, buser.getUname());
+						if(lstaff == null) {
+							fg = U.setPutFalse(map, "["+lrole.getKey()+"信息]不存在，请联系管理员");
+						}else {
+							map = saveWxLoginDat(map, request, false, lstaff, compUser, wxbuser.getWxid(), lrole);
+						}
+					}
+				}else {
+					fg = U.setPutFalse(map, "["+lrole.getKey()+"]暂无登录功能");
 				}
-			}
-			
-			if(fg) {
-				map = saveWxLoginDat(map, request, false, lcus, comUser, wxuser.getWxid(), _role);
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
@@ -362,7 +384,7 @@ public class CustomerDao extends ZBaseDaoImpl<Customer, Long> {
 				comps.add(new Compositor("id", CompositorType.DESC));
 				
 				if(StringUtils.isNotBlank(find)) {
-					String uname = buDao.findUname(find);
+					String uname = baseUserDao.findUname(find);
 					if(uname != null) {// 匹配用户名
 						filts.add(new Filtration(MatchType.EQ, uname, "baseUserId.uname"));
 					}else {// 匹配其他属性

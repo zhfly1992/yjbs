@@ -53,7 +53,7 @@ public class EtcListServiceImpl extends BaseServiceImpl<EtcList,Long> implements
 	@Override
 	public Map<String, Object> findEtcList(ReqSrc reqsrc,String page, String rows,String unitNum, 
 			String orderNum, String sTime, String eTime,
-			String plateNum,String driverUname,String cardNo,String operMark) {
+			String plateNum,String driverName,String cardNo,String operMark) {
 		String logtxt = U.log(log, "获取-etc记录-分页列表", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -64,7 +64,7 @@ public class EtcListServiceImpl extends BaseServiceImpl<EtcList,Long> implements
 			if(fg) fg = U.valPageNo(map, page, rows, "单位ETC记录");
 			/*****参数--验证--end******/
 			if(fg){
-				Page<EtcList> pd = etcDao.findEtcList(reqsrc, page, rows, unitNum, orderNum, sTime, eTime, plateNum, driverUname, cardNo, operMark);
+				Page<EtcList> pd = etcDao.findEtcList(reqsrc, page, rows, unitNum, orderNum, sTime, eTime, plateNum, driverName, cardNo, operMark);
 				U.setPageData(map, pd);
 				U.setPut(map, 1, "请求数据成功");
 			}

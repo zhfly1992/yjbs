@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fx.commons.hiberantedao.dao.ZBaseDaoImpl;
 import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.hiberantedao.service.BaseServiceImpl;
+import com.fx.commons.utils.clazz.Item;
 import com.fx.commons.utils.clazz.MapRes;
 import com.fx.commons.utils.clazz.WxUserInfo;
 import com.fx.commons.utils.enums.CusRole;
@@ -44,6 +45,7 @@ import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.StaffDao;
 import com.fx.dao.cus.BaseUserDao;
 import com.fx.dao.cus.CompanyUserDao;
+import com.fx.dao.cus.CusWalletDao;
 import com.fx.dao.cus.CustomerDao;
 import com.fx.dao.cus.WxBaseUserDao;
 import com.fx.dao.log.LoginLogDao;
@@ -51,6 +53,7 @@ import com.fx.dao.wxdat.WxPublicDataDao;
 import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.cus.CompanyUser;
+import com.fx.entity.cus.CusWallet;
 import com.fx.entity.cus.Customer;
 import com.fx.entity.cus.WxBaseUser;
 import com.fx.entity.log.LoginLog;
@@ -64,6 +67,15 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	/** 日志记录 */
 	private Logger log = LogManager.getLogger(this.getClass());
 	
+	/** 个人用户-数据源 */
+	@Autowired
+	private CustomerDao customerDao;
+	
+	@Override
+	public ZBaseDaoImpl<Customer, Long> getDao() {
+		return customerDao;
+	}
+	
 	/** 登录日志-数据源 */
 	@Autowired
 	private LoginLogDao loginLogDao;
@@ -72,13 +84,13 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	@Autowired
 	private BaseUserDao baseUserDao;
 	
-	/** 个人用户-数据源 */
-	@Autowired
-	private CustomerDao customerDao;
-	
 	/** 单位用户-数据源 */
 	@Autowired
 	private CompanyUserDao cuDao;
+	
+	/** 用户钱包-服务 */
+	@Autowired
+	private CusWalletDao cusWalletDao;
 	
 	/** 单位员工-数据源 */
 	@Autowired
@@ -86,11 +98,6 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	
 	@Autowired
     private RedisUtil redis;
-	
-	@Override
-	public ZBaseDaoImpl<Customer, Long> getDao() {
-		return customerDao;
-	}
 	
 	/** 微信用户基类-服务 */
 	@Autowired
@@ -148,8 +155,6 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
     			}else{
     				teamNo = teamNo.trim();
     				plist.add("tno="+teamNo);
-    				
-    				U.log(log, "用户公众号菜单传入参数-车队编号：teamNo="+teamNo);
     			}
     			
     			U.log(log, "用户公众号菜单传入参数-车队编号：teamNo="+teamNo);
@@ -223,21 +228,26 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
         				if(lwxuser.getLgTime() != null) day = DateUtils.getDaysOfTowDiffDate(new Date(), lwxuser.getLgTime());
         				
         				// 如果一周未登录/登录信息不存在，则需要更新微信用户信息
-        				if(day >= 7) {
+//        				if(day >= 7 || StringUtils.isEmpty(lwxuser.getHeadImg())) {// 超过7天未登录 || 没有头像
         					WxUserInfo wxu = UT.getWxUserInfo(U.Cq(auth, "access_token"), openId);
         					if(wxu != null) {
-        						U.log(log, "用户已有"+day+"天没有登录，则更新用户基类信息");
+        						U.log(log, "用户已有"+day+"天没有登录或者重来没有设置过头像，则更新用户基类信息");
+        						lwxuser.setNickName(wxu.getNickname());
+        						lwxuser.setSex(Sex.valueOf(wxu.getSex()));
+        						lwxuser.setHeadImg(wxu.getHeadimgurl());
+        						wxBaseUserDao.update(lwxuser);
+    							U.log(log, "修改-用户（头像、昵称）信息-完成");
         						
-        						BaseUser bu = baseUserDao.findByUname(lwxuser.getUname());
-        						if(bu != null) {
-        							bu.setNickName(wxu.getNickname());
-        							bu.setSex(Sex.valueOf(wxu.getSex()));
-        							bu.setHeadImg(wxu.getHeadimgurl());
-        							baseUserDao.update(bu);
-        							U.log(log, "修改-用户（头像、昵称）信息-完成");
-        						}
+//    	        				BaseUser bu = baseUserDao.findByUname(lwxuser.getUname());
+//        						if(bu != null) {
+//        							bu.setNickName(wxu.getNickname());
+//        							bu.setSex(Sex.valueOf(wxu.getSex()));
+//        							bu.setHeadImg(wxu.getHeadimgurl());
+//        							baseUserDao.update(bu);
+//        							U.log(log, "修改-用户（头像、昵称）信息-完成");
+//        						}
         					}
-        				}
+//        				}
         				
         				// 根据微信id和车队编号-自动登录
         				map = customerDao.wxAutoLogin(request, response, null, _wrole.name(), teamNo, lwxuser);
@@ -629,9 +639,6 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 	            loginLogDao.save(llog);
 	            U.log(log, "保存-登录日志-完成");
 	            
-	            // 跳转-主页
-	            //map.put("goUrl", "/page/company/goMain");
-	            
 	            // 缓存登录员工信息
 	            Map<String, Object> mapUser = new HashMap<String, Object>();//缓存登录用户信息map
 	            Staff lcus = staffDao.findByField("baseUserId.uname", luser.getUname());
@@ -873,8 +880,9 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 				Map<String, Object> luser = new HashMap<String, Object>();
 				luser.put("uname", lbuser.getUname());
 				luser.put("phone", lbuser.getPhone());
+				luser.put("nickName", lwxuser.getNickName());
 				luser.put("realName", lbuser.getRealName());
-				luser.put("headImg", lbuser.getHeadImg() == null ? "" : lbuser.getHeadImg());
+				luser.put("headImg", lwxuser.getHeadImg() == null ? "" : lwxuser.getHeadImg());
 				luser.put("teamNo", lcomUser.getUnitNum());
 				luser.put("teamName", lcomUser.getCompanyName());
 				map.put("data", luser);
@@ -907,6 +915,192 @@ public class CustomerServiceImpl extends BaseServiceImpl<Customer, Long> impleme
 				luser.put("teamNo", lcomUser.getUnitNum());
 				
 				U.setPut(map, 1, "获取-登录信息-成功");
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> subSmsLogin(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+		CusRole lrole, String wxid, String teamNo, String lphone, String smsCode, String remberMe) {
+		String logtxt = U.log(log, "用户-手机号短信验证码登录", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			CompanyUser compUser = null;
+			if(fg){
+				if(StringUtils.isEmpty(teamNo)){
+					fg = U.setPutFalse(map, "[访问单位编号]不能为空");
+				}else{
+					teamNo = teamNo.trim();
+					compUser = cuDao.findByField("unitNum", teamNo);
+    				if(compUser == null){
+    					fg = U.setPutFalse(map, "[访问单位]不能为空");
+    				}
+					
+					U.log(log, "[访问单位] teamNo="+teamNo);
+				}
+			}
+			
+			if(fg){
+				if(StringUtils.isEmpty(wxid)){
+					fg = U.setPutFalse(map, "微信授权失败，请通过微信公众号菜单访问");
+				}else{
+					wxid = wxid.trim();
+					
+					U.log(log, "[当前用户授权微信id] wxid="+wxid);
+				}
+			}
+			
+			if(fg){
+				if(StringUtils.isEmpty(lphone)){
+					fg = U.setPutFalse(map, "发送短信验证码手机号不能为空");
+				}else{
+					lphone = lphone.trim();
+					if(!FV.isPhone(lphone)){
+						fg = U.setPutFalse(map, FV.match_phone_false_msg);
+					}
+					
+					U.log(log, "[发送短信验证码手机号] lphone="+lphone);
+				}
+			}
+			
+			if(fg){
+				if(StringUtils.isEmpty(smsCode)){
+					fg = U.setPutFalse(map, "手机短信验证码不能为空");
+				}else{
+					// 无论第一次绑定还是更换手机绑定，均获取新手机号短信验证码
+					Item it = (Item)redis.get(lphone);
+					if(it == null){
+						fg = U.setPutFalse(map, "请先获取手机动态验证码");
+					}else{
+						if(new Date().getTime() - Long.parseLong(it.getOther().toString()) > QC.SMS_CODE_SAVE_TIME*60*1000) {
+							fg = U.setPutFalse(map, "短信验证码已过期，请重新获取");
+						}else if(!it.getVal().toString().equals(smsCode)){
+							fg = U.setPutFalse(map, "短信验证码错误");
+						}
+					}
+					
+					U.log(log, "短信验证码：smsCode="+smsCode);
+				}
+			}
+			
+			WxBaseUser wxbuser = null;
+			if(fg) {
+				wxbuser = wxBaseUserDao.findWxUser1(teamNo, lphone);
+				if(wxbuser == null) {
+					U.log(log, "当前用户不存在平台");
+				}else {
+					U.log(log, "当前用户已存在平台");
+				}
+			}
+			
+			if(fg) {
+				BaseUser buser = baseUserDao.findByPhone(lphone);
+				
+				if(lrole == CusRole.PT_CUS) {
+					// 重新生成加密登录
+		            PasswordHelper passHelper = new PasswordHelper();
+		            
+		            // 初始化-用户基类
+					if(buser == null) {
+			            buser = new BaseUser();
+			            buser.setUname(UT.createUname());
+			            buser.setPhone(lphone);
+			            buser.setRealName("匿名");
+			            buser.setSalt(buser.getUname());
+			            buser.setLpass(passHelper.encryptPassword(null, buser.getSalt()));
+			            buser.setRegWay(RegWay.WX);
+			            buser.setUstate(UState.NORMAL);
+			            buser.setAtime(new Date());
+			            baseUserDao.save(buser);
+			            U.log(log, "保存-用户基类-完成");
+					}
+					
+					// 初始化-个人用户信息
+					Customer lcus = customerDao.findByField("baseUserId.uname", buser.getUname());
+					if(lcus == null) {
+						lcus = new Customer();
+						lcus.setBaseUserId(buser);
+			            lcus.setPayPass(passHelper.encryptPassword(QC.DEF_PAY_PASS, buser.getSalt()));
+			            lcus.setRecBaseUserId(null);
+			            lcus.setRecId("0");
+			            customerDao.save(lcus);
+			            U.log(log, "保存-个人用户信息-完成");
+					}
+					
+					// 初始化-用户钱包
+					CusWallet lwallet = cusWalletDao.findByField("cName", buser.getUname());
+					if(lwallet == null) {
+						lwallet = new CusWallet();
+						lwallet.setcName(buser.getUname());
+						lwallet.setAtime(new Date());
+						cusWalletDao.save(lwallet);
+						U.log(log, "保存-用户钱包-完成");
+					}
+					
+					// 初始化-用户绑定微信公众号
+					if(wxbuser == null) {
+						U.log(log, "未绑定微信，则先绑定微信");
+						
+						wxbuser = new WxBaseUser();
+						wxbuser.setUname(buser.getUname());
+			        	wxbuser.setCompanyNum(compUser.getUnitNum());
+			        	wxbuser.setWxid(wxid);
+			        	wxbuser.setAtime(new Date());
+			        	wxbuser.setLgWxid(wxid);
+			        	wxbuser.setLgRole(lrole);
+			        	wxbuser.setLgLngLat(null);
+			        	wxbuser.setLgIp(IPUtil.getIpAddr(request));
+			        	wxbuser.setLgTime(new Date());
+			        	wxBaseUserDao.save(wxbuser);
+			        	U.log(log, "绑定当前公众号-完成");
+					}else {
+						U.log(log, "已绑定微信，则修改绑定信息");
+						
+						wxbuser.setLgWxid(wxid);
+						wxbuser.setLgRole(lrole);
+						wxbuser.setLgLngLat(null);
+						wxbuser.setLgIp(IPUtil.getIpAddr(request));
+						wxbuser.setLgTime(new Date());
+			        	wxBaseUserDao.update(wxbuser);
+			        	U.log(log, "更新-绑定当前公众号信息-完成");
+					}
+					
+					map = customerDao.saveWxLoginDat(map, request, false, lcus, compUser, wxbuser.getWxid(), lrole);
+					
+					// 清空缓存保存的验证码
+					redis.del(lphone);
+				}else if(lrole == CusRole.TEAM_DRIVER){// 驾驶员
+					if(buser == null) {
+						U.setPut(map, 0, "您还没有["+lrole.getKey()+"]账号，请联系当前单位分配");
+					}else {
+						// 验证登录角色
+						MapRes mr = customerDao.valUserRole(lrole, teamNo, buser.getUname());
+						if(mr.getCode() <= 0) fg = U.setPutFalse(map, mr.getMsg());
+						
+						// 保存登录用户信息
+						if(fg) {
+							Object lstaff = staffDao.getTeamDriver(teamNo, buser.getUname());
+							if(lstaff == null) {
+								fg = U.setPutFalse(map, "["+lrole.getKey()+"信息]不存在，请联系管理员");
+							}else {
+								map = customerDao.saveWxLoginDat(map, request, false, lstaff, compUser, wxid, lrole);
+								
+								// 清空缓存保存的验证码
+								redis.del(lphone);
+							}
+						}
+					}
+				}else {
+					fg = U.setPutFalse(map, "["+lrole.getKey()+"]暂无登录功能");
+				}
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);

@@ -18,6 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fx.commons.utils.clazz.Item;
 import com.fx.commons.utils.clazz.WxUserInfo;
 import com.fx.commons.utils.enums.PointType;
 import com.fx.commons.utils.enums.Sex;
@@ -35,6 +36,7 @@ import com.fx.entity.order.CompanyOrderTemp;
 import com.fx.entity.order.MapPoint;
 import com.fx.entity.order.RouteLineInfo;
 import com.fx.entity.order.RouteMapPoint;
+import com.fx.web.util.RedisUtil;
 
 /**
  * 工具类
@@ -1082,5 +1084,28 @@ public class UT {
 		
 		return "/"+_year+"/"+_month;
 	}
+	
+	/**
+	 * 将对象保存到缓存中，指定时间长度
+	 * @param redis 缓存对象
+	 * @param obj 	保存的对象
+	 * @param key 	保存的key
+	 * @param min 	保存的时间（分钟）
+	 */
+	public static void setRedis(RedisUtil redis, Object obj, String key, int min){
+		Item it = new Item();
+		it.setVal(obj);
+		it.setOther(new Date().getTime());
+		if(StringUtils.isBlank(key)){
+			// 未传入保存key，系统生成指定格式key
+			key = "k-"+new Date().getTime();
+		}
+		it.setId(key);
+		
+		redis.set(key, it, min*60);
+		U.log(log, "====>为【"+key+"（"+min+"分钟）】保存缓存成功");
+	}
+	
+	
 	
 }

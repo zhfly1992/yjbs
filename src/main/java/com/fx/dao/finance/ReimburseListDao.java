@@ -17,6 +17,7 @@ import com.fx.commons.hiberantedao.pagingcom.Page;
 import com.fx.commons.utils.enums.ReqSrc;
 import com.fx.commons.utils.other.DateUtils;
 import com.fx.commons.utils.tools.U;
+import com.fx.commons.utils.tools.UT;
 import com.fx.entity.finance.ReimburseList;
 
 @Repository
@@ -98,5 +99,17 @@ public class ReimburseListDao extends ZBaseDaoImpl<ReimburseList, Long> {
 		}
 		
 		return pd;
+	}
+	/**
+	 * 获取凭证号
+	 * @author xx
+	 * @Date 20200702
+	 * @param unitNum 单位编号
+	 * @param uname   员工账号
+	 */
+	public String getVoucherNum(String unitNum,String uname) {
+		String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
+		Object sortNum=findObj(hql, unitNum,DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
+		return UT.creatReimVoucher(uname,Integer.parseInt(sortNum.toString()));
 	}
 }

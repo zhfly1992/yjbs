@@ -58,13 +58,18 @@ public class BankTradeList implements Serializable{
 	@Column(name="trans_num", columnDefinition="varchar(50) COMMENT '对方账号'")
 	private String transNum;
 	
+	/** 下账客户id */
+	@Column(name="company_cus_id", columnDefinition="varchar(20) COMMENT '下账客户id'")
+	private String companyCusId;
+	
 	/** 客户名称 */
 	@Column(name="cus_name", columnDefinition="varchar(50) COMMENT '客户名称'")
 	private String cusName;
 	
 	/** 金额类型 */
-	@Column(name="money_type", columnDefinition="text COMMENT '金额类型'")
-	private String moneyType;
+	@OneToOne(targetEntity = MoneyType.class)
+	@JoinColumn(name="money_type_id", referencedColumnName="id", columnDefinition="bigint COMMENT '金额类型id'")
+	private MoneyType moneyTypeId;
 	
 	/** 交易时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -87,40 +92,18 @@ public class BankTradeList implements Serializable{
 	@Column(name="remark", columnDefinition="text COMMENT '摘要'")
 	private String remark;
 	
-	/** 已报销金额 */
-	@Column(name="reim_money",  columnDefinition="double(10,2) default '0.00' COMMENT '审核状态'")
-	private double reimMoney;
-	
-	/** -2已锁定 -1已报销完成  0未操作  1待审核 2已审核 */
+	/** -1已报销完成  0未操作  1待审核 */
 	@Column(name="is_check",  columnDefinition="int(11) default '0' COMMENT '审核状态'")
 	private int isCheck;
-	
-	/** 关联凭证列表 */
-	/*@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.LAZY)
-	@JoinColumn(name="bank_trade_id")
-	private List<ReimburseList> bankTradeId;*/
 	
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="add_time", columnDefinition="datetime COMMENT '添加时间'")
 	private Date addTime;
 	
-	/** 开放查询角色id/@name */
-	@Column(name="open_role", columnDefinition="text COMMENT '开放查询角色id/@name'")
-	private String openRole;
-	
 	/** 凭证号码 */
 	@Column(name="voucher_number",  columnDefinition="varchar(50) COMMENT '凭证号码'")
 	private String voucherNumber;
-	
-	/** 单据号码 */
-	@Column(name="document_number",  columnDefinition="varchar(50) COMMENT '单据号码'")
-	private String documentNumber;
-	
-	/** 科目名称 */
-	@OneToOne(targetEntity = FeeCourse.class)
-	@JoinColumn(name="fee_course_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '科目id'")
-	private FeeCourse feeCourseId;
 	
 	/** 通报人手机号 */
 	@Column(name="notice_man",  columnDefinition="varchar(50) COMMENT '通报人手机号'")
@@ -130,18 +113,10 @@ public class BankTradeList implements Serializable{
 	@Column(name="notice_remark", columnDefinition="text COMMENT '通报内容'")
 	private String noticeRemark;
 	
-	/** 待审核金额 */
-	@Column(name="check_money",  columnDefinition="double(10,2) default '0.00' COMMENT '待审核金额'")
-	private double checkMoney;
-	
 	/** 下账订单号 */
 	@Column(name="order_num", columnDefinition="text COMMENT '下账订单号'")
 	private String orderNum;
-	
-	/** 客户id */
-	@Column(name="company_cus_id", columnDefinition="varchar(20) COMMENT '客户id'")
-	private String companyCusId;
-	
+		
 	/** 每次操作标识号 */
 	@Column(name="oper_mark", columnDefinition="text COMMENT '每次操作标识号'")
 	private String operMark;
@@ -277,24 +252,6 @@ public class BankTradeList implements Serializable{
 	
 
 	/**  
-	 * 获取 金额类型  
-	 * @return moneyType
-	 */
-	public String getMoneyType() {
-		return moneyType;
-	}
-	
-
-	/**  
-	 * 设置 金额类型  
-	 * @param moneyType 
-	 */
-	public void setMoneyType(String moneyType) {
-		this.moneyType = moneyType;
-	}
-	
-
-	/**  
 	 * 获取 交易时间  
 	 * @return tradeTime
 	 */
@@ -383,26 +340,9 @@ public class BankTradeList implements Serializable{
 		this.remark = remark;
 	}
 	
-	/**  
-	 * 获取 已报销金额  
-	 * @return reimMoney
-	 */
-	public double getReimMoney() {
-		return reimMoney;
-	}
-	
 
 	/**  
-	 * 设置 已报销金额  
-	 * @param reimMoney 
-	 */
-	public void setReimMoney(double reimMoney) {
-		this.reimMoney = reimMoney;
-	}
-	
-
-	/**  
-	 * 获取 -2已锁定-1已报销完成0未操作1待审核2已审核  
+	 * 获取-1已报销完成  0未操作  1待审核  
 	 * @return isCheck
 	 */
 	public int getIsCheck() {
@@ -411,7 +351,7 @@ public class BankTradeList implements Serializable{
 	
 
 	/**  
-	 * 设置 -2已锁定-1已报销完成0未操作1待审核2已审核  
+	 * 设置 -1已报销完成  0未操作  1待审核  
 	 * @param isCheck 
 	 */
 	public void setIsCheck(int isCheck) {
@@ -437,24 +377,6 @@ public class BankTradeList implements Serializable{
 	
 
 	/**  
-	 * 获取 开放查询角色id@name  
-	 * @return openRole
-	 */
-	public String getOpenRole() {
-		return openRole;
-	}
-	
-
-	/**  
-	 * 设置 开放查询角色id@name  
-	 * @param openRole 
-	 */
-	public void setOpenRole(String openRole) {
-		this.openRole = openRole;
-	}
-	
-
-	/**  
 	 * 获取 凭证号码  
 	 * @return voucherNumber
 	 */
@@ -469,43 +391,6 @@ public class BankTradeList implements Serializable{
 	 */
 	public void setVoucherNumber(String voucherNumber) {
 		this.voucherNumber = voucherNumber;
-	}
-	
-
-	/**  
-	 * 获取 单据号码  
-	 * @return documentNumber
-	 */
-	public String getDocumentNumber() {
-		return documentNumber;
-	}
-	
-
-	/**  
-	 * 设置 单据号码  
-	 * @param documentNumber 
-	 */
-	public void setDocumentNumber(String documentNumber) {
-		this.documentNumber = documentNumber;
-	}
-	
-
-	/**  
-	 * 获取 科目名称  
-	 * @return feeCourseId
-	 */
-	public FeeCourse getFeeCourseId() {
-		return feeCourseId;
-	}
-	
-
-
-	/**  
-	 * 设置 科目名称  
-	 * @param feeCourseId 
-	 */
-	public void setFeeCourseId(FeeCourse feeCourseId) {
-		this.feeCourseId = feeCourseId;
 	}
 	
 
@@ -543,24 +428,6 @@ public class BankTradeList implements Serializable{
 	 */
 	public void setNoticeRemark(String noticeRemark) {
 		this.noticeRemark = noticeRemark;
-	}
-	
-
-	/**  
-	 * 获取 待审核金额  
-	 * @return checkMoney
-	 */
-	public double getCheckMoney() {
-		return checkMoney;
-	}
-	
-
-	/**  
-	 * 设置 待审核金额  
-	 * @param checkMoney 
-	 */
-	public void setCheckMoney(double checkMoney) {
-		this.checkMoney = checkMoney;
 	}
 	
 
@@ -636,6 +503,26 @@ public class BankTradeList implements Serializable{
 	public void setOperNote(String operNote) {
 		this.operNote = operNote;
 	}
+
+
+	/**  
+	 * 获取 金额类型  
+	 * @return moneyTypeId
+	 */
+	public MoneyType getMoneyTypeId() {
+		return moneyTypeId;
+	}
+	
+
+
+	/**  
+	 * 设置 金额类型  
+	 * @param moneyTypeId
+	 */
+	public void setMoneyTypeId(MoneyType moneyTypeId) {
+		this.moneyTypeId = moneyTypeId;
+	}
+	
 	
 	
 	

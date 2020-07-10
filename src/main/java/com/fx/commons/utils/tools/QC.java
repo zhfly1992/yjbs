@@ -53,12 +53,14 @@ public class QC {
 	 */
 	public static String TEST_RECORD_NUMBER = "蜀ICP备15020382号";
 	
-	/** 管理员登录用户唯一uuid：buuid */
-	public static final String L_BACK_UUID = "buuid";
+//	/** 管理员登录用户唯一uuid：buuid */
+//	public static final String L_BACK_UUID = "uuid";
 	/** 登录用户唯一uuid：uuid */
 	public static final String UUID = "uuid";
 	/** 登录用户 L_USER */
 	public static final String L_USER = "L_USER";
+	/** 登录管理员用户 L_BACK_USER */
+	public static final String L_BACK_USER = "L_BACK_USER";
 	/** 登录员工 L_STAFF */
 	public static final String L_STAFF = "L_STAFF";
 	/** 登录用户角色 L_ROLE */
@@ -73,6 +75,9 @@ public class QC {
 	public static final String IMG_CODE = "IMG_CODE";
 	/** 图片验证码长度 4 */
 	public static final int IMG_CODE_LEN = 4;
+	
+	/** 短信验证码保存时间（分钟）10 */
+	public static final int SMS_CODE_SAVE_TIME = 10;
 	
     
     /** 用户默认[明文]登录密码 */

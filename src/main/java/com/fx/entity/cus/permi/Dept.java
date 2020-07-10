@@ -2,12 +2,17 @@ package com.fx.entity.cus.permi;
 
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -28,6 +33,10 @@ public class Dept implements Serializable {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private long id;
 	
+	/** 所属单位编号 */
+	@Column(name="unit_num", nullable=false, columnDefinition="varchar(30) COMMENT '所属单位编号'")
+	private String unitNum;
+	
 	/** 部门名称 */
 	@Column(name="name", nullable=false,unique=true, columnDefinition="varchar(30) COMMENT '部门名称'")
 	private String name;
@@ -35,6 +44,11 @@ public class Dept implements Serializable {
 	/** 父级ID */
 	@Column(name="pid", columnDefinition="bigint COMMENT '父级ID'")
 	private long pid;
+	
+	/** 角色列表 */
+	@OneToMany(cascade=CascadeType.ALL,fetch=FetchType.EAGER)
+	@JoinColumn(name="dept_role_id")
+	private List<Role> deptRoleId;
 	
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -57,6 +71,21 @@ public class Dept implements Serializable {
 	 */
 	public void setId(long id) {
 		this.id = id;
+	}
+	
+	/**
+	 * @return the 所属单位编号
+	 */
+	public String getUnitNum() {
+		return unitNum;
+	}
+	
+
+	/**
+	 * @param 所属单位编号 the unitNum to set
+	 */
+	public void setUnitNum(String unitNum) {
+		this.unitNum = unitNum;
 	}
 	
 
@@ -95,6 +124,24 @@ public class Dept implements Serializable {
 		this.pid = pid;
 	}
 	
+
+	/**
+	 * @return the 角色列表
+	 */
+	public List<Role> getDeptRoleId() {
+		return deptRoleId;
+	}
+	
+
+
+	/**
+	 * @param 角色列表 the deptRoleId to set
+	 */
+	public void setDeptRoleId(List<Role> deptRoleId) {
+		this.deptRoleId = deptRoleId;
+	}
+	
+
 
 	/**  
 	 * 获取 添加时间  

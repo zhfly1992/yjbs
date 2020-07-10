@@ -210,10 +210,10 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 			String page = jsonObject.getString("page");
 			String rows = jsonObject.getString("rows");
 
-			// 订单支付状态
-			OrderPayStatus payStatus = null;
-			if (!StringUtils.isBlank(jsonObject.getString("orderPayStatus"))) {
-				payStatus = OrderPayStatus.valueOf(jsonObject.getString("orderPayStatus"));
+			//订单支付状态
+			String payStatus = null;
+			if (StringUtils.isNotBlank(jsonObject.getString("orderPayStatus"))) {
+				payStatus = jsonObject.getString("orderPayStatus");
 			}
 			// 开始时间
 			String startTime = jsonObject.getString("startTime");
@@ -2403,7 +2403,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				disCarInfo.setSeats(car.getSeats());
 				disCarInfo.setMainDriverStime(co.getStime());
 				disCarInfo.setMainDriverEtime(co.getEtime());
-				disCarInfo.setMain_driver(car.getBaseUserId());
+				disCarInfo.setMain_driver(car.getStaff());
 				disCarInfo.setOrderNum(co.getOrderNum());// 20200519
 															// xx此处添加订单号方便智能派单查询
 				// 派车信息添加进订单信息
@@ -2419,7 +2419,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				mco.getMainOrderBase().setStatus(MainOrderStatus.FINISHED_DIS_CAR);
 			mcarOrderDao.update(mco);
 			U.log(log, "单位-人工/智能派单-找到车辆[" + car.getPlateNumber() + "]派车完成");
-			if (car.getBaseUserId() == null) {// 没有驾驶员
+			if (car.getStaff() == null) {// 没有驾驶员
 				U.setPut(sendMap, 1, "操作成功，派单未匹配到合适的师傅，请在订单里面手动选择师傅");// 拼接派单成功订单号供前台提示
 			} else {
 				U.setPut(sendMap, 1, "操作成功，派单车辆为【" + car.getPlateNumber() + "】");
@@ -3023,7 +3023,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 						
 						StaffReimburse obj = new StaffReimburse();
 						obj.setUnitNum(unitNum);
-						obj.setReimUserId(co.getCarOrderBase().getBaseUserId());
+						obj.setReimUser(co.getCarOrderBase().getBaseUserId());
 						obj.setFeeCourseId(fc);
 						if(staff!=null) obj.setDeptId(staff.getDeptId());//是员工就有部门
 						obj.setGathMoney(0);
@@ -3752,7 +3752,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				if(fg){
 					if(cus == null){
 						fg = U.setPutFalse(map, 401, "登录失效，请重新登录");
-					}else if(!jco.getDisCar().getMain_driver().getUname().contains(cus.getBaseUserId().getUname())){
+					}else if(!jco.getDisCar().getMain_driver().getBaseUserId().getUname().contains(cus.getBaseUserId().getUname())){
 						// 既不是用户名也不是手机号
 						fg = U.setPutFalse(map, "该订单驾驶员不是您");
 					}
@@ -4040,7 +4040,7 @@ public class CarOrderServiceImpl extends BaseServiceImpl<CarOrder, Long> impleme
 				List<Object> ons = new ArrayList<Object>();
 				for (DisCarInfo dci : mco.getMainCars()) {
 					// 只保存派单给登录驾驶员的订单
-					if(dci.getMain_driver() != null && dci.getMain_driver().getUname().equals(luname)) {
+					if(dci.getMain_driver() != null && dci.getMain_driver().getBaseUserId().getUname().equals(luname)) {
 						ons.add(dci.getOrderNum());
 					}
 				}

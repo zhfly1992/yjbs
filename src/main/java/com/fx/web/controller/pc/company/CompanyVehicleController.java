@@ -72,6 +72,158 @@ public class CompanyVehicleController extends BaseController {
 	 * 
 	 * @param
 	 */
+	@ApiOperation(value="添加车辆", notes="返回map{code:状态码,msg:返回信息说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="unitNum", 
+			dataType="String", 
+			value="公司编码 eg：xxxxx"
+		),
+		@ApiImplicitParam(
+			required=true, 
+			name="plateNumber", 
+			dataType="String",
+			value="车牌号 eg：川A 88888"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="seats", 
+			dataType="String",
+			value="座位数 eg：10"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="vehicleType", 
+			dataType="String",
+			value="车辆类型 枚举"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="status", 
+			dataType="int",
+			value="车辆状态 eg：0正常，1维修，2报停，3下线"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="purchaseDate", 
+			dataType="String",
+			value="购买日期 eg：2020-05-03"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="brandId", 
+			dataType="String",
+			value="车辆品牌ID"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="carUsage", 
+			dataType="String",
+			value="购车辆性质  枚举"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="companyId", 
+			dataType="String",
+			value="关联公司ID"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="powerSource", 
+			dataType="String",
+			value="动力来源 枚举"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="mileage", 
+			dataType="float",
+			value="续航里程 eg：100"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="fuel", 
+			dataType="float",
+			value="正常油耗 eg：Uxxxx"
+		),
+		@ApiImplicitParam(			
+			required=true,
+			name="dockedAddress", 
+			dataType="String",
+			value="停靠地址全称"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="simpleDockedAddress", 
+			dataType="String",
+			value="停靠地址简称"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="dockedLatitude", 
+			dataType="double",
+			value="停靠地址纬度"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="dockedLongitude", 
+			dataType="double",
+			value="停靠地址经度"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="travelLicensePhotoURL", 
+			dataType="String",
+			value="行驶证照 eg：xxxxx"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="drivingType", 
+			dataType="String",
+			value="驾照需求 eg：A1"
+		),
+		@ApiImplicitParam(
+			required=false,
+			name="belongComapnySimName", 
+			dataType="String",
+			value="所属公司简称 eg：A1"
+		),
+		@ApiImplicitParam(
+			required=false,
+			name="belongCompanyName", 
+			dataType="String",
+			value="所属公司eg：A1"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="runningArea", 
+			dataType="int",
+			value="可跑区域 eg：0-不限区域,1-省际包车,2-市级包车,3-县级包车"
+		),
+		@ApiImplicitParam(
+			required=false,
+			name="statusTimeslot", 
+			dataType="String",
+			value="状态时间段 eg：2020-04-26 12:00-2020-04-26 14:00,正常则为null"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="businessType", 
+			dataType="String",
+			value="所属公司简称 枚举"
+		),
+		@ApiImplicitParam(
+			required=true,
+			name="fuelPrice", 
+			dataType="float",
+			value="每百公里油耗价格 eg："
+		),
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
 	@RequestMapping(value = "vehicleAdd", method = RequestMethod.POST)
 	public void companyVehicleAdd(HttpServletResponse response, HttpServletRequest request,
 			@RequestBody JSONObject jsonObject) {
@@ -93,6 +245,20 @@ public class CompanyVehicleController extends BaseController {
 	 * 
 	 * @param
 	 */
+	@ApiOperation(value="修改车辆信息", notes="参数参考查询出的车辆数据点，返回map{code:状态码,msg:返回信息说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="id", 
+			dataType="long", 
+			value="车辆id eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
 	@RequestMapping(value = "vehicleUpdate", method = RequestMethod.POST)
 	public void companyVehicleUpdate(HttpServletResponse response, HttpServletRequest request,
 			@RequestBody JSONObject jsonObject) {
@@ -113,6 +279,20 @@ public class CompanyVehicleController extends BaseController {
 	 * @author :zh
 	 * @version 2020年4月21日
 	 */
+	@ApiOperation(value="删除车辆", notes="返回map{code:状态码,msg:返回信息说明}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="id", 
+			dataType="long", 
+			value="车辆id eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
 	@RequestMapping(value = "vehicleDelete", method = RequestMethod.POST)
 	public void companyVehicleDelete(HttpServletResponse response, HttpServletRequest request,
 			@RequestBody JSONObject jsonObject) {
@@ -133,6 +313,80 @@ public class CompanyVehicleController extends BaseController {
 	 * @author :zh
 	 * @version 2020年4月21日
 	 */
+	@ApiOperation(value="查询车辆列表", notes="返回map{code:状态码,msg:返回信息说明,data:列表数据,count:总数}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="page", 
+			dataType="int", 
+			value="页码 eg：1"
+		),
+		@ApiImplicitParam(
+			required=true, 
+			name="rows", 
+			dataType="int", 
+			value="每页数量 eg：10"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="phone", 
+			dataType="String", 
+			value="驾驶员手机号"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="plateNumber", 
+			dataType="String", 
+			value="车牌号"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="seats", 
+			dataType="String", 
+			value="座位数，eg:10"
+		),
+		@ApiImplicitParam(
+			required=true, 
+			name="unitNum", 
+			dataType="String", 
+			value="公司编码"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="belongCompany", 
+			dataType="String", 
+			value="所属公司名称"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="carUsage", 
+			dataType="String", 
+			value="车辆性质 ,枚举"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="groupName", 
+			dataType="String", 
+			value="小组名称"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="startTime", 
+			dataType="String", 
+			value="时间段内已派车辆查询，开始时间"
+		),
+		@ApiImplicitParam(
+			required=false, 
+			name="endTime", 
+			dataType="String", 
+			value="时间段内已派车辆查询，结束时间"
+		),
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
 	@RequestMapping(value = "vehicleListFind", method = RequestMethod.POST)
 	public void companyVehicleFindList(HttpServletResponse response, HttpServletRequest request,
 			@RequestBody JSONObject jsonObject) {
@@ -153,6 +407,20 @@ public class CompanyVehicleController extends BaseController {
 	 * @author :zh
 	 * @version 2020年4月22日
 	 */
+	@ApiOperation(value="根据车辆id查询车辆信息", notes="返回map{code:状态码,msg:返回信息说明,data:车辆信息}")
+	@ApiImplicitParams({
+		@ApiImplicitParam(
+			required=true, 
+			name="id", 
+			dataType="long", 
+			value="车辆id eg：1"
+		)
+	})
+	@ApiResponses({
+		@ApiResponse(code=1, message="msg"),
+		@ApiResponse(code=0, message="msg"),
+		@ApiResponse(code=-1, message="msg")
+	})
 	@RequestMapping(value = "vehicleFindById", method = RequestMethod.POST)
 	public void companyVehicleFindById(HttpServletResponse response, HttpServletRequest request,@RequestBody JSONObject jsonObject) {
 		Map<String, Object> map = new HashMap<String, Object>();

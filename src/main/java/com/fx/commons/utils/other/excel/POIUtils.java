@@ -1,5 +1,7 @@
 package com.fx.commons.utils.other.excel;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -7,7 +9,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -43,8 +44,8 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 public class POIUtils {
 	
 	
-	private final String position_title = "title";
-	private final String position_body = "body";
+	private static final String position_title = "title";
+	private static final String position_body = "body";
 	
 	
 	/**
@@ -54,7 +55,7 @@ public class POIUtils {
 	 * @return
 	 * @throws IOException
 	 */
-	private Workbook openWorkbook(InputStream in, String filename)
+	private static Workbook openWorkbook(InputStream in, String filename)
 			throws IOException {
 		Workbook wb = null;
 		if (filename.endsWith(".xlsx")) {
@@ -73,7 +74,7 @@ public class POIUtils {
 	 * @return
 	 * @throws Exception
 	 */
-	public List<List<String>> getExcelData(File file , String fileName,int sheetIndex,int startRow) throws Exception {
+	public static List<List<String>> getExcelData(File file , String fileName,int sheetIndex,int startRow) throws Exception {
 		List<List<String>> dataLst = new ArrayList<List<String>>();
 		// 构造 Workbook 对象，strPath 传入文件路径
 		FileInputStream inputStream = null;
@@ -185,7 +186,7 @@ public class POIUtils {
 	 * @param totalCells
 	 * @return
 	 */
-	private boolean curRowInsideNull(Row row, int totalCells) {
+	private static boolean curRowInsideNull(Row row, int totalCells) {
 		StringBuffer sb = new StringBuffer();
 		for (int i = 0; i < totalCells; i++) {
 			row.getCell(i, HSSFRow.RETURN_BLANK_AS_NULL);
@@ -225,7 +226,7 @@ public class POIUtils {
 	}
 	
 	@SuppressWarnings("rawtypes")
-	public HSSFWorkbook handleDataToExcel(List list,Class clazz,String sheetName,int pageSize) throws Exception{
+	public static HSSFWorkbook handleDataToExcel(List list,Class clazz,String sheetName,int pageSize) throws Exception{
 		
 		HSSFWorkbook workbook = null;
 		workbook = new HSSFWorkbook();
@@ -308,7 +309,7 @@ public class POIUtils {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("rawtypes")
-	public void exportToExcel(HttpServletResponse response,String fileName,List objs, Class clazz,
+	public static void exportToExcel(HttpServletResponse response,String fileName,List objs, Class clazz,
 			String sheetName, int pageSize){
 		OutputStream out = null;
 		try {
@@ -337,7 +338,7 @@ public class POIUtils {
 	 * @return
 	 */
 	@SuppressWarnings("unused")
-	private String getPropertyName(ExcelHeader excelHeader) {
+	private static String getPropertyName(ExcelHeader excelHeader) {
 		String temp = excelHeader.getMethodName().substring(3);
 		return temp.substring(0, 1).toLowerCase() + temp.substring(1);
 	}
@@ -348,7 +349,7 @@ public class POIUtils {
 	 * @param position
 	 * @return
 	 */
-	private CellStyle setCellStyle(HSSFWorkbook workbook,
+	private static CellStyle setCellStyle(HSSFWorkbook workbook,
 			String position) {
 		
 		CellStyle style = workbook.createCellStyle();
@@ -381,7 +382,7 @@ public class POIUtils {
 	 * @return
 	 */
 	@SuppressWarnings("rawtypes")
-	private List<ExcelHeader> getHeaderList(Class clazz) {
+	private static List<ExcelHeader> getHeaderList(Class clazz) {
 		
 		List<ExcelHeader> headers = new ArrayList<ExcelHeader>();
 		java.lang.reflect.Method [] ms = clazz.getDeclaredMethods();
@@ -408,7 +409,9 @@ public class POIUtils {
      * @param dataList 表的内容
      * @return
      */
-	public  HSSFWorkbook poiExport(String title, String[] rowName, List<Object[]> dataList) throws Exception {
+	public static HSSFWorkbook poiExport(String title, String[] rowName, List<Object[]> dataList) throws Exception {
+		//InputStream is;
+	   // ByteArrayOutputStream os = new ByteArrayOutputStream();
         HSSFWorkbook workbook = new HSSFWorkbook(); // 创建工作簿对象
         HSSFSheet sheet = workbook.createSheet(title); // 创建工作表
         // 产生表格标题行
@@ -442,10 +445,12 @@ public class POIUtils {
                     cell = row.createCell(j, HSSFCell.CELL_TYPE_NUMERIC);
                     cell.setCellValue(i + 1);
                 } else {
-                    cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);
-                    if (!"".equals(obj[j]) && obj[j] != null) {
-                        cell.setCellValue(obj[j].toString()); // 设置单元格的值
-                    }
+                	if(!"".equals(obj[j]) && obj[j] != null) {
+                		cell = row.createCell(j, HSSFCell.CELL_TYPE_STRING);
+                		cell.setCellValue(obj[j].toString()); // 设置单元格的值
+                	}else {
+                		cell = row.createCell(j, HSSFCell.CELL_TYPE_BLANK);
+                	}
                 }
                 cell.setCellStyle(style); // 设置单元格样式
             }
@@ -464,7 +469,7 @@ public class POIUtils {
                 if (currentRow.getCell(colNum) != null) {
                     HSSFCell currentCell = currentRow.getCell(colNum);
                     if (currentCell.getCellType() == HSSFCell.CELL_TYPE_STRING) {
-                        int length = currentCell.getStringCellValue().getBytes().length;
+                    	int length = currentCell.getStringCellValue().getBytes().length;
                         if (columnWidth < length) {
                             columnWidth = length;
                         }
@@ -477,6 +482,14 @@ public class POIUtils {
                 sheet.setColumnWidth(colNum, (columnWidth + 4) * 256);
             }
         }
+        /*try {
+            workbook.write(os);
+         } catch (IOException e) {
+            e.printStackTrace();
+         }
+         is = new ByteArrayInputStream(os.toByteArray());
+         return is;*/
+        
         return workbook;
     }
 
@@ -486,7 +499,7 @@ public class POIUtils {
      * @param workbook
      * @return
      */
-    public  HSSFCellStyle getColumnTopStyle(HSSFWorkbook workbook) {
+    public static HSSFCellStyle getColumnTopStyle(HSSFWorkbook workbook) {
         // 设置字体
         HSSFFont font = workbook.createFont();
         // 设置字体大小
@@ -530,7 +543,7 @@ public class POIUtils {
      * @param workbook
      * @return
      */
-    public  HSSFCellStyle getStyle(HSSFWorkbook workbook) {
+    public static  HSSFCellStyle getStyle(HSSFWorkbook workbook) {
         // 设置字体
         HSSFFont font = workbook.createFont();
         // 设置字体大小
@@ -572,25 +585,46 @@ public class POIUtils {
      * @param response
      * @param workbook
      * @param fileName
+     * @throws Exception 
      */
-	public void downToExcel(HttpServletResponse response,HSSFWorkbook workbook,String fileName){
-		OutputStream out = null;
+	public static void downToExcel(HttpServletResponse response,String fileName,
+			String title, String[] rowName, List<Object[]> dataList) throws Exception{
+		/*// 读到流中
+		InputStream inStream = poiExport(title, rowName, dataList);
+	      // 设置输出的格式
+	      response.reset();
+	      response.setContentType("bin");
+	      response.addHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+	      // 循环取出流中的数据
+	      byte[] b = new byte[100];
+	      int len;
+	      try {
+	         while ((len = inStream.read(b)) > 0)
+	            response.getOutputStream().write(b, 0, len);
+	         inStream.close();
+	      } catch (IOException e) {
+	         e.printStackTrace();
+	      }*/
+	
 		try {
-	        response.setContentType("application/octet-stream;charset=utf-8");
-	        response.setHeader("Content-Disposition", "attachment;filename="
-	                + new String(fileName.getBytes(), StandardCharsets.ISO_8859_1) + ".xls");
-	        out = response.getOutputStream();
-	        workbook.write(out);
+			HSSFWorkbook wb=poiExport(title, rowName, dataList);
+	        /*response.setHeader("Content-Disposition","attachment;filename="
+	        		+ new String(fileName.getBytes("GB2312"), "ISO-8859-1")+".xls");
+			response.setContentType("application/octet-stream;charset=utf8");*/
+			
+			fileName = new String(fileName.getBytes("GB2312"), "ISO-8859-1");
+            response.setContentType("application/vnd.ms-excel;charset=utf-8");
+            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+			
+			OutputStream out = response.getOutputStream();
+	        wb.write(out);
+	        out.flush();
+			out.close();
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
-		}finally{
-			try {
-				out.flush();
-				out.close();
-			} catch (IOException e) {
-			}
 		}
+      
 	}
 }

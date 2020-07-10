@@ -5,8 +5,6 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -20,7 +18,6 @@ import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
 
 import com.alibaba.fastjson.JSONArray;
-import com.fx.commons.utils.enums.CusType;
 import com.fx.entity.cus.BaseUser;
 import com.vladmihalcea.hibernate.type.json.JsonStringType;
 
@@ -53,9 +50,9 @@ public class CompanyCustom implements Serializable {
 	private String unitName;
 	
 	/** 客户类型 */
-	@Enumerated(EnumType.STRING)
-	@Column(name="cus_type", nullable=false, columnDefinition="varchar(20) COMMENT '客户类型'")
-	private CusType cusType;
+	@OneToOne(targetEntity = CustomType.class)
+	@JoinColumn(name="cus_type_id", referencedColumnName="id", columnDefinition="bigint COMMENT '客户类型id'")
+	private CustomType cusTypeId;
 	
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -256,21 +253,27 @@ public class CompanyCustom implements Serializable {
 
 	/**  
 	 * 获取 客户类型  
-	 * @return cusType
+	 * @return cusTypeId
 	 */
-	public CusType getCusType() {
-		return cusType;
+	public CustomType getCusTypeId() {
+		return cusTypeId;
 	}
 	
 
+
+
+
 	/**  
 	 * 设置 客户类型  
-	 * @param cusType 
+	 * @param cusTypeId
 	 */
-	public void setCusType(CusType cusType) {
-		this.cusType = cusType;
+	public void setCusTypeId(CustomType cusTypeId) {
+		this.cusTypeId = cusTypeId;
 	}
 	
+
+
+
 
 	/**  
 	 * 获取 添加时间  

@@ -10,6 +10,8 @@ import javax.persistence.Enumerated;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -59,9 +61,9 @@ public class FeeCourse implements Serializable {
 	@Column(name="course_type", nullable=false, columnDefinition="int(11) default 0 COMMENT '0收 1支'")
 	private int courseType;
 	
-	/** 状态  0可用 1不可用*/
-	@Column(name="course_status", nullable=false, columnDefinition="int(11) default 0 COMMENT '状态  0可用 1不可用'")
-	private String courseStatus;
+	/** 状态  0启用1停用 */
+	@Column(name="course_status", nullable=false, columnDefinition="int(11) default 0 COMMENT '状态  0启用1停用 '")
+	private int courseStatus;
 	
 	/** 添加时间 */
 	@Temporal(TemporalType.TIMESTAMP)
@@ -72,13 +74,23 @@ public class FeeCourse implements Serializable {
 	@Column(name="level", nullable=false, columnDefinition="int(11) default 1 COMMENT '科目层级，1为最高层级,3为最低级'")
 	private int level;
 	
-	/** 上层科目id*/
-	@Column(name="parent_id",columnDefinition="bigint(20)  COMMENT '上层科目id,若是根层级则为null'")
-	private Long parentId;
+	/** 上级科目 */
+	@OneToOne(targetEntity = FeeCourse.class)
+	@JoinColumn(name="parent_course_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '上级科目'")
+	private FeeCourse parentCourseId;
+	
+	/** 期初记录 */
+	@OneToOne(targetEntity = FeeCourse.class)
+	@JoinColumn(name="first_balance_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '期初记录'")
+	private FeeCourseTradeFirst firstBalanceId;
 	
 	/** 余额 */
 	@Column(name="balance", columnDefinition="double(10,2) default '0.00' COMMENT '余额'")
 	private double balance;
+	
+	/** 是否是最后一级科目 0否 1是*/
+	@Column(name="is_last_course", nullable=false, columnDefinition="tinyint(1) DEFAULT '1' COMMENT '是否是最后一级科目 0否 1是'")
+	private int isLastCourse;
 	
 	public FeeCourse() {}
 	
@@ -214,19 +226,19 @@ public class FeeCourse implements Serializable {
 	
 
 	/**  
-	 * 获取 状态0可用1不可用  
+	 * 获取 状态0启用1停用 
 	 * @return courseStatus
 	 */
-	public String getCourseStatus() {
+	public int getCourseStatus() {
 		return courseStatus;
 	}
 	
 
 	/**  
-	 * 设置 状态0可用1不可用  
+	 * 设置 状态0启用1停用  
 	 * @param courseStatus 
 	 */
-	public void setCourseStatus(String courseStatus) {
+	public void setCourseStatus(int courseStatus) {
 		this.courseStatus = courseStatus;
 	}
 	
@@ -265,19 +277,24 @@ public class FeeCourse implements Serializable {
 		this.level = level;
 	}
 
-	/**
-	 * @return the parentId
-	 */
-	public Long getParentId() {
-		return parentId;
-	}
 
-	/**
-	 * @param parentId the parentId to set
+	/**  
+	 * 获取 上级科目  
+	 * @return parentCourseId
 	 */
-	public void setParentId(Long parentId) {
-		this.parentId = parentId;
+	public FeeCourse getParentCourseId() {
+		return parentCourseId;
 	}
+	
+
+	/**  
+	 * 设置 上级科目  
+	 * @param parentCourseId
+	 */
+	public void setParentCourseId(FeeCourse parentCourseId) {
+		this.parentCourseId = parentCourseId;
+	}
+	
 
 	/**  
 	 * 获取 serialVersionUID  
@@ -303,6 +320,42 @@ public class FeeCourse implements Serializable {
 	public void setBalance(double balance) {
 		this.balance = balance;
 	}
+
+	/**  
+	 * 获取 是否是最后一级科目  
+	 * @return isLastCourse
+	 */
+	public int getIsLastCourse() {
+		return isLastCourse;
+	}
+	
+
+	/**  
+	 * 设置 是否是最后一级科目  
+	 * @param isLastCourse
+	 */
+	public void setIsLastCourse(int isLastCourse) {
+		this.isLastCourse = isLastCourse;
+	}
+
+	/**  
+	 * 获取 期初记录  
+	 * @return firstBalanceId
+	 */
+	public FeeCourseTradeFirst getFirstBalanceId() {
+		return firstBalanceId;
+	}
+	
+
+	/**  
+	 * 设置 期初记录  
+	 * @param firstBalanceId
+	 */
+	public void setFirstBalanceId(FeeCourseTradeFirst firstBalanceId) {
+		this.firstBalanceId = firstBalanceId;
+	}
+	
+	
 	
 	
 

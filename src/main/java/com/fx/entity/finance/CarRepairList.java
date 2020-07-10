@@ -17,6 +17,7 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 import com.fx.commons.utils.enums.ReqSrc;
+import com.fx.entity.company.CompanyCustom;
 import com.fx.entity.cus.BaseUser;
 /**
  * 车辆维修记录表
@@ -45,9 +46,10 @@ public class CarRepairList implements Serializable{
 	@Column(name="plate_num", nullable=false, columnDefinition="varchar(20) COMMENT '车牌号'")
 	private String plateNum;
 	
-	/** 维修站名称*/
-	@Column(name="repair_name", nullable=false, columnDefinition="varchar(50) COMMENT '维修站名称'")
-	private String repairName;
+	/** 维修客户引用 */
+	@OneToOne(targetEntity = CompanyCustom.class)
+	@JoinColumn(name="repair_customer", nullable=false, referencedColumnName="id", columnDefinition="varchar(30) COMMENT '维修客户引用'")
+	private CompanyCustom repairCustomer;
 	
 	/** 维修金额 */
 	@Column(name="repair_money", columnDefinition="double(10,2) default '0.00' COMMENT '维修金额'")
@@ -241,24 +243,6 @@ public class CarRepairList implements Serializable{
 	 */
 	public void setPlateNum(String plateNum) {
 		this.plateNum = plateNum;
-	}
-	
-
-	/**  
-	 * 获取 维修站名称  
-	 * @return repairName
-	 */
-	public String getRepairName() {
-		return repairName;
-	}
-	
-
-	/**  
-	 * 设置 维修站名称  
-	 * @param repairName 
-	 */
-	public void setRepairName(String repairName) {
-		this.repairName = repairName;
 	}
 	
 

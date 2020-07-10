@@ -15,7 +15,6 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,16 +38,20 @@ import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.CompanyCustomDao;
+import com.fx.dao.company.StaffDao;
 import com.fx.dao.finance.BankListDao;
 import com.fx.dao.finance.BankTradeListDao;
 import com.fx.dao.finance.FeeCourseDao;
+import com.fx.dao.finance.MoneyTypeDao;
 import com.fx.dao.finance.ReimburseListDao;
 import com.fx.dao.order.MainCarOrderDao;
 import com.fx.entity.company.CompanyCustom;
+import com.fx.entity.company.Staff;
 import com.fx.entity.finance.BankList;
 import com.fx.entity.finance.BankTradeList;
 import com.fx.entity.finance.FeeCourse;
 import com.fx.entity.finance.FeeCourseTrade;
+import com.fx.entity.finance.MoneyType;
 import com.fx.entity.finance.ReimburseList;
 import com.fx.entity.order.MainCarOrder;
 import com.fx.service.finance.BankTradeListService;
@@ -82,6 +85,12 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	/**单位客户服务**/
 	@Autowired
 	private CompanyCustomDao ccDao;
+	/**金额类型服务**/
+	@Autowired
+	private MoneyTypeDao mtDao;
+	/**员工服务**/
+	@Autowired
+	private StaffDao staffDao;
 	
 	@Override
 	public Map<String, Object> findBankTradeList(ReqSrc reqsrc, String page, String rows,String unitNum,String bankNo,String transName,
@@ -127,7 +136,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	}
 	@Override
 	public Map<String, Object> lockBankTrade(HttpServletRequest request,ReqSrc reqsrc, String btlId,String isLock) {
-		String logtxt = U.log(log, ("0".equals(isLock))?"解锁":"锁定"+"-银行账", reqsrc);
+		String logtxt = U.log(log, ("0".equals(isLock))?"解锁":"锁定"+"-银行账(已取消)", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -188,7 +197,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	@Override
 	public Map<String, Object> linkReim(HttpServletRequest request,
 			ReqSrc reqsrc, String reimId,String btlId) {
-		String logtxt = U.log(log, "结账-银行账与财务记账报销，相当于财务核销", reqsrc);
+		String logtxt = U.log(log, "结账-银行账与财务记账报销，相当于财务核销(已取消)", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -238,10 +247,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 							reimDao.update(reim);
 						}
 					}
-					double reimMoney=0;
 					for (BankTradeList btl:btlist) {
-						reimMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
-						btl.setReimMoney(reimMoney);
 						btl.setIsCheck(-1);
 						btl.setOperMark(operMark);
 						btlDao.update(btl);
@@ -260,7 +266,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	}
 	@Override
 	public Map<String, Object> transBtl(HttpServletRequest request,
-			ReqSrc reqsrc, String transId, String voucherNumber) {
+			ReqSrc reqsrc, String transId) {
 		String logtxt = U.log(log, "银行账互转", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
@@ -297,13 +303,14 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 				}
 				if(fg){
 					String operMark=UT.creatOperMark();
+					String voucherNo=reimDao.getVoucherNum(btlIn.getUnitNum(), LU.getLUName(request, redis));
 					//互转银行账变为已报销
 					btlIn.setIsCheck(-2);
-					btlIn.setVoucherNumber(voucherNumber);
+					btlIn.setVoucherNumber(voucherNo);
 					btlIn.setOperMark((StringUtils.isNotBlank(btlIn.getOperMark()))?btlIn.getOperMark():operMark);
 					btlDao.update(btlIn);
 					btlOut.setIsCheck(-2);
-					btlOut.setVoucherNumber(voucherNumber);
+					btlOut.setVoucherNumber(voucherNo);
 					btlOut.setOperMark((StringUtils.isNotBlank(btlOut.getOperMark()))?btlOut.getOperMark():operMark);
 					btlDao.update(btlOut);
 					U.setPut(map, 1, "操作成功");
@@ -318,222 +325,11 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		
 		return map;
 	}
-	@Override
-	public double bankBalance(String unitNum, double accountMoney,
-			double creditMoney, String bankName) {
-		BankTradeList btl=null;
-		String hql="FROM BankTradeList WHERE unitNum = ?0 and myBankName = ?1 and myBankNum = ?2 order by id desc";
-		btl=btlDao.findObj(hql, unitNum,bankName.split("/")[0],bankName.split("/")[1],"LIMIT 1");
-		if(btl!=null){
-			return MathUtils.sub(MathUtils.add(btl.getBalance(), accountMoney, 2), creditMoney, 2);
-		}
-		return MathUtils.sub(accountMoney,creditMoney,2);
-	}
-	@Override
-	public Map<String, Object> addBtl(HttpServletRequest request,
-			ReqSrc reqsrc, String myBank, String transName, String transNum,
-			String tradeTime, String tradeStatus, String tradeMoney,
-			String balance, String remark,String moneyType) {
-		String logtxt = U.log(log, "财务-添加银行账", reqsrc);
-		
-		Map<String, Object> map = new HashMap<String, Object>();
-		boolean fg = true;
-		
-		try {
-			if(ReqSrc.PC_COMPANY == reqsrc){
-				String myBankName="";
-				String myBankNum="";
-				Date tradeDate=null;
-				if(fg){
-					if(StringUtils.isEmpty(tradeTime)){
-						fg = U.setPutFalse(map, "交易时间不能为空");
-					}else{
-						tradeDate = DateUtils.strToDate(DateUtils.yyyy_MM_dd_HH_mm_ss, tradeTime);
-						U.log(log, "交易时间tradeTime="+tradeTime);
-					}
-				}
-				if(fg){
-					if(StringUtils.isEmpty(myBank)){
-						fg = U.setPutFalse(map, "[我的银行]不能为空");
-					}else{
-						if(!myBank.contains("/")) {
-							fg = U.setPutFalse(map, "[我的银行]格式不正确");
-						}
-						if(fg) {
-							myBankName=myBank.split("/")[0];
-							myBankNum=myBank.split("/")[1];
-							String hql="from BankTradeList where myBankNum = ?0 and unitNum = ?1 order by id desc";
-							BankTradeList lastBtl=btlDao.findObj(hql, myBankNum,LU.getLUnitNum(request, redis),"LIMIT 1");
-							if(lastBtl!=null){
-								if("0".equals(tradeStatus)){//收
-									if(MathUtils.add(lastBtl.getBalance(), Double.valueOf(tradeMoney), 2)!=Double.valueOf(balance)){
-										fg=U.setPutFalse(map, "添加不成功：添加余额与系统余额数据有误差，请检查后重试！");
-									}
-								}else{
-									if(MathUtils.sub(lastBtl.getBalance(), Double.valueOf(tradeMoney), 2)!=Double.valueOf(balance)){
-										fg=U.setPutFalse(map, "添加不成功：添加余额与系统余额数据有误差，请检查后重试！");
-									}
-								}
-								if(fg){
-									if(tradeDate.getTime()<=lastBtl.getTradeTime().getTime()){
-										fg=U.setPutFalse(map, "本次添加不成功：交易时间必须在上一条交易时间之后");
-									}
-								}
-							}
-						}
-					}
-				}
-				if(fg){
-					if(StringUtils.isEmpty(transName)){
-						fg = U.setPutFalse(map, "对方户名不能为空");
-					}else{
-						transName = transName.trim();
-						U.log(log, "对方户名transName="+transName);
-					}
-				}
-				if(fg){
-					if(StringUtils.isEmpty(transNum)){
-						//fg = U.setPutFalse(map, "对方账号不能为空");20220103改为选填
-						U.log(log, "对方账号transNum为空");
-					}else{
-						transNum = transNum.trim();
-						U.log(log, "对方账号transNum="+transNum);
-					}
-				}
-				if(fg){
-					if(StringUtils.isEmpty(tradeMoney)){
-						fg = U.setPutFalse(map, "交易金额不能为空");
-					}else{
-						tradeMoney = tradeMoney.trim();
-						U.log(log, "交易金额tradeMoney="+tradeMoney);
-					}
-				}
-				if(fg){
-					if(StringUtils.isEmpty(balance)){
-						fg = U.setPutFalse(map, "余额不能为空");
-					}else{
-						balance = balance.trim();
-						U.log(log, "余额balance="+balance);
-					}
-				}
-				if(fg){
-					if(StringUtils.isEmpty(remark)){
-						//fg = U.setPutFalse(map, "摘要不能为空");20220103改为选填
-						U.log(log, "摘要remark为空");
-					}else{
-						remark = remark.trim();
-						U.log(log, "摘要remark="+remark);
-					}
-				}
-				if(fg){
-					String hql="from BankList where unitNum = ?0 and cardNo = ?1 and isOpen=1";
-					BankList gpw=blDao.findObj(hql, LU.getLUnitNum(request, redis),myBankNum);
-					if(gpw==null){
-						fg=U.setPutFalse(map, "该银行账本未启用，请先启用");
-					}
-				}
-				if(fg){
-					String operMark=UT.creatOperMark();//操作标识号
-					BankTradeList btl=new BankTradeList();
-					btl.setUnitNum(LU.getLUnitNum(request, redis));
-					btl.setMyBankName(myBankName);
-					btl.setMyBankNum(myBankNum);
-					btl.setTransName(transName);
-					if(StringUtils.isNotBlank(transNum))btl.setTransNum(transNum);
-					if("0".equals(tradeStatus)){
-						btl.setTradeInMoney(Double.valueOf(tradeMoney));	
-					}else{
-						btl.setTradeOutMoney(Double.valueOf(tradeMoney));
-					}
-					if(Double.valueOf(tradeMoney)==0){//期初余额
-						btl.setIsCheck(-1);//报销完成
-					}
-					btl.setBalance(Double.valueOf(balance));
-					if(StringUtils.isNotBlank(remark))btl.setRemark(remark);
-					btl.setTradeTime(tradeDate);
-					if(StringUtils.isNotBlank(moneyType))btl.setMoneyType(moneyType);
-					btl.setAddTime(new Date());
-					btl.setOperNote(LU.getLRealName(request, redis)+"[添加]");
-					btl.setOperMark(operMark);
-				 	btlDao.save(btl);
-					U.setPut(map, 1, "操作成功");
-				}
-			}else{
-				U.setPut(map, 0, QC.ERRORS_MSG);
-			}
-		} catch (Exception e) {
-			U.setPutEx(map, log, e, logtxt);
-			e.printStackTrace();
-		}
-		
-		return map;
-	}
 	
-	
-	@Override
-	public Map<String, Object> delBtl(HttpServletRequest request,
-			ReqSrc reqsrc, String ids,String myBankNum) {
-		String logtxt = U.log(log, "财务-删除银行账", reqsrc);
-		
-		Map<String, Object> map = new HashMap<String, Object>();
-		boolean fg = true;
-		
-		try {
-			if(ReqSrc.PC_COMPANY == reqsrc){
-				BankTradeList btl=null;
-				if(fg){
-					if(StringUtils.isEmpty(ids)){
-						fg = U.setPutFalse(map, "[删除记录]不能为空");
-					}else{
-						ids = ids.trim();
-						U.log(log, "删除记录Id="+ids);
-					}
-				}
-				if(fg){
-					String hql="from BankTradeList where unitNum = ?0 and myBankNum = ?1 and id> ?2 order by id asc";
-					String [] id=ids.split(",");//前台控制了只能选择一条
-					for(String each :id){
-						btl=btlDao.findObj(hql, LU.getLUnitNum(request, redis),myBankNum,Long.valueOf(each),"LIMIT 1");
-						if(btl!=null){
-							fg = U.setPutFalse(map, "请从最后一条银行账记录开始删除，并且选择的记录必须是连续的");
-							break;
-						}
-					}
-				}
-				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
-				if(fg) {
-					String [] id=ids.split(",");
-					for(String each :id){
-						btl=btlDao.findByField("id", Long.valueOf(each));
-						if(btl!=null) {
-							if(btl.getIsCheck()==-2) {
-								fg = U.setPutFalse(map, "有记录已经锁定，不能删除");
-								break;
-							}
-							btlist.add(btl);
-						}
-					}
-				}
-				if(fg){
-					for(BankTradeList del : btlist){
-						btlDao.delete(del);
-					}
-					U.setPut(map, 1, "操作成功");
-				}
-			}else{
-				U.setPut(map, 0, QC.ERRORS_MSG);
-			}
-		} catch (Exception e) {
-			U.setPutEx(map, log, e, logtxt);
-			e.printStackTrace();
-		}
-		
-		return map;
-	}
 	@Override
 	public Map<String, Object> openSelBtl(HttpServletRequest request,
 			ReqSrc reqsrc, String openBtlId, String openRole) {
-		String logtxt = U.log(log, "财务-开放银行账查询", reqsrc);
+		String logtxt = U.log(log, "财务-开放银行账查询(已取消)", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -562,7 +358,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					for(String each :id){
 						btl=btlDao.findByField("id", Long.valueOf(each));
 						if(btl!=null){
-							btl.setOpenRole(openRole);
+							//btl.setOpenRole(openRole);
 							btlDao.update(btl);
 						}
 					}
@@ -588,7 +384,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 	public Map<String, Object> cancelBtl(ReqSrc reqsrc,
 			HttpServletRequest request, HttpServletResponse response,
 			String cancelId) {
-		String logtxt = U.log(log, "撤销银行日记账", reqsrc);
+		String logtxt = U.log(log, "撤销银行日记账(已取消)", reqsrc);
 		
 		Map<String, Object> map = new HashMap<String, Object>();
 		boolean fg = true;
@@ -614,20 +410,17 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					}
 				}
 				if(fg){
-					if(fg){
-						//新银行账更新为未核销状态，已核销金额清零(20191218)
-						String hql="from BankTradeList where operMark like ?0";
-						List<BankTradeList> btlist=btlDao.findhqlList(hql, "%"+cancelBtl.getOperMark()+"%");
-						if(btlist.size()>0){
-							for (BankTradeList btl:btlist) {
-								btl.setIsCheck(0);
-								btl.setReimMoney(0);
-								btlDao.update(btl);
-							}
+					//新银行账更新为未核销状态，已核销金额清零(20191218)
+					String hql="from BankTradeList where operMark like ?0";
+					List<BankTradeList> btlist=btlDao.findhqlList(hql, "%"+cancelBtl.getOperMark()+"%");
+					if(btlist.size()>0){
+						for (BankTradeList btl:btlist) {
+							btl.setIsCheck(0);
+							btlDao.update(btl);
 						}
 					}
-					U.setPut(map, 1, "操作成功");
 				}
+				U.setPut(map, 1, "操作成功");
 			}
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
@@ -636,46 +429,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		
 		return map;
 	}
-	@Override
-	public Map<String, Object> modifyBtl(HttpServletRequest request,
-			ReqSrc reqsrc, String updId, String moneyType, String remark) {
-		String logtxt = U.log(log, "财务-修改银行账", reqsrc);
-		
-		Map<String, Object> map = new HashMap<String, Object>();
-		boolean fg = true;
-		
-		try {
-			if(ReqSrc.PC_COMPANY == reqsrc){
-				BankTradeList btl=null;
-				if(fg){
-					if(StringUtils.isEmpty(updId)){
-						fg = U.setPutFalse(map, "[修改记录]不能为空");
-					}else{
-						updId = updId.trim();
-						btl=btlDao.findByField("id", Long.valueOf(updId));
-						if(btl==null){
-							fg = U.setPutFalse(map, "[修改记录]不存在");	
-						}else{
-							U.log(log, "修改记录Id="+updId);
-						}
-					}
-				}
-				if(fg){
-					btl.setMoneyType(moneyType);
-					btl.setRemark(remark);
-					btlDao.update(btl);
-					U.setPut(map, 1, "操作成功");
-				}
-			}else{
-				U.setPut(map, 0, QC.ERRORS_MSG);
-			}
-		} catch (Exception e) {
-			U.setPutEx(map, log, e, logtxt);
-			e.printStackTrace();
-		}
-		
-		return map;
-	}
+	
 	@Override
 	public Object[] getOrderNum(String unitNum,String isCheck) {
 		String hql="from BankTradeList where unitNum = ?0 and isCheck = ?1 order by id desc";
@@ -764,12 +518,17 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		String logtxt = U.log(log, "查询-对方户名列表和摘要列表", reqsrc);
 		Map<String, Object> map = new HashMap<String, Object>();
 		try {
-			String hql="from BankTradeList where unitNum = ?0 group by transName order by id desc";
+			String hql="from BankTradeList where unitNum = ?0 group by transName,transNum order by id desc";
 			List<BankTradeList> btlist=btlDao.findhqlList(hql, LU.getLUnitNum(request, redis));
 			if(btlist.size()>0){
 				List<String> transNames=new ArrayList<String>();
 				for (BankTradeList btl:btlist) {
-					transNames.add(btl.getTransName()+"/@"+btl.getTransNum());
+					if(StringUtils.isNotBlank(btl.getTransNum())) {
+						transNames.add(btl.getTransName()+"/@"+btl.getTransNum());
+					}else {
+						transNames.add(btl.getTransName()+"/@");
+					}
+					
 				}
 				map.put("transNames", transNames);
 			}
@@ -817,7 +576,6 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					//String filePath = request.getSession().getServletContext().getRealPath("/")+ "contractModel\\"+dfs.format(new Date())+file.getOriginalFilename();
 					// 转存文件
 					file.transferTo(new File(filePath));
-					POIUtils poiUtils = new POIUtils(); //POI读写Excel
 					int startRow=1;//默认取建行第一行
 					int cardRow=2;//默认取建行卡号
 					int myCardCell=1;//默认取建行我的卡号
@@ -933,15 +691,20 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						moneyType=10;
 					}
 					// 路径 文件名 工作薄下标 开始行数
-					List<List<String>> list = poiUtils.getExcelData(new File(filePath), "btlRecord."+suffix, 0, startRow);
+					List<List<String>> list = POIUtils.getExcelData(new File(filePath), "btlRecord."+suffix, 0, startRow);
 					List<String> feerow=(List<String>) list.get(cardRow); //获取银行账号
-					if(file.getOriginalFilename().contains("工行") && !file.getOriginalFilename().contains("公账")){
-						if(!tradeBank.contains(feerow.get(myCardCell).trim().split(":")[1].trim())){//导入的银行账号和选择的银行账号不匹配
-							fg=U.setPutFalse(map, "导入银行和选择银行不匹配【请确认是公账文档或个人文档】");
-						}
-					}else{
-						if(!tradeBank.contains(feerow.get(myCardCell).trim())){//导入的银行账号和选择的银行账号不匹配
-							fg=U.setPutFalse(map, "导入银行和选择银行不匹配【请确认是公账文档或个人文档】");
+					if(StringUtils.isBlank(tradeBank) || !tradeBank.contains("/")) {
+						fg=U.setPutFalse(map, "导入银行格式错误，正确格式为：银行名称/银行账号");
+					}
+					if(fg) {
+						if(file.getOriginalFilename().contains("工行") && !file.getOriginalFilename().contains("公账")){
+							if(!tradeBank.contains(feerow.get(myCardCell).trim().split(":")[1].trim())){//导入的银行账号和选择的银行账号不匹配
+								fg=U.setPutFalse(map, "导入银行和选择银行不匹配【请确认是公账文档或个人文档】");
+							}
+						}else{
+							if(!tradeBank.contains(feerow.get(myCardCell).trim())){//导入的银行账号和选择的银行账号不匹配
+								fg=U.setPutFalse(map, "导入银行和选择银行不匹配【请确认是公账文档或个人文档】");
+							}
 						}
 					}
 					if(fg){
@@ -964,65 +727,92 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					String hql="from BankTradeList where myBankNum = ?0 and unitNum = ?1 order by id desc";
 					BankTradeList lastBtl=btlDao.findObj(hql, myBankNum,LU.getLUnitNum(request, redis),"LIMIT 1");
 					BankTradeList btl=null;
-					hql="from BankTradeList where myBankNum = ?0" +
-							" and transName = ?1 and transNum = ?2 and balance = ?3 and unitNum = ?4";
+					/*hql="from BankTradeList where myBankNum = ?0" +
+							" and transName = ?1 and transNum = ?2 and balance = ?3 and unitNum = ?4";*/
 					double lastBalance=0;//上一条余额；
+					MoneyType mt=null;//金额类型
+					Map<Integer,MoneyType> mts=new HashMap<Integer,MoneyType>();
 					if(fg){
 						//循环遍历从excel中获取的数据，进行计算
 						for (int i = startCell; i < list.size(); i++) {
 							feerow = (List<String>) list.get(i); //获取每行数据
-							if(lastBtl!=null){
-								if(i==startCell){
-									lastBalance=lastBtl.getBalance();//系统中已存在最后一条记录的余额
-								}else{
-									lastBalance=Double.valueOf(((List<String>) list.get(i-1)).get(balCell).trim().replaceAll(",", ""));
-								}
-							}else{
-								if(i>startCell){//获取上一条记录的余额
-									lastBalance=Double.valueOf(((List<String>) list.get(i-1)).get(balCell).trim().replaceAll(",", ""));
-								}
-							}
-							if(status!=0){//农商
-								if(feerow.get(status).trim().contains("收入")){
-									inCell=tdMoneyCell;
-									outCell=-1;
-								}else{
-									outCell=tdMoneyCell;
-									inCell=-1;
-								}
-							}
-							//最后一条记录的余额+/-当前记录的金额=当前记录的余额
-							if(inCell!=-1 && StringUtils.isNotBlank(feerow.get(inCell).trim()) && 
-									Double.valueOf(feerow.get(inCell).trim().replaceAll(",", ""))>0){//收
-								if(MathUtils.add(lastBalance, Double.valueOf(feerow.get(inCell).trim().replaceAll(",", "")), 2)!=
-										Double.valueOf(feerow.get(balCell).trim().replaceAll(",", ""))){
-									if(lastBtl!=null && i==startCell){
-										fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
-									}else{
-										fg=U.setPutFalse(map, "本次导入不成功：有记录余额不正确！请检查后重试！");
-									}
-									break;
-								}
-							}else if(outCell!=-1 && StringUtils.isNotBlank(feerow.get(outCell).trim()) && 
-									Double.valueOf(feerow.get(outCell).trim().replaceAll(",", ""))>0){//支出
-								if(MathUtils.sub(lastBalance, Double.valueOf(feerow.get(outCell).trim().replaceAll(",", "")), 2)!=
-										Double.valueOf(feerow.get(balCell).trim().replaceAll(",", ""))){
-									if(lastBtl!=null && i==startCell){
-										fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
-									}else{
-										fg=U.setPutFalse(map, "本次导入不成功：有记录余额不正确！请检查后重试！");
-									}
-									break;
-								}
-							}else{
-								fg=U.setPutFalse(map, "本次导入不成功：导入数据中有收入和支出都为0或为空的交易记录，请检查后重试！");
+							if(StringUtils.isBlank(feerow.get(dfhmCell).trim())) {
+								fg=U.setPutFalse(map, "本次导入不成功：对方户名为必填项，请检查后重试！");
 								break;
 							}
-							if(fg){
-								btl=btlDao.findObj(hql, myBankNum,feerow.get(dfhmCell).trim(),feerow.get(dfzhCell).trim(),
-										Double.valueOf(feerow.get(balCell).trim().replaceAll(",", "")),LU.getLUnitNum(request, redis));
-								if(btl!=null){
-									fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
+							if(StringUtils.isBlank(feerow.get(balCell).trim())) {
+								fg=U.setPutFalse(map, "本次导入不成功：余额为必填项，请检查后重试！");
+								break;
+							}
+							if(StringUtils.isBlank(feerow.get(moneyType).trim())) {
+								fg=U.setPutFalse(map, "本次导入不成功：金额类型为必填项，请检查后重试！");
+								break;
+							}else {
+								mt=mtDao.findByField("typeName", feerow.get(moneyType).trim());
+								if(mt!=null) {
+									mts.put(i, mt);
+								}else {
+									fg=U.setPutFalse(map, "本次导入不成功：金额类型【"+feerow.get(moneyType).trim()+"】在系统中不存在，请检查后重试！");
+									break;
+								}
+							}
+							if(tdttCell!=-1){//正常日期
+								if(StringUtils.isBlank(feerow.get(tdttCell).trim())) {
+									fg=U.setPutFalse(map, "本次导入不成功：金额类型为必填项，请检查后重试！");
+									break;
+								}
+							}else{
+								if(StringUtils.isBlank(feerow.get(ttCell).trim()) || StringUtils.isBlank(feerow.get(tdCell).trim())) {
+									fg=U.setPutFalse(map, "本次导入不成功：交易时间为必填项，请检查后重试！");
+									break;
+								}
+							}
+							if(fg) {
+								if(lastBtl!=null){
+									if(i==startCell){
+										lastBalance=lastBtl.getBalance();//系统中已存在最后一条记录的余额
+									}else{
+										lastBalance=Double.valueOf(((List<String>) list.get(i-1)).get(balCell).trim().replaceAll(",", ""));
+									}
+								}else{
+									if(i>startCell){//获取上一条记录的余额
+										lastBalance=Double.valueOf(((List<String>) list.get(i-1)).get(balCell).trim().replaceAll(",", ""));
+									}
+								}
+								if(status!=0){//农商
+									if(feerow.get(status).trim().contains("收入")){
+										inCell=tdMoneyCell;
+										outCell=-1;
+									}else{
+										outCell=tdMoneyCell;
+										inCell=-1;
+									}
+								}
+								//最后一条记录的余额+/-当前记录的金额=当前记录的余额
+								if(inCell!=-1 && StringUtils.isNotBlank(feerow.get(inCell).trim()) && 
+										Double.valueOf(feerow.get(inCell).trim().replaceAll(",", ""))>0){//收
+									if(MathUtils.add(lastBalance, Double.valueOf(feerow.get(inCell).trim().replaceAll(",", "")), 2)!=
+											Double.valueOf(feerow.get(balCell).trim().replaceAll(",", ""))){
+										if(lastBtl!=null && i==startCell){
+											fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
+										}else{
+											fg=U.setPutFalse(map, "本次导入不成功：有记录余额不正确！请检查后重试！");
+										}
+										break;
+									}
+								}else if(outCell!=-1 && StringUtils.isNotBlank(feerow.get(outCell).trim()) && 
+										Double.valueOf(feerow.get(outCell).trim().replaceAll(",", ""))>0){//支出
+									if(MathUtils.sub(lastBalance, Double.valueOf(feerow.get(outCell).trim().replaceAll(",", "")), 2)!=
+											Double.valueOf(feerow.get(balCell).trim().replaceAll(",", ""))){
+										if(lastBtl!=null && i==startCell){
+											fg=U.setPutFalse(map, "本次导入不成功：导入余额与系统余额数据有误差，有重复或遗漏的银行交易数据！请检查后重试！");
+										}else{
+											fg=U.setPutFalse(map, "本次导入不成功：有记录余额不正确！请检查后重试！");
+										}
+										break;
+									}
+								}else{
+									fg=U.setPutFalse(map, "本次导入不成功：导入数据中有收入和支出都为0或为空的交易记录，请检查后重试！");
 									break;
 								}
 							}
@@ -1078,8 +868,8 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 							btl.setAddTime(new Date());
 							btl.setOperNote(LU.getLRealName(request, redis)+"[导入]");
 							btl.setOperMark(operMark);
-							if(StringUtils.isNotBlank(feerow.get(moneyType)))btl.setMoneyType(feerow.get(moneyType));
-						 	btlDao.save(btl);//导入银行账不加操作标识，等到报销才加
+							btl.setMoneyTypeId(mts.get(i));
+						 	btlDao.save(btl);
 						}
 						U.setPut(map, 1, "导入成功");
 					}
@@ -1104,7 +894,7 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		boolean fg = true;
 		try {
 			String rows = jsonObject.getString("rows");
-			String bankName = jsonObject.getString("bankName");
+			String bankNo = jsonObject.getString("bankNo");
 			String transName = jsonObject.getString("transName");
 			String remark = jsonObject.getString("remark");
 			String timeType = jsonObject.getString("timeType");
@@ -1121,40 +911,41 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 			String cusName = jsonObject.getString("cusName");
 			String serviceName = jsonObject.getString("serviceName");
 			if(fg){
-				Page<BankTradeList> pd = btlDao.findBankTradeList(reqsrc, "1", rows, LU.getLUnitNum(request, redis), bankName, transName, remark, timeType, sTime, eTime, 
+				Page<BankTradeList> pd = btlDao.findBankTradeList(reqsrc, "1", rows, LU.getLUnitNum(request, redis), bankNo, transName, remark, timeType, sTime, eTime, 
 						status, isCheck, findMoney, openRole, voucherNum, operMark, openSel, moneyType, cusName, serviceName);
-				List<BankTradeList> expBtlBankD=pd.getResult();
-				
 				String contextTitle = "车队银行账记录";// excel表内容标题
-				String [] headers = {"交易日期","交易时间","银行名称","对方户名","客户名称","收入","支出","余额","摘要","导入时间","操作记录","对方账号"};// 表列标题
+				String [] headers = {"凭证号","金额类型","交易日期","交易时间","银行名称","对方户名","客户名称","收入","支出","余额","摘要","导入时间","操作记录","对方账号"};// 表列标题
 				List<Object[]> dataList = new ArrayList<Object[]>();
-				String transNameEx="",customer="",remarkEx="",transNum="";
-				// 转换成数组格式数据
-				for (int i = 0; i < expBtlBankD.size(); i++) {
-					transNameEx="";customer="";remarkEx="";transNum="";
-					if (StringUtils.isNotEmpty(expBtlBankD.get(i).getTransName())) {
-						transNameEx = expBtlBankD.get(i).getTransName();
+				String voucherNo="",transNameEx="",customer="",remarkEx="",transNum="";
+				if(pd.getResult().size()>0) {
+					List<BankTradeList> expBtlBankD=pd.getResult();
+					
+					// 转换成数组格式数据
+					for (int i = 0; i < expBtlBankD.size(); i++) {
+						voucherNo="";transNameEx="";customer="";remarkEx="";transNum="";
+						if (StringUtils.isNotEmpty(expBtlBankD.get(i).getTransName())) {
+							transNameEx = expBtlBankD.get(i).getTransName();
+						}
+						if (StringUtils.isNotEmpty(expBtlBankD.get(i).getCusName())) {
+							customer = expBtlBankD.get(i).getCusName().replace(",", "，");
+						}
+						if (StringUtils.isNotEmpty(expBtlBankD.get(i).getRemark())) {
+							remarkEx = expBtlBankD.get(i).getRemark().replaceAll(",", "，").replace("&nbsp;", " ");
+						}
+						if (StringUtils.isNotEmpty(expBtlBankD.get(i).getTransNum())) {
+							transNum = expBtlBankD.get(i).getTransNum();
+						}
+						Object[] element= {voucherNo, expBtlBankD.get(i).getMoneyTypeId().getTypeName(),
+								DateUtils.DateToStr(DateUtils.yyyy_MM_dd, expBtlBankD.get(i).getTradeTime()),
+								DateUtils.DateToStr(DateUtils.HH_mm_ss, expBtlBankD.get(i).getTradeTime()),
+								expBtlBankD.get(i).getMyBankName(),transNameEx,customer,expBtlBankD.get(i).getTradeInMoney(),
+								expBtlBankD.get(i).getTradeOutMoney(),expBtlBankD.get(i).getBalance(),remarkEx,expBtlBankD.get(i).getAddTime(),
+								expBtlBankD.get(i).getOperNote(),transNum};
+						dataList.add(element);
 					}
-					if (StringUtils.isNotEmpty(expBtlBankD.get(i).getCusName())) {
-						customer = expBtlBankD.get(i).getCusName().replace(",", "，");
-					}
-					if (StringUtils.isNotEmpty(expBtlBankD.get(i).getRemark())) {
-						remarkEx = expBtlBankD.get(i).getRemark().replaceAll(",", "，").replace("&nbsp;", " ");
-					}
-					if (StringUtils.isNotEmpty(expBtlBankD.get(i).getTransNum())) {
-						transNum = expBtlBankD.get(i).getTransNum();
-					}
-					Object[] element= {DateUtils.DateToStr(DateUtils.yyyy_MM_dd, expBtlBankD.get(i).getTradeTime()),
-							DateUtils.DateToStr(DateUtils.HH_mm_ss, expBtlBankD.get(i).getTradeTime()),
-							expBtlBankD.get(i).getMyBankName(),transNameEx,customer,expBtlBankD.get(i).getTradeInMoney(),
-							expBtlBankD.get(i).getTradeOutMoney(),expBtlBankD.get(i).getBalance(),remarkEx,expBtlBankD.get(i).getAddTime(),
-							expBtlBankD.get(i).getOperNote(),transNum};
-					dataList.add(element);
 				}
-				POIUtils poiUtils = new POIUtils(); //POI读写Excel
-				HSSFWorkbook workbook =poiUtils.poiExport(contextTitle, headers, dataList);
 				String fileName = ExportUtil.getFileNameByTime(new Date(),LU.getLCompany(request, redis).getCompanyName() + "_");// 文件名重命名
-				poiUtils.downToExcel(response, workbook, fileName);
+				POIUtils.downToExcel(response, fileName,contextTitle, headers, dataList);
 				U.setPut(map, 1, "下载成功");
 			}
 		} catch (Exception e) {
@@ -1164,9 +955,273 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 		
 		return map;
 	}
+	
+	@Override
+	public Map<String, Object> addBtl(HttpServletRequest request,
+			ReqSrc reqsrc, String myBank, String transName, String transNum,
+			String tradeTime, String tradeStatus, String tradeMoney,
+			String balance, String remark,String moneyType) {
+		String logtxt = U.log(log, "财务-添加银行账", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(ReqSrc.PC_COMPANY == reqsrc){
+				String myBankName="";
+				String myBankNum="";
+				Date tradeDate=null;
+				MoneyType mt=null;
+				if(StringUtils.isNotEmpty(moneyType)) {
+					mt=mtDao.findByField("id", Long.valueOf(moneyType));
+					if(mt==null) {
+						fg = U.setPutFalse(map, "[金额类型]不存在");
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(tradeTime)){
+						fg = U.setPutFalse(map, "交易时间不能为空");
+					}else{
+						tradeDate = DateUtils.strToDate(DateUtils.yyyy_MM_dd_HH_mm_ss, tradeTime);
+						U.log(log, "交易时间tradeTime="+tradeTime);
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(myBank)){
+						fg = U.setPutFalse(map, "[我的银行]不能为空");
+					}else{
+						if(!myBank.contains("/")) {
+							fg = U.setPutFalse(map, "[我的银行]格式不正确");
+						}
+						if(fg) {
+							myBankName=myBank.split("/")[0];
+							myBankNum=myBank.split("/")[1];
+							String hql="from BankTradeList where myBankNum = ?0 and unitNum = ?1 order by id desc";
+							BankTradeList lastBtl=btlDao.findObj(hql, myBankNum,LU.getLUnitNum(request, redis),"LIMIT 1");
+							if(lastBtl!=null){
+								if("0".equals(tradeStatus)){//收
+									if(MathUtils.add(lastBtl.getBalance(), Double.valueOf(tradeMoney), 2)!=Double.valueOf(balance)){
+										fg=U.setPutFalse(map, "添加不成功：添加余额与系统余额数据有误差，请检查后重试！");
+									}
+								}else{
+									if(MathUtils.sub(lastBtl.getBalance(), Double.valueOf(tradeMoney), 2)!=Double.valueOf(balance)){
+										fg=U.setPutFalse(map, "添加不成功：添加余额与系统余额数据有误差，请检查后重试！");
+									}
+								}
+								if(fg){
+									if(tradeDate.getTime()<=lastBtl.getTradeTime().getTime()){
+										fg=U.setPutFalse(map, "本次添加不成功：交易时间必须在上一条交易时间之后");
+									}
+								}
+							}
+						}
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(transName)){
+						fg = U.setPutFalse(map, "对方户名不能为空");
+					}else{
+						transName = transName.trim();
+						U.log(log, "对方户名transName="+transName);
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(transNum)){
+						//fg = U.setPutFalse(map, "对方账号不能为空");20220103改为选填
+						U.log(log, "对方账号transNum为空");
+					}else{
+						transNum = transNum.trim();
+						U.log(log, "对方账号transNum="+transNum);
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(tradeMoney)){
+						fg = U.setPutFalse(map, "交易金额不能为空");
+					}else{
+						tradeMoney = tradeMoney.trim();
+						U.log(log, "交易金额tradeMoney="+tradeMoney);
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(balance)){
+						fg = U.setPutFalse(map, "余额不能为空");
+					}else{
+						balance = balance.trim();
+						U.log(log, "余额balance="+balance);
+					}
+				}
+				if(fg){
+					if(StringUtils.isEmpty(remark)){
+						//fg = U.setPutFalse(map, "摘要不能为空");20220103改为选填
+						U.log(log, "摘要remark为空");
+					}else{
+						remark = remark.trim();
+						U.log(log, "摘要remark="+remark);
+					}
+				}
+				if(fg){
+					String hql="from BankList where unitNum = ?0 and cardNo = ?1 and isOpen=1";
+					BankList gpw=blDao.findObj(hql, LU.getLUnitNum(request, redis),myBankNum);
+					if(gpw==null){
+						fg=U.setPutFalse(map, "该银行账本未启用，请先启用");
+					}
+				}
+				if(fg){
+					String operMark=UT.creatOperMark();//操作标识号
+					BankTradeList btl=new BankTradeList();
+					btl.setUnitNum(LU.getLUnitNum(request, redis));
+					btl.setMyBankName(myBankName);
+					btl.setMyBankNum(myBankNum);
+					btl.setTransName(transName);
+					if(StringUtils.isNotBlank(transNum))btl.setTransNum(transNum);
+					if("0".equals(tradeStatus)){
+						btl.setTradeInMoney(Double.valueOf(tradeMoney));	
+					}else{
+						btl.setTradeOutMoney(Double.valueOf(tradeMoney));
+					}
+					if(Double.valueOf(tradeMoney)==0){//期初余额
+						btl.setIsCheck(-1);//报销完成
+					}
+					btl.setBalance(Double.valueOf(balance));
+					if(StringUtils.isNotBlank(remark))btl.setRemark(remark);
+					btl.setTradeTime(tradeDate);
+					if(mt!=null) {
+						btl.setMoneyTypeId(mt);
+					}
+					btl.setAddTime(new Date());
+					btl.setOperNote(LU.getLRealName(request, redis)+"[添加]");
+					btl.setOperMark(operMark);
+				 	btlDao.save(btl);
+					U.setPut(map, 1, "操作成功");
+				}
+			}else{
+				U.setPut(map, 0, QC.ERRORS_MSG);
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> modifyBtl(HttpServletRequest request,
+			ReqSrc reqsrc, String updId, String moneyType, String remark) {
+		String logtxt = U.log(log, "财务-修改银行账", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(ReqSrc.PC_COMPANY == reqsrc){
+				BankTradeList btl=null;
+				if(fg){
+					if(StringUtils.isEmpty(updId)){
+						fg = U.setPutFalse(map, "[修改记录]不能为空");
+					}else{
+						updId = updId.trim();
+						btl=btlDao.findByField("id", Long.valueOf(updId));
+						if(btl==null){
+							fg = U.setPutFalse(map, "[修改记录]不存在");	
+						}else{
+							U.log(log, "修改记录Id="+updId);
+						}
+					}
+				}
+				MoneyType mt=null;
+				if(fg) {
+					if(StringUtils.isEmpty(moneyType)){
+						fg = U.setPutFalse(map, "[金额类型]不能为空");
+					}else{
+						moneyType = moneyType.trim();
+						mt=mtDao.findByField("id", Long.valueOf(moneyType));
+						if(mt==null){
+							fg = U.setPutFalse(map, "[金额类型]不存在");	
+						}
+					}
+				}
+				if(fg){
+					btl.setMoneyTypeId(mt);
+					btl.setRemark(remark);
+					btlDao.update(btl);
+					U.setPut(map, 1, "操作成功");
+				}
+			}else{
+				U.setPut(map, 0, QC.ERRORS_MSG);
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
+	@Override
+	public Map<String, Object> delBtl(HttpServletRequest request,
+			ReqSrc reqsrc, String ids,String myBankNum) {
+		String logtxt = U.log(log, "财务-删除银行账", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(ReqSrc.PC_COMPANY == reqsrc){
+				BankTradeList btl=null;
+				if(fg){
+					if(StringUtils.isEmpty(ids)){
+						fg = U.setPutFalse(map, "[删除记录]不能为空");
+					}else{
+						ids = ids.trim();
+						U.log(log, "删除记录Id="+ids);
+					}
+				}
+				if(fg){
+					String hql="from BankTradeList where unitNum = ?0 and myBankNum = ?1 and id> ?2 order by id asc";
+					String [] id=ids.split(",");//前台控制了只能选择一条
+					for(String each :id){
+						btl=btlDao.findObj(hql, LU.getLUnitNum(request, redis),myBankNum,Long.valueOf(each),"LIMIT 1");
+						if(btl!=null){
+							fg = U.setPutFalse(map, "请从最后一条银行账记录开始删除，并且选择的记录必须是连续的");
+							break;
+						}
+					}
+				}
+				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
+				if(fg) {
+					String [] id=ids.split(",");
+					for(String each :id){
+						btl=btlDao.findByField("id", Long.valueOf(each));
+						if(btl!=null) {
+							if(btl.getIsCheck()!=0) {
+								fg = U.setPutFalse(map, "有记录已操作，不能删除");
+								break;
+							}
+							btlist.add(btl);
+						}
+					}
+				}
+				if(fg){
+					for(BankTradeList del : btlist){
+						btlDao.delete(del);
+					}
+					U.setPut(map, 1, "操作成功");
+				}
+			}else{
+				U.setPut(map, 0, QC.ERRORS_MSG);
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	
 	@Override
 	public Map<String, Object> downBtlMoney(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
-			String btlId, String money, String companyCusId, String remark, String notice_uname,
+			String btlId, String money, String companyCusId, String notice_uname,
 			String notice_note, String orderNum) {
 		String logtxt = U.log(log, "银行账下账", reqsrc);
 		
@@ -1201,20 +1256,12 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 					}
 				}
 				if(fg){
-					double tradeMoney=0;
 					for (BankTradeList btl : btlist) {
 						btl.setIsCheck(1);//待审核
-						tradeMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
-						if(!btlId.contains(",")){//单条报销
-							tradeMoney=Double.valueOf(money);
-						}
-						btl.setCheckMoney(tradeMoney);
-						//btl.setCusName(obj.getReimName()+","+obj.getcName());//客户名称 20191219
 						btl.setCompanyCusId(companyCusId);
-						btl.setRemark(remark);
 						btl.setNoticeMan(notice_uname);
 						btl.setNoticeRemark(notice_note);
-						btl.setOrderNum(orderNum);
+						if(StringUtils.isNotBlank(orderNum))btl.setOrderNum(orderNum);
 						btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "下账：待审核"));
 						btlDao.update(btl);
 					}
@@ -1246,6 +1293,12 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						fg = U.setPutFalse(map, "[对方科目信息]不能为空");
 					}else {
 						faceInfos=faceCourseInfo.split("@");
+						for (int i = 0; i < faceInfos.length; i++) {
+							if(faceInfos[i].split("=").length!=4) {
+								fg = U.setPutFalse(map, "第"+(i+1)+"个[对方科目信息]格式错误");
+								break;
+							}
+						}
 					}
 				}
 				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
@@ -1255,32 +1308,52 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						fg = U.setPutFalse(map, "[银行账记录]不能为空");
 					}else {
 						String [] infos=createInfo.split("@");
-						String [] ids=null;
-						BankTradeList btl=null;
-						FeeCourse fc=null;
 						for (int i = 0; i < infos.length; i++) {
-							ids=infos[i].split("=");
-							btl=btlDao.findByField("id", Long.valueOf(ids[0]));
-							if(btl.getIsCheck()!=1) {
-								fg = U.setPutFalse(map, "有报账记录状态非【待审核】状态，操作失败");
+							if(infos[i].split("=").length!=2) {
+								fg = U.setPutFalse(map, "第"+(i+1)+"个[银行帐科目信息]格式错误");
 								break;
 							}
-							btlist.add(btl);
-							fc=fcDao.findByField("id", Long.valueOf(ids[1]));
-							fcmap.put(btl.getId(), fc);
+						}
+						if(fg) {
+							String [] ids=null;
+							BankTradeList btl=null;
+							FeeCourse fc=null;
+							for (int i = 0; i < infos.length; i++) {
+								ids=infos[i].split("=");
+								btl=btlDao.findByField("id", Long.valueOf(ids[0]));
+								if(btl.getIsCheck()!=1) {
+									fg = U.setPutFalse(map, "有报账记录状态非【待审核】状态，操作失败");
+									break;
+								}
+								btlist.add(btl);
+								fc=fcDao.findByField("id", Long.valueOf(ids[1]));
+								if(fc.getIsLastCourse()==0) {
+									fg = U.setPutFalse(map, "科目【"+fc.getCourseName()+"】非末级科目，不能生成凭证");
+									break;
+								}
+								fcmap.put(btl.getId(), fc);
+							}
 						}
 					}
 				}
 				if(fg){
 					double tradeMoney=0;//生成凭证总金额
-					double currMoney=0;//当前银行账报账金额
-					String operMark="";
+					String operMark=UT.creatOperMark();//操作编号
 					List<FeeCourseTrade> fctlist=new ArrayList<FeeCourseTrade>();
 					FeeCourse fc=null;
+					String voucherNum=reimDao.getVoucherNum(LU.getLUnitNum(request, redis),  LU.getLUName(request, redis));
+					double downMoney=0;//本次可下账金额
+					CompanyCustom cc=null;//报销客户
 					for (BankTradeList btl : btlist) {
 						if(btl.getIsCheck()==1){//待审核
-							tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
+							downMoney+=MathUtils.add(downMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
 							fc=(FeeCourse)fcmap.get(btl.getId());
+							if(fc.getCourseType()==0) {//收入
+								tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
+							}else {//支出
+								tradeMoney+=MathUtils.sub(tradeMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
+							}
+							cc=ccDao.findByField("id", Long.valueOf(btl.getCompanyCusId()));//下账客户为报销人
 							FeeCourseTrade fct=new FeeCourseTrade();
 							fct.setUnitNum(btl.getUnitNum());
 							fct.setFeeCourseId(fc);
@@ -1289,40 +1362,54 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 							fct.setPayMoney(btl.getTradeOutMoney());
 							fct.setAddTime(new Date());
 							fct.setBankTradeId(btl);
+							if(cc!=null)fct.setReimUserId(cc.getBaseUserId());
 							fctlist.add(fct);
 							//更新对应科目余额
 							fc.setBalance(MathUtils.add(fc.getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
 							fcDao.update(fc);
-							//操作编号
-							operMark=UT.creatOperMark();
-							currMoney=btl.getTradeInMoney()>0?btl.getTradeInMoney():btl.getTradeOutMoney();
-							//更新银行账
-							btl.setFeeCourseId(fc);
-							if(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2)>=currMoney){//报销完成
-								btl.setIsCheck(-1);
-							}else{
-								btl.setIsCheck(2);//已审核
+							if(fc.getParentCourseId()!=null) {//更新父级科目余额
+								FeeCourse parentOne=fc.getParentCourseId();
+								fc.getParentCourseId().setBalance(MathUtils.add(parentOne.getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
+								fcDao.update(parentOne);
+								if(parentOne.getParentCourseId()!=null) {
+									parentOne.getParentCourseId().setBalance(MathUtils.add(parentOne.getParentCourseId().getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
+									fcDao.update(parentOne.getParentCourseId());
+								}
 							}
-							btl.setReimMoney(MathUtils.add(btl.getReimMoney(), btl.getCheckMoney(), 2));
-							btl.setCheckMoney(0);
+							//更新银行账
+							btl.setVoucherNumber(voucherNum);
+							btl.setIsCheck(-1);
 							btl.setOperMark(StringUtils.isBlank(btl.getOperMark())?operMark:btl.getOperMark()+","+operMark);
 							btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "下账审核通过"));
-							btlDao.update(btl);
-							if("预收账款".equals(btl.getFeeCourseId().getCourseName()) && btl.getTradeInMoney()>0) {//增加客户预存款
-								CompanyCustom cc=ccDao.findByField("id", Long.valueOf(btl.getCompanyCusId()));
-								cc.setPreMoney(MathUtils.add(cc.getPreMoney(),btl.getTradeInMoney(), 2));
-								ccDao.update(cc);
-							}else if(StringUtils.isNotBlank(btl.getOrderNum())){//订单只能收款完成
+							if("预收账款".equals(fc.getCourseName()) && btl.getTradeInMoney()>0) {//增加客户预存款
+								if(cc!=null) {
+									cc.setPreMoney(MathUtils.add(cc.getPreMoney(),btl.getTradeInMoney(), 2));
+									ccDao.update(cc);
+								}
+							}else if(StringUtils.isNotBlank(btl.getOrderNum())){//订单收款
 								String [] orderNums=btl.getOrderNum().split(",");
 								for (String eachNum : orderNums) {
 									MainCarOrder mco=mcoDao.findByField("orderNum", eachNum);
 									if(mco!=null){
-										mco.setAlGathPrice(MathUtils.add(mco.getAlGathPrice(), btl.getTradeInMoney(), 2));
-										mco.setPayStatus(OrderPayStatus.FULL_PAID);
-										mcoDao.update(mco);
+										if(downMoney>0) {
+											if(downMoney>=mco.getPrice()) {//金额够本次订单下账
+												mco.setAlGathPrice(MathUtils.add(mco.getAlGathPrice(), mco.getPrice(), 2));
+												downMoney=MathUtils.sub(downMoney, mco.getPrice(), 2);
+											}else {//金额不够本次订单下账，只能下部分
+												mco.setAlGathPrice(MathUtils.add(mco.getAlGathPrice(), downMoney, 2));
+												downMoney=0;
+											}
+											if(mco.getAlGathPrice()>=mco.getPrice()) {//收款完成
+												mco.setPayStatus(OrderPayStatus.FULL_PAID);
+											}else {//已收部分
+												mco.setPayStatus(OrderPayStatus.DEPOSIT_PAID);
+											}
+											mcoDao.update(mco);
+										}
 									}
 								}
 							}
+							btlDao.update(btl);
 							if(StringUtils.isNotBlank(btl.getNoticeMan())){//发送通知
 								
 							}
@@ -1349,19 +1436,27 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 						//更新对应科目余额
 						face.setBalance(MathUtils.add(face.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
 						fcDao.update(face);
+						if(fc.getParentCourseId()!=null) {//更新父级科目余额
+							FeeCourse parentOne=fc.getParentCourseId();
+							fc.getParentCourseId().setBalance(MathUtils.add(parentOne.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+							fcDao.update(parentOne);
+							if(parentOne.getParentCourseId()!=null) {
+								parentOne.getParentCourseId().setBalance(MathUtils.add(parentOne.getParentCourseId().getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+								fcDao.update(parentOne.getParentCourseId());
+							}
+						}
 					}
 					//生成凭证
 					ReimburseList obj=new ReimburseList();
 					obj.setUnitNum(LU.getLUnitNum(request, redis));
-					String hql="select count(id) from ReimburseList where unitNum=?0 and addTime>=?1 and addTime<=?2";
-					Object sortNum=reimDao.findObj(hql, LU.getLUnitNum(request, redis),DateUtils.getStartTimeOfDay(),DateUtils.getEndTimeOfDay());
 					obj.setCourseTrades(fctlist);
 					obj.setGainTime(new Date());
-					obj.setVoucherNum(UT.creatReimVoucher(LU.getLUName(request, redis),Integer.parseInt(sortNum.toString())));
+					obj.setVoucherNum(voucherNum);
 					obj.setTotalMoney(tradeMoney);
 					obj.setIsCheck(2);
 					obj.setAddTime(new Date());
 					obj.setReqsrc(reqsrc);
+					obj.setOperMark(operMark);
 					obj.setOperNote(LU.getLRealName(request, redis)+"[添加]");
 					reimDao.save(obj);
 					U.setPut(map, 1, "操作成功");
@@ -1409,16 +1504,193 @@ public class BankTradeListServiceImpl extends BaseServiceImpl<BankTradeList,Long
 				if(fg){
 					for (BankTradeList btl : btlist) {
 						btl.setIsCheck(0);//未操作
-						btl.setCheckMoney(0);
-						btl.setCusName(null);//客户名称
-						btl.setVoucherNumber(null);
-						btl.setDocumentNumber(null);
 						btl.setNoticeMan(null);
 						btl.setNoticeRemark(null);
 						btl.setOrderNum(null);
 						btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "下账审核不通过"));
 						btlDao.update(btl);
 					}
+					U.setPut(map, 1, "操作成功");
+				}
+			}else{
+				U.setPut(map, 0, QC.ERRORS_MSG);
+			}
+		} catch (Exception e) {
+			U.setPutEx(map, log, e, logtxt);
+			e.printStackTrace();
+		}
+		
+		return map;
+	}
+	@Override
+	public Map<String, Object> createReim(ReqSrc reqsrc, HttpServletResponse response, HttpServletRequest request,
+			String createInfo, String faceCourseInfo,String gainTime) {
+		String logtxt = U.log(log, "银行账直接生成凭证", reqsrc);
+		
+		Map<String, Object> map = new HashMap<String, Object>();
+		boolean fg = true;
+		
+		try {
+			if(ReqSrc.PC_COMPANY == reqsrc){
+				String [] faceInfos=null;
+				FeeCourse fc=null;
+				if(fg) {
+					if(StringUtils.isEmpty(faceCourseInfo)){
+						fg = U.setPutFalse(map, "[对方科目信息]不能为空");
+					}else {
+						faceInfos=faceCourseInfo.split("@");
+						for (int i = 0; i < faceInfos.length; i++) {
+							if(faceInfos[i].split("=").length!=6) {
+								fg = U.setPutFalse(map, "第"+(i+1)+"个[对方科目信息]格式错误");
+								break;
+							}
+						}
+					}
+				}
+				List<BankTradeList> btlist=new ArrayList<BankTradeList>();
+				Map<Long, Object> fcmap = new HashMap<Long, Object>();//科目
+				Map<Long, Staff> staffs = new HashMap<Long, Staff>();//员工
+				Map<Long, String> pns = new HashMap<Long, String>();//车牌号
+				Staff staff=null;
+				if(fg){
+					if(StringUtils.isEmpty(createInfo)){
+						fg = U.setPutFalse(map, "[银行账记录]不能为空");
+					}else {
+						String [] infos=createInfo.split("@");
+						for (int i = 0; i < infos.length; i++) {
+							if(infos[i].split("=").length!=4) {
+								fg = U.setPutFalse(map, "第"+(i+1)+"个[银行帐科目信息]格式错误");
+								break;
+							}
+						}
+						if(fg) {
+							String [] ids=null;
+							BankTradeList btl=null;
+							for (int i = 0; i < infos.length; i++) {
+								ids=infos[i].split("=");
+								btl=btlDao.findByField("id", Long.valueOf(ids[2]));
+								if(btl.getIsCheck()!=0) {
+									fg = U.setPutFalse(map, "有银行帐记录非【未操作】状态，不能生成凭证");
+									break;
+								}
+								btlist.add(btl);
+								fc=fcDao.findByField("id", Long.valueOf(ids[3]));
+								if(fc.getIsLastCourse()==0) {
+									fg = U.setPutFalse(map, "科目【"+fc.getCourseName()+"】非末级科目，不能生成凭证");
+									break;
+								}
+								fcmap.put(btl.getId(), fc);
+								if(StringUtils.isNotBlank(ids[0])) {//员工
+									staff=staffDao.findByField("id", Long.valueOf(ids[0]));
+									if(staff!=null) {
+										staffs.put(btl.getId(), staff);
+									}else {
+										fg = U.setPutFalse(map, "有报销人已不存在于系统，不能生成凭证");
+										break;
+									}
+								}
+								if(StringUtils.isNotBlank(ids[1])) {//车牌号
+									pns.put(btl.getId(), ids[1]);
+								}
+							}
+						}
+					}
+				}
+				if(fg){
+					double tradeMoney=0;//生成凭证总金额
+					String operMark=UT.creatOperMark();//操作编号
+					List<FeeCourseTrade> fctlist=new ArrayList<FeeCourseTrade>();
+					String voucherNum=reimDao.getVoucherNum(LU.getLUnitNum(request, redis),  LU.getLUName(request, redis));
+					for (BankTradeList btl : btlist) {
+						fc=(FeeCourse)fcmap.get(btl.getId());
+						if(fc.getCourseType()==0) {//收入
+							tradeMoney+=MathUtils.add(tradeMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
+						}else {//支出
+							tradeMoney+=MathUtils.sub(tradeMoney, MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2);
+						}
+						FeeCourseTrade fct=new FeeCourseTrade();
+						fct.setUnitNum(btl.getUnitNum());
+						if(staffs.get(btl.getId())!=null) {
+							fct.setReimUserId(staffs.get(btl.getId()).getBaseUserId());
+						}
+						if(pns.get(btl.getId())!=null)fct.setPlateNum(pns.get(btl.getId()).toString());
+						fct.setFeeCourseId(fc);
+						fct.setRemark(btl.getRemark());
+						fct.setGathMoney(btl.getTradeInMoney());
+						fct.setPayMoney(btl.getTradeOutMoney());
+						fct.setAddTime(new Date());
+						fct.setBankTradeId(btl);
+						fct.setVoucherNum(voucherNum);
+						fctlist.add(fct);
+						//更新对应科目余额
+						fc.setBalance(MathUtils.add(fc.getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
+						fcDao.update(fc);
+						if(fc.getParentCourseId()!=null) {//更新父级科目余额
+							FeeCourse parentOne=fc.getParentCourseId();
+							fc.getParentCourseId().setBalance(MathUtils.add(parentOne.getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
+							fcDao.update(parentOne);
+							if(parentOne.getParentCourseId()!=null) {
+								parentOne.getParentCourseId().setBalance(MathUtils.add(parentOne.getParentCourseId().getBalance(), MathUtils.sub(btl.getTradeInMoney(), btl.getTradeOutMoney(), 2), 2));
+								fcDao.update(parentOne.getParentCourseId());
+							}
+						}
+						//更新银行账
+						btl.setVoucherNumber(voucherNum);
+						btl.setIsCheck(-1);
+						btl.setOperMark(StringUtils.isBlank(btl.getOperMark())?operMark:btl.getOperMark()+","+operMark);
+						btl.setOperNote(btl.getOperNote()+Util.getOperInfo(LU.getLRealName(request, redis), "生成凭证"));
+						btlDao.update(btl);
+					}
+					//添加对方科目交易记录
+					String [] faceIds=null;
+					double faceGath=0;//对方科目借方金额
+					double facePay=0;//对方科目贷方金额
+					FeeCourse face=null;
+					for (int i = 0; i < faceInfos.length; i++) {
+						faceIds=faceInfos[i].split("=");
+						face=fcDao.findByField("id", Long.valueOf(faceIds[2]));//对方科目
+						faceGath=Double.valueOf(faceIds[4]);
+						facePay=Double.valueOf(faceIds[5]);
+						FeeCourseTrade fct=new FeeCourseTrade();
+						fct.setUnitNum(LU.getLUnitNum(request, redis));
+						if(StringUtils.isNotBlank(faceIds[0])) {
+							staff=staffDao.findByField("id", Long.valueOf(faceIds[0]));//报销人
+							fct.setReimUserId(staff.getBaseUserId());
+						}
+						if(StringUtils.isNotBlank(faceIds[1]))fct.setPlateNum(faceIds[1]);
+						fct.setFeeCourseId(face);
+						if(StringUtils.isNotBlank(faceIds[3]))fct.setRemark(faceIds[3]);
+						fct.setGathMoney(faceGath);
+						fct.setPayMoney(facePay);
+						fct.setAddTime(new Date());
+						fct.setVoucherNum(voucherNum);
+						fctlist.add(fct);
+						//更新对应科目余额
+						face.setBalance(MathUtils.add(face.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+						fcDao.update(face);
+						if(fc.getParentCourseId()!=null) {//更新父级科目余额
+							FeeCourse parentOne=fc.getParentCourseId();
+							fc.getParentCourseId().setBalance(MathUtils.add(parentOne.getBalance(), MathUtils.sub(faceGath,facePay, 2), 2));
+							fcDao.update(parentOne);
+							if(parentOne.getParentCourseId()!=null) {
+								parentOne.getParentCourseId().setBalance(MathUtils.add(parentOne.getParentCourseId().getBalance(),MathUtils.sub(faceGath,facePay, 2), 2));
+								fcDao.update(parentOne.getParentCourseId());
+							}
+						}
+					}
+					//生成凭证
+					ReimburseList obj=new ReimburseList();
+					obj.setUnitNum(LU.getLUnitNum(request, redis));
+					obj.setCourseTrades(fctlist);
+					obj.setGainTime(DateUtils.strToDate(gainTime));
+					obj.setVoucherNum(voucherNum);
+					obj.setTotalMoney(tradeMoney);
+					obj.setIsCheck(2);
+					obj.setAddTime(new Date());
+					obj.setReqsrc(reqsrc);
+					obj.setOperMark(operMark);
+					obj.setOperNote(LU.getLRealName(request, redis)+"[添加]");
+					reimDao.save(obj);
 					U.setPut(map, 1, "操作成功");
 				}
 			}else{

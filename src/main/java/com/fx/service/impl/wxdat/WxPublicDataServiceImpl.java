@@ -101,12 +101,12 @@ public class WxPublicDataServiceImpl extends BaseServiceImpl<WxPublicData, Long>
 				U.log(log, "存在-公众号数据");
 				
 				url = "https://open.weixin.qq.com/connect/oauth2/authorize?redirect_uri=" + redirectUrl + 
-						"&appid=" + wpd.getWxAppId() + "&response_type=code&scope=snsapi_base&state="+state+"#wechat_redirect";
+						"&appid=" + wpd.getWxAppId() + "&response_type=code&scope=snsapi_userinfo&state="+state+"#wechat_redirect";
 			}else {
 				U.log(log, "不存在-公众号数据");
 				
 				url = "https://open.weixin.qq.com/connect/oauth2/authorize?redirect_uri=" + redirectUrl + 
-						"&appid=" + QC.DEF_APPID + "&response_type=code&scope=snsapi_base&state="+state+"#wechat_redirect";
+						"&appid=" + QC.DEF_APPID + "&response_type=code&scope=snsapi_userinfo&state="+state+"#wechat_redirect";
 			}
 			U.log(log, "授权地址："+url);
 			// 简单获取openid的话参数response_type与scope与state参数固定写死即可

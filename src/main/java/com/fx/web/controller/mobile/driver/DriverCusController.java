@@ -138,8 +138,8 @@ public class DriverCusController {
 		String lphone = U.P(json, "lphone");
 		String smsCode = U.P(json, "smsCode");
 		
-//		map = customerSer.subSmsLogin(ReqSrc.WX, response, request, CusRole.TEAM_DRIVER, wxid, teamNo, lphone, 
-//			smsCode, "false");
+		map = customerSer.subSmsLogin(ReqSrc.WX, response, request, CusRole.TEAM_DRIVER, wxid, teamNo, lphone, 
+			smsCode, "false");
 
 		Message.print(response, map);
 	}

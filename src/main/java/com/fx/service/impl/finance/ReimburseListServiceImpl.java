@@ -350,10 +350,8 @@ public class ReimburseListServiceImpl extends BaseServiceImpl<ReimburseList,Long
 							}
 							if(fct.getBankTradeId()!=null) {//有银行账记录恢复为未生成凭证
 								fct.getBankTradeId().setIsCheck(0);//未操作
-								fct.getBankTradeId().setCheckMoney(0);
 								fct.getBankTradeId().setCusName(null);//客户名称
 								fct.getBankTradeId().setVoucherNumber(null);
-								fct.getBankTradeId().setDocumentNumber(null);
 								fct.getBankTradeId().setNoticeMan(null);
 								fct.getBankTradeId().setNoticeRemark(null);
 								fct.getBankTradeId().setOrderNum(null);

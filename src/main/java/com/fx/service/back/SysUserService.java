@@ -9,9 +9,9 @@ import com.fx.commons.hiberantedao.service.BaseService;
 import com.fx.entity.back.SysUser;
 
 public interface SysUserService extends BaseService<SysUser, Long> {
-
+	
 	/**
-	 * 管理员用户登录
+	 * 管理员-用户密码登录
 	 * @param response 	response
 	 * @param request 	request
 	 * @param lphone 	登录手机号
@@ -20,8 +20,8 @@ public interface SysUserService extends BaseService<SysUser, Long> {
 	 * @param remberMe 	记住账号
 	 * @return map{ code: 结果状态码, msg: 结果状态码说明, uuid: 登录uuid }
 	 */
-	public Map<String, Object> subBackLogin(HttpServletResponse response, HttpServletRequest request, String lphone,
-		String lpass, String imgCode, String remberMe);
+	public Map<String, Object> passLogin(HttpServletResponse response, HttpServletRequest request, 
+		String lphone, String lpass, String imgCode, String remberMe);
 
 	/**
 	 * 获取-管理员登录用户信息
@@ -37,5 +37,7 @@ public interface SysUserService extends BaseService<SysUser, Long> {
 	 * @return 用户对象
 	 */
 	public SysUser findByUname(String uname);
+
+	
 	
 }

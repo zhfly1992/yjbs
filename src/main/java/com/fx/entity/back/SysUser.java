@@ -39,6 +39,13 @@ public class SysUser implements Serializable {
 	@Column(name="role", nullable=false, columnDefinition="varchar(20) COMMENT '管理员角色'")
 	private AdminRole role;
 
+	/** 昵称 */
+	@Column(name="nick_name", columnDefinition="varchar(30) COMMENT '昵称'")
+	private String nickName;
+	
+	/** 用户头像url */
+	@Column(name="head_img", columnDefinition="varchar(200) COMMENT '用户头像url'")
+	private String headImg;
 	
 	/**  
 	 * 获取 唯一id自增长主键  
@@ -86,6 +93,38 @@ public class SysUser implements Serializable {
 	 */
 	public void setRole(AdminRole role) {
 		this.role = role;
+	}
+	
+	/**  
+	 * 获取 昵称  
+	 * @return nickName
+	 */
+	public String getNickName() {
+		return nickName;
+	}
+
+	/**  
+	 * 设置 昵称  
+	 * @param nickName
+	 */
+	public void setNickName(String nickName) {
+		this.nickName = nickName;
+	}
+
+	/**  
+	 * 获取 用户头像url  
+	 * @return headImg
+	 */
+	public String getHeadImg() {
+		return headImg;
+	}
+
+	/**  
+	 * 设置 用户头像url  
+	 * @param headImg
+	 */
+	public void setHeadImg(String headImg) {
+		this.headImg = headImg;
 	}
 
 	/**  

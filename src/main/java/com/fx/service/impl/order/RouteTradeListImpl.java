@@ -475,7 +475,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 				// 添加员工记账记录
 				StaffReimburse sr = new StaffReimburse();
 				sr.setUnitNum(lunitNum);
-				sr.setReimUserId(lbuser);
+				sr.setReimUser(lbuser);
 				sr.setDeptId(driver.getDeptId());
 				sr.setRemark(rtl == null ? remark : rtl.getRemark());
 				sr.setPayMoney(routePay);
@@ -484,7 +484,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 				sr.setCarOrderReim(order);
 				sr.setOrderTrade(rtl == null ? null : rtl);
 				sr.setMainOrderReim(mainOrder);
-				sr.setDat(rtl == null ? null : lunitNum+"="+luname+"="+rtl.getId());
+//				sr.setDat(rtl == null ? null : lunitNum+"="+luname+"="+rtl.getId());
 				sr.setReqsrc(reqsrc);
 				sr.setOperNote(Util.getOperInfo(lbuser.getRealName(), "添加"));
 				sr.setAddTime(new Date());
@@ -914,7 +914,7 @@ public class RouteTradeListImpl extends BaseServiceImpl<RouteTradeList, Long> im
 				sr.setIsCheck(0);
 				sr.setOperNote(sr.getOperNote()+Util.getOperInfo(lbuser.getRealName(), "修改"));
 				sr.setAddTime(new Date());
-				sr.setDat(rtl == null ? null : lunitNum+"="+luname+"="+rtl.getId());
+//				sr.setDat(rtl == null ? null : lunitNum+"="+luname+"="+rtl.getId());
 				staffReimburseDao.update(sr);
 				U.log(log, "修改-员工报账记录-完成");
 				

@@ -1,6 +1,7 @@
 package com.fx.commons.utils.tools;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.ArrayList;
@@ -200,15 +201,36 @@ public class U {
 	}
 	
 	/**
-	 * 获取-json对象中的参数值
-	 * @param json json对象
-	 * @param name 参数名
+	 * 写入json对象至前端
+	 * @param request 	request
+	 * @param response 	response
+	 * @param code 		结果状态码
+	 * @param msg 		结果状态码说明
 	 */
-	public static String P(JSONObject json, String name) {
+	public static void write(HttpServletRequest request, HttpServletResponse response, int code, String msg) {
+		try {
+			// 这里是个坑，如果不设置的接受的访问源，那么前端都会报跨域错误，因为这里还没到corsConfig里面
+			response.setHeader("Access-Control-Allow-Origin", ((HttpServletRequest) request).getHeader("Origin"));
+			response.setHeader("Access-Control-Allow-Credentials", "true");
+			response.setCharacterEncoding("UTF-8");
+			response.setContentType("application/json");
+			
+			response.getWriter().write(JSONObject.toJSON(new Message(code, msg)).toString());
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * 获取-json对象中的参数值
+	 * @param ps 	json参数对象
+	 * @param name 	参数名
+	 */
+	public static String P(JSONObject ps, String name) {
 		String str = "";
 		
 		try {
-			str = json.getString(name);
+			str = ps.getString(name);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

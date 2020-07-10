@@ -28,7 +28,7 @@ public class EtcListDao extends ZBaseDaoImpl<EtcList, Long> {
 	
 	public Page<EtcList> findEtcList(ReqSrc reqsrc, String page, String rows,String unitNum, 
 			String orderNum, String sTime, String eTime,
-			String plateNum,String driverUname,String cardNo,String operMark) {
+			String plateNum,String driverName,String cardNo,String operMark) {
 		String logtxt = U.log(log, "获取-单位ETC数据-分页列表", reqsrc);
 		Page<EtcList> pd = new Page<EtcList>();
 		List<Compositor> comps = new ArrayList<Compositor>();
@@ -37,6 +37,11 @@ public class EtcListDao extends ZBaseDaoImpl<EtcList, Long> {
 			if(ReqSrc.PC_BACK != reqsrc && ReqSrc.PC_COMPANY != reqsrc) {// 没有查询出数据
 				filts.add(new Filtration(MatchType.EQ, null, "unitNum"));
 			}else {
+				//设置别名
+				List<String> alias = new ArrayList<String>();
+				alias.add("etcDriver");
+				pd.setAlias(alias);
+				
 				comps.add(new Compositor("id", CompositorType.DESC));
 				////////////////////////查询条件-s//////////////////////////
 				filts.add(new Filtration(MatchType.EQ, unitNum,"unitNum"));//当前单位
@@ -46,8 +51,8 @@ public class EtcListDao extends ZBaseDaoImpl<EtcList, Long> {
 				if(StringUtils.isNotEmpty(plateNum)){
 					filts.add(new Filtration(MatchType.LIKE, plateNum, "plateNum"));//车牌号
 				}
-				if(StringUtils.isNotEmpty(driverUname)){
-					filts.add(new Filtration(MatchType.EQ, driverUname, "etcDriver.uname"));//驾驶员
+				if(StringUtils.isNotEmpty(driverName)){
+					filts.add(new Filtration(MatchType.EQ, driverName, "etcDriver.phone","etcDriver.realName"));//驾驶员
 				}
 				if(StringUtils.isNotEmpty(cardNo)){
 					filts.add(new Filtration(MatchType.IN, cardNo.split(","), "cardNo"));//卡号

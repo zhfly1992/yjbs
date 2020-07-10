@@ -36,6 +36,7 @@ import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.commons.utils.tools.UT;
 import com.fx.dao.company.CompanyCustomDao;
+import com.fx.dao.company.StaffDao;
 import com.fx.dao.finance.FeeCourseDao;
 import com.fx.dao.finance.ReimburseListDao;
 import com.fx.dao.order.CarOrderDao;
@@ -77,6 +78,9 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 	/** 凭证-服务 */
 	@Autowired
 	private ReimburseListDao			reimDao;
+	/** 单位员工-服务 */
+	@Autowired
+	private StaffDao staffDao;
 
 
 
@@ -119,9 +123,10 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 					fg = U.setPutFalse(map, 0, "获取单位编号失败");
 				}
 			}
-			OrderPayStatus payStatus = null;
+			//订单支付状态
+			String payStatus = null;
 			if (!StringUtils.isBlank(jsonObject.getString("orderPayStatus"))) {
-				payStatus = OrderPayStatus.valueOf(jsonObject.getString("orderPayStatus"));
+				payStatus = jsonObject.getString("orderPayStatus");
 			}
 
 			// 订单来源
@@ -675,11 +680,12 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 			String page = jsonObject.getString("page");
 			String rows = jsonObject.getString("rows");
 
-			// 订单支付状态
-			OrderPayStatus payStatus = null;
-			if (!StringUtils.isBlank(jsonObject.getString("payStatus"))) {
-				payStatus = OrderPayStatus.valueOf(jsonObject.getString("payStatus"));
+			//订单支付状态
+			String payStatus = null;
+			if (!StringUtils.isBlank(jsonObject.getString("orderPayStatus"))) {
+				payStatus = jsonObject.getString("orderPayStatus");
 			}
+
 			// 开始时间
 			String startTime = jsonObject.getString("startTime");
 			// 结束时间
@@ -828,14 +834,22 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 					U.log(log, "[查询数据类型] datType=" + datType);
 				}
 			}
+			
+			Staff driver = null;// 当前登录驾驶员
+			if(fg) {
+				driver = staffDao.getTeamDriver(lunitNum, luname);
+				if(driver == null) {
+					fg = U.setPutFalse(map, "当前单位不存在此员工");
+				}
+			}
 
 			List<Object> mons = new ArrayList<Object>(); // 存储主订单编号
 			List<CarOrder> cols = new ArrayList<CarOrder>(); // 存储主订单下面的所有子订单
 			if (fg) {
 				// 1.根据驾驶员用户名匹配派单车辆主、副驾驶员账号，获取订单编号数组
 				List<String> ons = new ArrayList<String>();
-				hql = "select new DisCarInfo(orderNum) from DisCarInfo where main_driver.uname = ?0 order by id asc";
-				List<DisCarInfo> dcis = disCarInfoDao.findhqlList(hql, luname);
+				hql = "select new DisCarInfo(orderNum) from DisCarInfo where main_driver.id = ?0 order by id asc";
+				List<DisCarInfo> dcis = disCarInfoDao.findhqlList(hql, driver.getId());
 				if (dcis.size() == 0) {
 					U.setPageData(map, mons);// 设置为空列表
 					fg = U.setPutFalse(map, 1, "未获取到主行程数据");
@@ -905,8 +919,8 @@ public class MainCarOrderServiceImpl extends BaseServiceImpl<MainCarOrder, Long>
 							o.put("id", dci.getId()); // 派单车辆id
 							o.put("stime", dci.getMainDriverStime()); // 主驾开始时间
 							o.put("plateNum", dci.getPlateNum()); // 派单车辆车牌号
-							o.put("name", dci.getMain_driver().getRealName()); // 派单车辆主驾驶员姓名
-							o.put("phone", dci.getMain_driver().getPhone()); // 派单车辆主驾驶员手机号
+							o.put("name", dci.getMain_driver().getBaseUserId().getRealName()); // 派单车辆主驾驶员姓名
+							o.put("phone", dci.getMain_driver().getBaseUserId().getPhone()); // 派单车辆主驾驶员手机号
 							disCars.add(o);
 						}
 					}

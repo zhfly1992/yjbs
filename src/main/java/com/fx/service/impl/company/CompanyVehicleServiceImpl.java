@@ -56,9 +56,11 @@ import com.fx.commons.utils.tools.QC;
 import com.fx.commons.utils.tools.U;
 import com.fx.dao.company.CompanyVehicleDao;
 import com.fx.dao.company.PublicDataSetDao;
+import com.fx.dao.company.StaffDao;
 import com.fx.dao.order.CarOrderDao;
 import com.fx.entity.company.CompanyVehicle;
 import com.fx.entity.company.PublicDataSet;
+import com.fx.entity.company.Staff;
 import com.fx.entity.cus.BaseUser;
 import com.fx.entity.order.CarOrder;
 import com.fx.service.company.CompanyVehicleService;
@@ -84,6 +86,9 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 	/**行程订单-服务**/
 	@Autowired
 	private CarOrderDao	coDao;
+	/**员工-服务**/
+	@Autowired
+	private StaffDao staffDao;
 	
 
 
@@ -346,32 +351,30 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 		try {
 			long id = jsonObject.getLongValue("id");
 			String uname = jsonObject.getString("uname");
-
-			Map<String, Object> map2 = new HashMap<>();
-			map2.put("id", id);
-			map2.put("uname", uname);
-			int res = companyVehicleDao.batchExecute("update CompanyVehicle set baseUserId.uname = :uname where id = :id", map2);
-			// boolean setDriver = companyVehicleDao.setDriver(reqsrc,id,
-			// uname);
-			// if (setDriver) {
-			// U.setPut(map, 0, "设置成功");
-			// } else {
-			// U.setPut(map, 1, "设置失败");
-			// }
-			if (res != 0) {
-				U.log(log, "设置-车辆主驾驶员成功");
-				U.setPut(map, 1, "设置成功");
+			
+			CompanyVehicle companyVehicle = companyVehicleDao.findByField("id", id);
+			Staff staff = staffDao.findByField("baseUserId.uname", uname);
+	
+			if (companyVehicle == null) {
+				U.logFalse(log, "设置-车辆主驾驶员失败，车辆信息查找失败");
+				U.setPutFalse(map, 0, "设置失败,请确认传入车辆id");
+				return map;
 			}
-			else{
-				U.logFalse(log, "设置-车辆主驾驶员失败");
-				U.setPutFalse(map, 0, "设置失败");
+			if (staff == null) {
+				U.logFalse(log, "设置-车辆主驾驶员失败，驾驶员信息查找失败");
+				U.setPutFalse(map, 0, "设置失败,请确认传入驾驶员信息");
+				return map;
 			}
-
+			companyVehicle.setStaff(staff);
+			companyVehicleDao.update(companyVehicle);
+			U.log(log, "设置-车辆主驾驶员成功");
+			U.setPut(map, 1, "设置成功");
+			return map;
 		} catch (Exception e) {
 			U.setPutEx(map, log, e, logtxt);
 			e.printStackTrace();
+			return map;
 		}
-		return map;
 	}
 
 
@@ -554,8 +557,14 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 		Date lastTime=null;
 		long haveNextBest=0;//有下一程最优值
 		long noneNextBest=0;//无下一程最优值
+		String stayPosition="";
 		for (CompanyVehicle each:vehicles) {
-			lestCount=getSecondsDistanceSub(hql, lastTime, each.getPlateNumber(),each.getDockedLongitude()+","+each.getDockedLatitude(),
+			if(each.getStaff()!=null) {//默认以驾驶员的地址为准
+				stayPosition=each.getStaff().getLongitude()+","+each.getStaff().getLatitude();
+			}else {
+				stayPosition=each.getDockedLongitude()+","+each.getDockedLatitude();
+			}
+			lestCount=getSecondsDistanceSub(hql, lastTime, each.getPlateNumber(),stayPosition,
 					ustime,uetime, usLonLat,ueLonLat, "", null,avgSpeed, 1,0,"",sendModel).split("/");
 			if(Long.valueOf(lestCount[0])>0){//车辆符合接单
 				Map<String, Object> fmap = new HashMap<String, Object>();
@@ -821,8 +830,13 @@ public class CompanyVehicleServiceImpl extends BaseServiceImpl<CompanyVehicle, L
 			}
 			else {
 				List<String> plates=new ArrayList<String>();
-				String hql="select new CompanyVehicle(plateNumber) from CompanyVehicle where unitNum=?0 and status=?1";
-				List<CompanyVehicle> companyVehicleList = companyVehicleDao.findhqlList(hql, unitNum,Integer.parseInt(status));
+				String [] zts=status.split(",");
+				Integer [] arr= new Integer[zts.length];
+				for (int i = 0; i < zts.length; i++) {
+					arr[i]=Integer.parseInt(zts[i]);
+				}
+				String hql="select new CompanyVehicle(plateNumber) from CompanyVehicle where unitNum=:v0 and status in (:v1)";
+				List<CompanyVehicle> companyVehicleList = companyVehicleDao.findListIns(hql, unitNum,arr);
 				for (CompanyVehicle each : companyVehicleList) {
 					plates.add(each.getPlateNumber());
 				}

@@ -8,6 +8,8 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.OneToOne;
 import javax.persistence.Table;
 import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
@@ -62,6 +64,12 @@ public class BankList implements Serializable{
 	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="add_time", nullable=false, columnDefinition="datetime COMMENT '添加时间'")
 	private Date addTime;
+	
+	/** 关联科目id */
+	@OneToOne(targetEntity = FeeCourse.class)
+	@JoinColumn(name="fee_course_id", referencedColumnName="id", columnDefinition="varchar(30) COMMENT '关联科目id'")
+	private FeeCourse feeCourseId;
+	
 	/**  
 	 * 获取 id  
 	 * @return id
@@ -190,6 +198,24 @@ public class BankList implements Serializable{
 	public void setOperNote(String operNote) {
 		this.operNote = operNote;
 	}
+
+	/**  
+	 * 获取 关联科目id  
+	 * @return feeCourseId
+	 */
+	public FeeCourse getFeeCourseId() {
+		return feeCourseId;
+	}
+	
+
+	/**  
+	 * 设置 关联科目id  
+	 * @param feeCourseId
+	 */
+	public void setFeeCourseId(FeeCourse feeCourseId) {
+		this.feeCourseId = feeCourseId;
+	}
+	
 	
 	
 	

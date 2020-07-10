@@ -59,8 +59,8 @@ public class StaffReimburseDao extends ZBaseDaoImpl<StaffReimburse, Long> {
 	 * @param eTime 结束时间
 	 * @return Page<T> 分页数据
 	 */
-	public Page<StaffReimburse> findStaffReimburse(ReqSrc reqsrc, String page, String rows, String unitNum, String uname,
-			String deptId,String remark,String money,String isCheck,String addMark,String sTime,String eTime) {
+	public Page<StaffReimburse> findStaffReimburse(ReqSrc reqsrc, String page, String rows, String unitNum, String uname,String plateNum,
+			String deptId,String remark,String money,String isCheck,String voucherNo,String operMark,String sTime,String eTime) {
 		String logtxt = U.log(log, "获取-员工报账-分页列表", reqsrc);
 
 		Page<StaffReimburse> pd = new Page<StaffReimburse>();
@@ -76,6 +76,9 @@ public class StaffReimburseDao extends ZBaseDaoImpl<StaffReimburse, Long> {
 				if (StringUtils.isNotBlank(uname)) {
 					filts.add(new Filtration(MatchType.EQ, uname, "reimUserId.uname"));
 				}
+				if (StringUtils.isNotBlank(plateNum)) {
+					filts.add(new Filtration(MatchType.EQ, uname, "plateNum"));
+				}
 				if (StringUtils.isNotBlank(deptId)) {
 					filts.add(new Filtration(MatchType.EQ, deptId, "deptId.id"));
 				}
@@ -87,9 +90,14 @@ public class StaffReimburseDao extends ZBaseDaoImpl<StaffReimburse, Long> {
 				}
 				if (StringUtils.isNotBlank(isCheck)) {
 					filts.add(new Filtration(MatchType.EQ, Integer.parseInt(isCheck), "isCheck"));
+				}else {//默认加载未审核数据
+					filts.add(new Filtration(MatchType.EQ, 0, "isCheck"));
 				}
-				if (StringUtils.isNotBlank(addMark)) {
-					filts.add(new Filtration(MatchType.EQ, addMark, "addMark"));
+				if (StringUtils.isNotBlank(voucherNo)) {
+					filts.add(new Filtration(MatchType.EQ, voucherNo, "voucherNo"));
+				}
+				if (StringUtils.isNotBlank(operMark)) {
+					filts.add(new Filtration(MatchType.EQ, operMark, "operMark"));
 				}
 				if(StringUtils.isNotEmpty(sTime) && StringUtils.isNotEmpty(eTime)){ //时间
 					filts.add(new Filtration(MatchType.GE,DateUtils.strToDate("yyyy-MM-dd",sTime),"addTime"));
